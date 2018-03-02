@@ -121,7 +121,7 @@ class WaiversResource(Resource):
                         raise BadRequest("'results' parameter should be a list \
                                           of dictionaries with subject and testcase")
                 if d.get('testcase', None):
-                    if not isinstance(d.get('testcase', None), basestring):
+                    if not isinstance(d.get('testcase', None), str):
                         raise BadRequest("'results' parameter should be a list \
                                       of dictionaries with subject and testcase")
             query = Waiver.by_results(query, results)
@@ -374,7 +374,7 @@ class GetWaiversBySubjectsAndTestcases(Resource):
                         raise BadRequest("'results' parameter should be a list \
                                           of dictionaries with subject and testcase")
                 if d.get('testcase', None):
-                    if not isinstance(d.get('testcase', None), basestring):
+                    if not isinstance(d.get('testcase', None), str):
                         raise BadRequest("'results' parameter should be a list \
                                           of dictionaries with subject and testcase")
             query = Waiver.by_results(query, data['results'])

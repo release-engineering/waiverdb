@@ -9,31 +9,28 @@ License:        GPLv2+
 URL:            https://pagure.io/waiverdb
 Source0:        https://files.pythonhosted.org/packages/source/w/%{name}/%{name}-%{upstream_version}.tar.gz
 
-BuildRequires:  python2-devel
 %if 0%{?fedora} || 0%{?rhel} > 7
-BuildRequires:  python2-setuptools
-BuildRequires:  python2-sphinx
-BuildRequires:  python-sphinxcontrib-httpdomain
-BuildRequires:  python-sphinxcontrib-issuetracker
-BuildRequires:  python2-flask
-%if 0%{?fedora} > 25
-BuildRequires:  python2-sqlalchemy
-%else
-BuildRequires:  python-sqlalchemy
-%endif
-BuildRequires:  python2-flask-restful
-BuildRequires:  python2-flask-sqlalchemy
-BuildRequires:  python2-psycopg2
-BuildRequires:  python2-kerberos
-BuildRequires:  python2-systemd
-BuildRequires:  python2-pytest
-BuildRequires:  python2-mock
-BuildRequires:  python2-flask-oidc
-BuildRequires:  python2-configparser
-BuildRequires:  python2-click
-BuildRequires:  python2-flask-migrate
-BuildRequires:  stomppy
-%else # EPEL7 uses python- naming
+BuildRequires:  python3-devel
+BuildRequires:  python3-setuptools
+BuildRequires:  python3-sphinx
+BuildRequires:  python3-sphinxcontrib-httpdomain
+BuildRequires:  python3-sphinxcontrib-issuetracker
+BuildRequires:  python3-flask
+BuildRequires:  python3-sqlalchemy
+BuildRequires:  python3-flask-restful
+BuildRequires:  python3-flask-sqlalchemy
+BuildRequires:  python3-psycopg2
+BuildRequires:  python3-kerberos
+BuildRequires:  python3-systemd
+BuildRequires:  python3-pytest
+BuildRequires:  python3-mock
+BuildRequires:  python3-flask-oidc
+BuildRequires:  python3-click
+BuildRequires:  python3-flask-migrate
+BuildRequires:  python3-stomppy
+BuildRequires:  python3-fedmsg
+%else # EPEL7 uses Python 2 and python- package naming convention
+BuildRequires:  python2-devel
 BuildRequires:  python-setuptools
 BuildRequires:  python-flask
 BuildRequires:  python-sqlalchemy
@@ -49,29 +46,25 @@ BuildRequires:  python-click
 BuildRequires:  python-configparser
 BuildRequires:  python-flask-migrate
 BuildRequires:  stomppy
-%endif
 BuildRequires:  fedmsg
+%endif
 %{?systemd_requires}
 BuildRequires:  systemd
 BuildArch:      noarch
 %if 0%{?fedora} || 0%{?rhel} > 7
-Requires:       python2-flask
-%if 0%{?fedora} > 25
-Requires:       python2-sqlalchemy
-%else
-Requires:       python-sqlalchemy
-%endif
-Requires:       python2-flask-restful
-Requires:       python2-flask-sqlalchemy
-Requires:       python2-psycopg2
-Requires:       python2-kerberos
-Requires:       python2-systemd
-Requires:       python2-mock
-Requires:       python2-flask-oidc
-Requires:       python2-click
-Requires:       python2-configparser
-Requires:       python2-flask-migrate
-Requires:       stomppy
+Requires:       python3-flask
+Requires:       python3-sqlalchemy
+Requires:       python3-flask-restful
+Requires:       python3-flask-sqlalchemy
+Requires:       python3-psycopg2
+Requires:       python3-kerberos
+Requires:       python3-systemd
+Requires:       python3-mock
+Requires:       python3-flask-oidc
+Requires:       python3-click
+Requires:       python3-flask-migrate
+Requires:       python3-stomppy
+Requires:       python3-fedmsg
 %else
 Requires:       python-flask
 Requires:       python-sqlalchemy
@@ -86,8 +79,8 @@ Requires:       python-click
 Requires:       python-configparser
 Requires:       python-flask-migrate
 Requires:       stomppy
-%endif
 Requires:       fedmsg
+%endif
 
 Requires:       waiverdb-common = %{version}-%{release}
 
@@ -105,9 +98,8 @@ for other WaiverDB subpackages.
 %package cli
 Summary: A CLI tool for interacting with waiverdb
 %if 0%{?fedora} || 0%{?rhel} > 7
-BuildRequires:  python2-click
-Requires:       python2-click
-Requires:       python2-configparser
+BuildRequires:  python3-click
+Requires:       python3-click
 %else
 BuildRequires:  python-click
 Requires:       python-click
@@ -128,13 +120,19 @@ Primarily, submitting new waiverdbs.
 sed -i 's/\.stg\.fedoraproject\.org/.fedoraproject.org/g' conf/client.conf.example
 
 %build
+%if 0%{?fedora} || 0%{?rhel} > 7
+%py3_build
+make -C docs SPHINXBUILD=sphinx-build-3 SPHINXOPTS= html text
+%else
 %py2_build
-%if 0%{?fedora}
-make -C docs SPHINXOPTS= html text
 %endif
 
 %install
+%if 0%{?fedora} || 0%{?rhel} > 7
+%py3_install
+%else
 %py2_install
+%endif
 install -d %{buildroot}%{_unitdir}
 install -m0644 \
     systemd/%{name}.service \
@@ -148,12 +146,17 @@ install -m0644 \
 
 # Tests don't make sense here now that we require postgres to run them.
 #%%check
-#export PYTHONPATH=%%{buildroot}/%%{python2_sitelib}
-#py.test tests/
+#export PYTHONPATH=%%{buildroot}/%%{python3_sitelib}
+#py.test-3 tests/
 
 %files
+%if 0%{?fedora} || 0%{?rhel} > 7
+%{python3_sitelib}/%{name}
+%{python3_sitelib}/%{name}*.egg-info
+%else
 %{python2_sitelib}/%{name}
 %{python2_sitelib}/%{name}*.egg-info
+%endif
 %{_unitdir}/%{name}.service
 %{_unitdir}/%{name}.socket
 %attr(755,root,root) %{_bindir}/waiverdb
@@ -161,15 +164,22 @@ install -m0644 \
 %files common
 %license COPYING
 %doc README.md conf
-%if 0%{?fedora}
+%if 0%{?fedora} || 0%{?rhel} > 7
 %doc docs/_build/html docs/_build/text
-%endif
+%{python3_sitelib}/%{name}/__init__.py*
+%{python3_sitelib}/%{name}*.egg-info
+%else
 %{python2_sitelib}/%{name}/__init__.py*
 %{python2_sitelib}/%{name}*.egg-info
+%endif
 
 %files cli
 %license COPYING
+%if 0%{?fedora} || 0%{?rhel} > 7
+%{python3_sitelib}/%{name}/cli.py*
+%else
 %{python2_sitelib}/%{name}/cli.py*
+%endif
 %attr(755,root,root) %{_bindir}/waiverdb-cli
 %config(noreplace) %{_sysconfdir}/waiverdb/client.conf
 

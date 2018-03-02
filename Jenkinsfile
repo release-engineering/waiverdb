@@ -8,14 +8,14 @@ try { // massive try{} catch{} around the entire build for failure notifications
 node('fedora') {
     checkout scm
     sh 'sudo dnf -y builddep waiverdb.spec'
-    sh 'sudo dnf -y install python2-flake8 python2-pylint python2-sphinx python-sphinxcontrib-httpdomain'
+    sh 'sudo dnf -y install python3-flake8 python3-pylint python3-sphinx python3-sphinxcontrib-httpdomain'
     /* Needed for mock EPEL7 builds: https://bugzilla.redhat.com/show_bug.cgi?id=1528272 */
     sh 'sudo dnf -y install dnf-utils'
     stage('Invoke Flake8') {
         sh 'flake8'
     }
     stage('Invoke Pylint') {
-        sh 'pylint-2 --reports=n waiverdb'
+        sh 'pylint-3 --reports=n waiverdb'
     }
     stage('Build Docs') {
         sh 'make -C docs html'
@@ -126,7 +126,7 @@ node('docker') {
     }
 }
 node('fedora') {
-    sh 'sudo dnf -y install /usr/bin/py.test'
+    sh 'sudo dnf -y install /usr/bin/py.test-3'
     checkout scm
     stage('Perform functional tests') {
         unarchive mapping: ['appversion': 'appversion']
@@ -167,7 +167,7 @@ node('fedora') {
                         echo "Wrote CA certificate chain to ${env.WORKSPACE}/ca-chain.crt"
                         withEnv(["WAIVERDB_TEST_URL=https://${route_hostname}/",
                                  "REQUESTS_CA_BUNDLE=${env.WORKSPACE}/ca-chain.crt"]) {
-                            sh 'py.test functional-tests/'
+                            sh 'py.test-3 functional-tests/'
                         }
                     } finally {
                         /* Tear down everything we just created */

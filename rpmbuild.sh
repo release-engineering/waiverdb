@@ -58,7 +58,7 @@ if [ -n "$rpmrel" ] ; then
         -e "/^__version__ = /c\\__version__ = '$version'" \
         "$workdir/waiverdb/__init__.py"
 fi
-( cd "$workdir" && python setup.py sdist )
+( cd "$workdir" && python3 setup.py sdist )
 mv "$workdir"/dist/*.tar.gz "$workdir"
 
 rpmbuild \

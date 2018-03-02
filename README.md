@@ -28,11 +28,11 @@ Create a local configuration file:
 
 Populate the database:
 
-    $ PYTHONPATH=. DEV=true python waiverdb/manage.py db upgrade
+    $ PYTHONPATH=. DEV=true python3 waiverdb/manage.py db upgrade
 
 Run the server:
 
-    $ PYTHONPATH=. DEV=true python waiverdb/manage.py run -h localhost -p 5004 --debugger
+    $ PYTHONPATH=. DEV=true python3 waiverdb/manage.py run -h localhost -p 5004 --debugger
 
 The server is now running at <http://localhost:5004> and API calls can be sent to
 <http://localhost:5004/api/v1.0>. All data is stored in the `waiverdb` Postgres 
@@ -50,7 +50,7 @@ values in `waiverdb/config.py`.
 
 You can run this test suite with the following command::
 
-    $ py.test tests/
+    $ py.test-3 tests/
 
 The test suite will drop and re-create a Postgres database named 
 `waiverdb_test`. By default, it expects to have superuser access to Postgres on 

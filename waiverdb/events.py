@@ -8,7 +8,6 @@ using the :func:`sqlalchemy.event.listen` function.
 .. _SQLALchemy events:
     https://docs.sqlalchemy.org/en/latest/orm/events.html
 """
-from __future__ import unicode_literals
 
 import logging
 
