@@ -7,15 +7,31 @@ try { // massive try{} catch{} around the entire build for failure notifications
 
 node('fedora') {
     checkout scm
-    sh 'sudo dnf -y builddep waiverdb.spec'
-    sh 'sudo dnf -y install python3-flake8 python3-pylint python3-sphinx python3-sphinxcontrib-httpdomain'
-    /* Needed for mock EPEL7 builds: https://bugzilla.redhat.com/show_bug.cgi?id=1528272 */
-    sh 'sudo dnf -y install dnf-utils'
+    stage('Prepare') {
+        sh 'sudo dnf -y builddep waiverdb.spec'
+        sh 'sudo dnf -y install python3-flake8 python3-pylint python3-pytest python3-sphinx python3-sphinxcontrib-httpdomain'
+        /* Needed for mock EPEL7 builds: https://bugzilla.redhat.com/show_bug.cgi?id=1528272 */
+        sh 'sudo dnf -y install dnf-utils'
+        /* Unit tests need local Postgres */
+        sh """
+        sudo dnf -y install postgresql-server
+        sudo postgresql-setup --initdb
+        sudo systemctl enable --now postgresql
+        sudo -u postgres createuser --superuser $USER
+        """
+    }
     stage('Invoke Flake8') {
         sh 'flake8'
     }
     stage('Invoke Pylint') {
         sh 'pylint-3 --reports=n waiverdb'
+    }
+    stage('Run unit tests') {
+        sh """
+        createdb waiverdb
+        cp conf/settings.py.example conf/settings.py
+        py.test-3 -v tests/
+        """
     }
     stage('Build Docs') {
         sh 'make -C docs html'
