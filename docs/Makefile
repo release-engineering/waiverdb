@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    = -W
-SPHINXBUILD   = sphinx-build
+SPHINXBUILD   = sphinx-build-3
 SPHINXPROJ    = WaiverDB
 SOURCEDIR     = .
 BUILDDIR      = _build

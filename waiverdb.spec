@@ -122,7 +122,7 @@ sed -i 's/\.stg\.fedoraproject\.org/.fedoraproject.org/g' conf/client.conf.examp
 %build
 %if 0%{?fedora} || 0%{?rhel} > 7
 %py3_build
-make -C docs SPHINXBUILD=sphinx-build-3 SPHINXOPTS= html text
+make -C docs SPHINXOPTS= html text
 %else
 %py2_build
 %endif
