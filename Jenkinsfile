@@ -30,8 +30,9 @@ node('fedora') {
         sh """
         createdb waiverdb
         cp conf/settings.py.example conf/settings.py
-        py.test-3 -v tests/
+        py.test-3 -v --junitxml=junit-tests.xml tests/
         """
+        junit 'junit-tests.xml'
     }
     stage('Build Docs') {
         sh 'make -C docs html'
@@ -183,8 +184,9 @@ node('fedora') {
                         echo "Wrote CA certificate chain to ${env.WORKSPACE}/ca-chain.crt"
                         withEnv(["WAIVERDB_TEST_URL=https://${route_hostname}/",
                                  "REQUESTS_CA_BUNDLE=${env.WORKSPACE}/ca-chain.crt"]) {
-                            sh 'py.test-3 functional-tests/'
+                            sh 'py.test-3 -v --junitxml=junit-functional-tests.xml functional-tests/'
                         }
+                        junit 'junit-functional-tests.xml'
                     } finally {
                         /* Tear down everything we just created */
                         openshift.selector('dc,deploy,configmap,secret,svc,route',
