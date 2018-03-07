@@ -6,6 +6,7 @@ import urllib.parse
 from flask import Flask
 from flask_migrate import Migrate
 from sqlalchemy import event
+import requests
 
 from waiverdb.events import publish_new_waiver
 from waiverdb.logger import init_logging
@@ -14,7 +15,6 @@ from waiverdb.models import db
 from waiverdb.utils import json_error
 from flask_oidc import OpenIDConnect
 from werkzeug.exceptions import default_exceptions
-from requests import ConnectionError, Timeout
 
 
 def load_config(app):
@@ -67,8 +67,8 @@ def create_app(config_obj=None):
     # register error handlers
     for code in default_exceptions.keys():
         app.register_error_handler(code, json_error)
-    app.register_error_handler(ConnectionError, json_error)
-    app.register_error_handler(Timeout, json_error)
+    app.register_error_handler(requests.ConnectionError, json_error)
+    app.register_error_handler(requests.Timeout, json_error)
 
     populate_db_config(app)
     if app.config['AUTH_METHOD'] == 'OIDC':
