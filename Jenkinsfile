@@ -104,7 +104,7 @@ node('docker') {
         def waiverdb_common = findFiles(glob: 'mock-result/f26/**/waiverdb-common-*.noarch.rpm')[0]
         def appversion = sh(returnStdout: true, script: """
             rpm2cpio ${f26_rpm} | \
-            cpio --quiet --extract --to-stdout ./usr/lib/python2.7/site-packages/waiverdb\\*.egg-info/PKG-INFO | \
+            cpio --quiet --extract --to-stdout ./usr/lib/python\\*/site-packages/waiverdb\\*.egg-info/PKG-INFO | \
             awk '/^Version: / {print \$2}'
         """).trim()
         /* Git builds will have a version like 0.3.2.dev1+git.3abbb08 following
