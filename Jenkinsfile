@@ -148,8 +148,8 @@ node('fedora') {
     stage('Perform functional tests') {
         unarchive mapping: ['appversion': 'appversion']
         def appversion = readFile('appversion').trim()
-        openshift.withCluster('f2ocp') {
-            openshift.doAs('f2ocp-waiverdb-test-jenkins-credentials') {
+        openshift.withCluster('Upshift') {
+            openshift.doAs('upshift-waiverdb-test-jenkins-credentials') {
                 openshift.withProject('waiverdb-test') {
                     def template = readYaml file: 'openshift/waiverdb-test-template.yaml'
                     def models = openshift.process(template,
