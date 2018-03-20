@@ -1,7 +1,11 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import os
-import urllib.parse
+
+try:
+    from urllib.parse import urlparse, urlunsplit
+except ImportError:
+    from urlparse import urlparse, urlunsplit
 
 from flask import Flask
 from flask_migrate import Migrate
@@ -41,13 +45,13 @@ def populate_db_config(app):
     # the SQLALCHEMY_DATABASE_URI setting which is obeyed by Flask-SQLAlchemy.
     dburi = app.config['DATABASE_URI']
     if os.environ.get('DATABASE_PASSWORD'):
-        parsed = urllib.parse.urlparse(dburi)
+        parsed = urlparse(dburi)
         netloc = '{}:{}@{}'.format(parsed.username,
                                    os.environ['DATABASE_PASSWORD'],
                                    parsed.hostname)
         if parsed.port:
             netloc += ':{}'.format(parsed.port)
-        dburi = urllib.parse.urlunsplit(
+        dburi = urlunsplit(
             (parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
     if app.config['SHOW_DB_URI']:
         app.logger.debug('using DBURI: %s', dburi)
