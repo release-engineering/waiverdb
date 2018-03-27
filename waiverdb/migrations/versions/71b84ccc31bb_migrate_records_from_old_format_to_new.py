@@ -11,12 +11,14 @@ revision = '71b84ccc31bb'
 down_revision = 'f2772c2c64a6'
 
 from alembic import op
-import sqlalchemy as sa
+# These are the "lightweight" SQL expression versions (not using metadata):
+from sqlalchemy.sql.expression import table, column, select, update
+from sqlalchemy.sql.sqltypes import Integer, Text
 
+import json
 import requests
 
 from waiverdb.api_v1 import get_resultsdb_result
-from waiverdb.models import Waiver
 
 
 def convert_id_to_subject_and_testcase(result_id):
@@ -24,11 +26,11 @@ def convert_id_to_subject_and_testcase(result_id):
         result = get_resultsdb_result(result_id)
     except requests.HTTPError as e:
         if e.response.status_code == 404:
-            raise RuntimeError('Result id %s not found in Resultsdb' % (result_id))
+            raise RuntimeError('Result id %s not found in Resultsdb' % (result_id)) from e
         else:
-            raise RuntimeError('Failed looking up result in Resultsdb: %s' % e)
+            raise RuntimeError('Failed looking up result in Resultsdb') from e
     except Exception as e:
-        raise RuntimeError('Failed looking up result in Resultsdb: %s' % e)
+        raise RuntimeError('Failed looking up result in Resultsdb') from e
     if 'original_spec_nvr' in result['data']:
         subject = {'original_spec_nvr': result['data']['original_spec_nvr'][0]}
     else:
@@ -44,24 +46,20 @@ def convert_id_to_subject_and_testcase(result_id):
 
 
 def upgrade():
+    # Lightweight table definition for producing UPDATE queries.
+    waiver_table = table('waiver',
+                         column('id', type_=Integer),
+                         column('result_id', type_=Integer),
+                         column('subject', type_=Text),
+                         column('testcase', type_=Text))
     # Get a session asociated with the alembic upgrade operation.
     connection = op.get_bind()
-    Session = sa.orm.sessionmaker()
-    session = Session(bind=connection)
-
-    try:
-        # querying resultsdb for the corresponding subject/testcase.
-        waivers = session.query(Waiver).all()
-        for waiver in waivers:
-            subject, testcase = convert_id_to_subject_and_testcase(waiver.result_id)
-            waiver.subject = subject
-            waiver.testcase = testcase
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+    rows = connection.execute(select([waiver_table.c.id, waiver_table.c.result_id]))
+    for waiver_id, result_id in rows:
+        subject, testcase = convert_id_to_subject_and_testcase(result_id)
+        connection.execute(update(waiver_table)
+                           .where(waiver_table.c.id == waiver_id)
+                           .values(subject=json.dumps(subject), testcase=testcase))
 
 
 def downgrade():
