@@ -7,7 +7,7 @@ Quick development setup
 
 Install packages required by pip to compile some python packages::
     
-    $ sudo dnf install swig systemd-devel openssl-devel cpp gcc
+    $ sudo dnf install swig openssl-devel cpp gcc
 
 Set up a python virtualenv::
 

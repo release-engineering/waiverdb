@@ -21,7 +21,6 @@ BuildRequires:  python3-flask-restful
 BuildRequires:  python3-flask-sqlalchemy
 BuildRequires:  python3-psycopg2
 BuildRequires:  python3-gssapi
-BuildRequires:  python3-systemd
 BuildRequires:  python3-pytest
 BuildRequires:  python3-mock
 BuildRequires:  python3-flask-oidc
@@ -38,7 +37,6 @@ BuildRequires:  python-flask-restful
 BuildRequires:  python-flask-sqlalchemy
 BuildRequires:  python-psycopg2
 BuildRequires:  python-gssapi
-BuildRequires:  systemd-python
 BuildRequires:  pytest
 BuildRequires:  python-mock
 BuildRequires:  python-flask-oidc
@@ -58,7 +56,6 @@ Requires:       python3-flask-restful
 Requires:       python3-flask-sqlalchemy
 Requires:       python3-psycopg2
 Requires:       python3-gssapi
-Requires:       python3-systemd
 Requires:       python3-mock
 Requires:       python3-flask-oidc
 Requires:       python3-click
@@ -72,7 +69,6 @@ Requires:       python-flask-restful
 Requires:       python-flask-sqlalchemy
 Requires:       python-psycopg2
 Requires:       python-gssapi
-Requires:       systemd-python
 Requires:       python-mock
 Requires:       python-flask-oidc
 Requires:       python-click

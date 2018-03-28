@@ -2,7 +2,6 @@
 
 import logging
 import sys
-import systemd.journal
 
 
 def log_to_stdout(app, level=logging.INFO):
@@ -15,15 +14,6 @@ def log_to_stdout(app, level=logging.INFO):
     app.logger.addHandler(stream_handler)
 
 
-def log_to_journal(app, level=logging.INFO):
-    journal_handler = systemd.journal.JournalHandler()
-    journal_handler.setLevel(level)
-    app.logger.addHandler(journal_handler)
-
-
 def init_logging(app):
     log_level = logging.DEBUG if app.debug else logging.INFO
-    if app.config['JOURNAL_LOGGING']:
-        log_to_journal(app, level=log_level)
-    else:
-        log_to_stdout(app, level=log_level)
+    log_to_stdout(app, level=log_level)

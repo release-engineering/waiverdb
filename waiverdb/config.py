@@ -13,7 +13,6 @@ class Config(object):
     """
     DEBUG = True
     DATABASE_URI = 'postgresql+psycopg2:///waiverdb'
-    JOURNAL_LOGGING = False
     HOST = '0.0.0.0'
     PORT = 5004
     PRODUCTION = False

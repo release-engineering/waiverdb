@@ -3,7 +3,6 @@
 SECRET_KEY = 'replace-me-with-something-random'
 #DATABASE_URI = 'postgresql+psycopg2://dbuser:dbpassword@dbhost:dbport/dbname'
 DATABASE_URI = 'postgresql+psycopg2:///waiverdb'
-JOURNAL_LOGGING = False
 #SHOW_DB_URI = False
 HOST= '0.0.0.0'
 PORT = 5004
