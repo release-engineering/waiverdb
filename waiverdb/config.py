@@ -13,6 +13,8 @@ class Config(object):
     """
     DEBUG = True
     DATABASE_URI = 'postgresql+psycopg2:///waiverdb'
+    # We configure logging explicitly, turn off the Flask-supplied log handler.
+    LOGGER_HANDLER_POLICY = 'never'
     HOST = '0.0.0.0'
     PORT = 5004
     PRODUCTION = False

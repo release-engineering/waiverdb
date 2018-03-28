@@ -77,14 +77,14 @@ def create_app(config_obj=None):
     populate_db_config(app)
     if app.config['AUTH_METHOD'] == 'OIDC':
         app.oidc = OpenIDConnect(app)
+    # initialize logging
+    init_logging(app)
     # initialize db
     db.init_app(app)
     # initialize db migrations
     migrations_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                   'migrations')
     Migrate(app, db, directory=migrations_dir)
-    # initialize logging
-    init_logging(app)
     # register blueprints
     app.register_blueprint(api_v1, url_prefix="/api/v1.0")
     app.add_url_rule('/healthcheck', view_func=healthcheck)
