@@ -31,8 +31,8 @@ class Waiver(db.Model):
 
     def __repr__(self):
         return '%s(subject=%r, testcase=%r, username=%r, product_version=%r, waived=%r)' % (
-                self.__class__.__name__, self.subject, self.testcase, self.username,
-                self.product_version, self.waived)
+            self.__class__.__name__, self.subject, self.testcase, self.username,
+            self.product_version, self.waived)
 
     @classmethod
     def by_results(cls, query, results):
