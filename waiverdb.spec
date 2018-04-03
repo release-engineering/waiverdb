@@ -1,6 +1,14 @@
 
 %global upstream_version 0.9.1
 
+%if 0%{?fedora} || 0%{?rhel} > 7
+%bcond_without server
+%else
+# For EPEL7 we build only the CLI, not the server bits,
+# because Flask and other dependencies are too old.
+%bcond_with server
+%endif
+
 Name:           waiverdb
 Version:        0.9.1
 Release:        1%{?dist}
@@ -9,9 +17,16 @@ License:        GPLv2+
 URL:            https://pagure.io/waiverdb
 Source0:        https://files.pythonhosted.org/packages/source/w/%{name}/%{name}-%{upstream_version}.tar.gz
 
+BuildArch:      noarch
 %if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires:  python3-devel
 BuildRequires:  python3-setuptools
+%else # EPEL7 uses Python 2 and python- package naming convention
+BuildRequires:  python2-devel
+BuildRequires:  python-setuptools
+%endif
+
+%if %{with server}
 BuildRequires:  python3-sphinx
 BuildRequires:  python3-sphinxcontrib-httpdomain
 BuildRequires:  python3-sphinxcontrib-issuetracker
@@ -28,9 +43,6 @@ BuildRequires:  python3-click
 BuildRequires:  python3-flask-migrate
 BuildRequires:  python3-stomppy
 BuildRequires:  python3-fedmsg
-%else # EPEL7 uses Python 2 and python- package naming convention
-BuildRequires:  python2-devel
-BuildRequires:  python-setuptools
 BuildRequires:  python-flask
 BuildRequires:  python-sqlalchemy
 BuildRequires:  python-flask-restful
@@ -45,11 +57,8 @@ BuildRequires:  python-configparser
 BuildRequires:  python-flask-migrate
 BuildRequires:  stomppy
 BuildRequires:  fedmsg
-%endif
 %{?systemd_requires}
 BuildRequires:  systemd
-BuildArch:      noarch
-%if 0%{?fedora} || 0%{?rhel} > 7
 Requires:       python3-flask
 Requires:       python3-sqlalchemy
 Requires:       python3-flask-restful
@@ -62,23 +71,8 @@ Requires:       python3-click
 Requires:       python3-flask-migrate
 Requires:       python3-stomppy
 Requires:       python3-fedmsg
-%else
-Requires:       python-flask
-Requires:       python-sqlalchemy
-Requires:       python-flask-restful
-Requires:       python-flask-sqlalchemy
-Requires:       python-psycopg2
-Requires:       python-gssapi
-Requires:       python-mock
-Requires:       python-flask-oidc
-Requires:       python-click
-Requires:       python-configparser
-Requires:       python-flask-migrate
-Requires:       stomppy
-Requires:       fedmsg
-%endif
-
 Requires:       waiverdb-common = %{version}-%{release}
+%endif
 
 %description
 WaiverDB is a companion service to ResultsDB, for recording waivers
@@ -127,13 +121,20 @@ make -C docs SPHINXOPTS= html text
 %if 0%{?fedora} || 0%{?rhel} > 7
 %py3_install
 %else
-%py2_install
+PYTHONDONTWRITEBYTECODE=1 %py2_install
 %endif
+
+%if %{with server}
 install -d %{buildroot}%{_unitdir}
 install -m0644 \
     systemd/%{name}.service \
     systemd/%{name}.socket \
     %{buildroot}%{_unitdir}
+%else
+# Need to properly split out the client one day...
+rm %{buildroot}%{_bindir}/waiverdb
+ls -d %{buildroot}%{python2_sitelib}/waiverdb/* | grep -E -v '(__init__.py|cli.py)$' | xargs rm -r
+%endif
 
 install -d %{buildroot}%{_sysconfdir}/waiverdb/
 install -m0644 \
@@ -145,17 +146,14 @@ install -m0644 \
 #export PYTHONPATH=%%{buildroot}/%%{python3_sitelib}
 #py.test-3 tests/
 
+%if %{with server}
 %files
-%if 0%{?fedora} || 0%{?rhel} > 7
 %{python3_sitelib}/%{name}
 %{python3_sitelib}/%{name}*.egg-info
-%else
-%{python2_sitelib}/%{name}
-%{python2_sitelib}/%{name}*.egg-info
-%endif
 %{_unitdir}/%{name}.service
 %{_unitdir}/%{name}.socket
 %attr(755,root,root) %{_bindir}/waiverdb
+%endif
 
 %files common
 %license COPYING
