@@ -199,18 +199,21 @@ node('fedora') {
 }
 node('docker') {
     checkout scm
-    stage('Tag "latest".') {
-        unarchive mapping: ['appversion': 'appversion']
-        def appversion = readFile('appversion').trim()
-        docker.withRegistry(
-                'https://docker-registry.engineering.redhat.com/',
-                'docker-registry-factory2-builder-sa-credentials') {
-            def image = docker.image("factory2/waiverdb:${appversion}")
-            image.push('latest')
+    /* Can't use GIT_BRANCH because of this issue https://issues.jenkins-ci.org/browse/JENKINS-35230 */
+    def git_branch = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+    if (git_branch == 'master') {
+        stage('Tag "latest".') {
+            unarchive mapping: ['appversion': 'appversion']
+            def appversion = readFile('appversion').trim()
+            docker.withRegistry(
+                    'https://docker-registry.engineering.redhat.com/',
+                    'docker-registry-factory2-builder-sa-credentials') {
+                def image = docker.image("factory2/waiverdb:${appversion}")
+                image.push('latest')
+            }
         }
     }
 }
-
     }
 } catch (e) {
     if (ownership.job.ownershipEnabled) {
