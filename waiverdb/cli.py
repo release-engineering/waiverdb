@@ -75,13 +75,13 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
 
     Examples:
 
-        waiverdb-cli -r 123 -r 456 -p "fedora-26" -c "It's dead!"
+        waiverdb-cli -r 47 -r 48 -p "fedora-28" -c "This is fine"
 
         or
 
-        waiverdb-cli -t dist.rpmlint -s '{"item": "python-requests-1.2.3-1.fc26",
-                                          "type": "koji_build"}'
-                     -p "fedora-26" -c "It's dead!"
+        waiverdb-cli -t dist.rpmdeplint -s '{"item": "qclib-1.3.1-3.fc28",
+                                             "type": "koji_build"}'
+                     -p "fedora-28" -c "This is expected for non-x86 packages"
 
     """
     config = configparser.SafeConfigParser()

@@ -173,7 +173,7 @@ class WaiversResource(Resource):
                "testcase": "compose.install_no_user",
                "waived": false,
                "product_version": "Parrot",
-               "comment": "It's dead!"
+               "comment": "This is fine"
            }
 
 
@@ -189,7 +189,7 @@ class WaiversResource(Resource):
            Server: Werkzeug/0.12.1 Python/2.7.13
 
            {
-               "comment": "It's dead!",
+               "comment": "This is fine",
                "id": 15,
                "product_version": "Parrot",
                "subject": {"productmd.compose.id": "Fedora-9000-19700101.n.18"},
@@ -325,7 +325,7 @@ class GetWaiversBySubjectsAndTestcases(Resource):
             {
                 "data": [
                     {
-                        "comment": "It's dead!",
+                        "comment": "This is fine",
                         "id": 5,
                         "product_version": "Parrot",
                         "subject": {"productmd.compose.id": "Fedora-9000-19700101.n.18"},
@@ -336,7 +336,7 @@ class GetWaiversBySubjectsAndTestcases(Resource):
                         "proxied_by": null
                     },
                     {
-                        "comment": "It's dead!",
+                        "comment": "This is fine",
                         "id": 4,
                         "product_version": "Parrot",
                         "subject": {"item": "gzip-1.9-1.fc28", "type": "koji_build"},

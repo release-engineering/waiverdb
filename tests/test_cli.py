@@ -155,7 +155,7 @@ def test_oidc_auth_is_enabled(tmpdir):
     with patch('openidc_client.OpenIDCClient.send_request') as mock_oidc_req:
         mock_rv = Mock()
         mock_rv.json.return_value = {
-            "comment": "It's dead!",
+            "comment": "This is fine",
             "id": 15,
             "product_version": "Parrot",
             "subject": {"subject.test": "test", "s": "t"},
@@ -178,14 +178,14 @@ resultsdb_api_url=http://localhost:5001/api/v2.0
             """)
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-s', '{"subject.test": "test", "s": "t"}',
-                '-t', 'test.testcase', '-c', "It's dead!"]
+                '-t', 'test.testcase', '-c', "This is fine"]
         result = runner.invoke(waiverdb_cli, args)
         exp_json = {
             "subject": {"subject.test": "test", "s": "t"},
             "testcase": "test.testcase",
             'waived': True,
             'product_version': 'Parrot',
-            'comment': "It's dead!"
+            'comment': "This is fine"
         }
         mock_oidc_req.assert_called_once_with(
             url='http://localhost:5004/api/v1.0/waivers/',
@@ -194,7 +194,10 @@ resultsdb_api_url=http://localhost:5001/api/v2.0
             timeout=60,
             headers={'Content-Type': 'application/json'})
         assert result.exit_code == 0
-        assert result.output == 'Created waiver 15 for result with subject {"subject.test": "test", "s": "t"} and testcase test.testcase\n' # noqa
+        assert result.output.startswith('Created waiver 15 for result with subject ')
+        assert result.output.endswith(' and testcase test.testcase\n')
+        assert any(['{"subject.test": "test", "s": "t"}' in result.output,
+                    '{"s": "t", "subject.test": "test"}' in result.output])
 
 
 def test_gssapi_is_enabled(tmpdir):
@@ -204,7 +207,7 @@ def test_gssapi_is_enabled(tmpdir):
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
         mock_rv.json.return_value = {
-            "comment": "It's dead!",
+            "comment": "This is fine",
             "id": 15,
             "product_version": "Parrot",
             "subject": {"subject.test": "test", "s": "t"},
@@ -223,17 +226,20 @@ resultsdb_api_url=http://localhost:5001/api/v2.0
             """)
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-s', '{"subject.test": "test", "s": "t"}',
-                '-t', 'test.testcase', '-c', "It's dead!"]
+                '-t', 'test.testcase', '-c', "This is fine"]
         result = runner.invoke(waiverdb_cli, args)
         mock_request.assert_called_once()
-        assert result.output == 'Created waiver 15 for result with subject {"subject.test": "test", "s": "t"} and testcase test.testcase\n' # noqa
+        assert result.output.startswith('Created waiver 15 for result with subject ')
+        assert result.output.endswith(' and testcase test.testcase\n')
+        assert any(['{"subject.test": "test", "s": "t"}' in result.output,
+                    '{"s": "t", "subject.test": "test"}' in result.output])
 
 
 def test_submit_waiver_with_id(tmpdir):
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
         mock_rv.json.return_value = {
-            "comment": "It's dead!",
+            "comment": "This is fine",
             "data": {"item": ["htop-1.0-1.fc22"], "type": ["bodhi_update"]},
             "id": 15,
             "product_version": "Parrot",
@@ -252,7 +258,7 @@ resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123',
-                '-c', "It's dead!"]
+                '-c', "This is fine"]
         result = runner.invoke(waiverdb_cli, args)
         mock_request.assert_called()
         assert result.output == 'Created waiver 15 for result with id 123\n'
@@ -262,7 +268,7 @@ def test_submit_waiver_with_multiple_ids(tmpdir):
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
         mock_rv.json.return_value = {
-            "comment": "It's dead!",
+            "comment": "This is fine",
             "data": {"item": ["htop-1.0-1.fc22"], "type": ["bodhi_update"]},
             "id": 15,
             "testcase": {"name": "test.testcase"},
@@ -280,7 +286,7 @@ resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123', '-r', '456',
-                '-c', "It's dead!"]
+                '-c', "This is fine"]
         result = runner.invoke(waiverdb_cli, args)
         mock_request.assert_called()
 
@@ -298,7 +304,7 @@ api_url=http://localhost:5004/api/v1.0
 resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
         args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123', '-s',
-                '{"subject.test": "test", "s": "t"}', '-c', "It's dead!"]
+                '{"subject.test": "test", "s": "t"}', '-c', "This is fine"]
         result = runner.invoke(waiverdb_cli, args)
         assert result.output == 'Error: Please specify result_id or subject/testcase. Not both\n'
 
@@ -307,7 +313,7 @@ def test_submit_waiver_for_original_spec_nvr_result(tmpdir):
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
         mock_rv.json.return_value = {
-            "comment": "It's dead!",
+            "comment": "This is fine",
             "original_spec_nvr": "test",
             "id": 15,
             "product_version": "Parrot",
@@ -326,7 +332,7 @@ resultsdb_api_url=http://localhost:5001/api/v2.0
             """)
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123',
-                '-c', "It's dead!"]
+                '-c', "This is fine"]
         result = runner.invoke(waiverdb_cli, args)
         mock_request.assert_called()
         assert result.output == 'Created waiver 15 for result with id 123\n'
