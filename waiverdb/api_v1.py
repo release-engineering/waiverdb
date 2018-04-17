@@ -10,7 +10,7 @@ from sqlalchemy.sql.expression import func, cast
 
 from waiverdb import __version__
 from waiverdb.models import db, Waiver
-from waiverdb.utils import reqparse_since, json_collection, jsonp
+from waiverdb.utils import reqparse_since, json_collection, jsonp, insert_headers
 from waiverdb.fields import waiver_fields
 import waiverdb.auth
 
@@ -147,7 +147,8 @@ class WaiversResource(Resource):
                                                                       Waiver.testcase)
             query = query.filter(Waiver.id.in_(subquery))
         query = query.order_by(Waiver.timestamp.desc())
-        return json_collection(query, args['page'], args['limit'])
+        return insert_headers(
+            json_collection(query, args['page'], args['limit']))
 
     @jsonp
     @marshal_with(waiver_fields)
@@ -271,7 +272,7 @@ class WaiverResource(Resource):
         :statuscode 404: No waiver exists with that ID.
         """
         try:
-            return Waiver.query.get_or_404(waiver_id)
+            return insert_headers(Waiver.query.get_or_404(waiver_id))
         except Exception as NotFound:
             raise type(NotFound)('Waiver not found')
 
@@ -401,7 +402,7 @@ class GetWaiversBySubjectsAndTestcases(Resource):
             query = query.filter(Waiver.id.in_(subquery))
 
         query = query.order_by(Waiver.timestamp.desc())
-        return {'data': marshal(query.all(), waiver_fields)}
+        return insert_headers({'data': marshal(query.all(), waiver_fields)})
 
 
 class AboutResource(Resource):
@@ -428,7 +429,8 @@ class AboutResource(Resource):
         :statuscode 200: Currently running waiverdb software version and authentication
                          are returned.
         """
-        return {'version': __version__, 'auth_method': current_app.config['AUTH_METHOD']}
+        return insert_headers(
+            {'version': __version__, 'auth_method': current_app.config['AUTH_METHOD']})
 
 
 # set up the Api resource routing here

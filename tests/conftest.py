@@ -70,3 +70,8 @@ def enable_kerberos(app, monkeypatch):
 @pytest.fixture()
 def enable_ssl(app, monkeypatch):
     monkeypatch.setitem(app.config, 'AUTH_METHOD', 'SSL')
+
+
+@pytest.fixture()
+def enable_cors(app, monkeypatch):
+    monkeypatch.setitem(app.config, 'CORS_URL', 'https://bodhi.fedoraproject.org')
