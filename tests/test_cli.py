@@ -123,7 +123,7 @@ oidc_scopes=
 resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
     runner = CliRunner()
-    args = ['-C', p.strpath, '-p', 'fedora-26']
+    args = ['-C', p.strpath, '-p', 'fedora-26', '-c', 'comment']
     result = runner.invoke(waiverdb_cli, args)
     assert result.exit_code == 1
     assert result.output == 'Error: Please specify one subject\n'
@@ -142,10 +142,29 @@ oidc_scopes=
 resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
     runner = CliRunner()
-    args = ['-C', p.strpath, '-p', 'fedora-26', '-s', 'subject']
+    args = ['-C', p.strpath, '-p', 'fedora-26', '-s', 'subject', '-c', 'comment']
     result = runner.invoke(waiverdb_cli, args)
     assert result.exit_code == 1
     assert result.output == 'Error: Please specify testcase\n'
+
+
+def test_no_comment(tmpdir):
+    p = tmpdir.join('client.conf')
+    p.write("""
+[waiverdb]
+auth_method=OIDC
+api_url=http://localhost:5004/api/v1.0
+oidc_id_provider=https://id.stg.fedoraproject.org/openidc/
+oidc_client_id=waiverdb
+oidc_scopes=
+    openid
+resultsdb_api_url=http://localhost:5001/api/v2.0
+        """)
+    runner = CliRunner()
+    args = ['-C', p.strpath, '-p', 'fedora-26', '-s', 'subject', '-t', 'testcase']
+    result = runner.invoke(waiverdb_cli, args)
+    assert result.exit_code == 1
+    assert result.output == 'Error: Please specify comment\n'
 
 
 def test_oidc_auth_is_enabled(tmpdir):

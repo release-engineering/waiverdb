@@ -87,6 +87,30 @@ def test_create_waiver_with_original_spec_nvr_subject(mocked_get_user, mocked_re
     assert res_data['comment'] == 'it broke'
 
 
+@patch('waiverdb.api_v1.get_resultsdb_result')
+@patch('waiverdb.auth.get_user', return_value=('foo', {}))
+def test_create_waiver_without_comment(mocked_get_user, mocked_resultsdb, client,
+                                       session):
+    mocked_resultsdb.return_value = {
+        'data': {
+            'original_spec_nvr': ['somedata'],
+        },
+        'testcase': {'name': 'sometest'}
+    }
+
+    data = {
+        'result_id': 123,
+        'product_version': 'fool-1',
+        'waived': True,
+    }
+    r = client.post('/api/v1.0/waivers/', data=json.dumps(data),
+                    content_type='application/json')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 400
+    res_data = json.loads(r.get_data(as_text=True))
+    assert res_data['message'] == 'Comment is a required argument.'
+
+
 @patch('waiverdb.api_v1.get_resultsdb_result', side_effect=HTTPError(response=Mock(status=404)))
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
 def test_create_waiver_with_unknown_result_id(mocked_get_user, mocked_resultsdb, client, session):

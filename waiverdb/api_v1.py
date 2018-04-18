@@ -250,6 +250,8 @@ class WaiversResource(Resource):
         if not args['subject'] or not args['testcase']:
             raise BadRequest('Either result_id or subject/testcase '
                              'are required arguments.')
+        if not args['comment']:
+            raise BadRequest('Comment is a required argument.')
 
         waiver = Waiver(args['subject'], args['testcase'], user,
                         args['product_version'], args['waived'], args['comment'], proxied_by)
