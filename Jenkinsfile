@@ -137,6 +137,12 @@ node('docker') {
             def image = docker.build "factory2/waiverdb:${appversion}", "--build-arg waiverdb_rpm=$f26_rpm --build-arg waiverdb_common_rpm=$waiverdb_common ."
             image.push()
         }
+        docker.withRegistry(
+                'https://quay.io/',
+                'quay-io-factory2-builder-sa-credentials') {
+            def image = docker.build "factory2/waiverdb:${appversion}", "--build-arg waiverdb_rpm=$f26_rpm --build-arg waiverdb_common_rpm=$waiverdb_common ."
+            image.push()
+        }
         /* Save container version for later steps (this is ugly but I can't find anything better...) */
         writeFile file: 'appversion', text: appversion
         archiveArtifacts artifacts: 'appversion'
@@ -208,6 +214,12 @@ node('docker') {
             docker.withRegistry(
                     'https://docker-registry.engineering.redhat.com/',
                     'docker-registry-factory2-builder-sa-credentials') {
+                def image = docker.image("factory2/waiverdb:${appversion}")
+                image.push('latest')
+            }
+            docker.withRegistry(
+                    'https://quay.io/',
+                    'quay-io-factory2-builder-sa-credentials') {
                 def image = docker.image("factory2/waiverdb:${appversion}")
                 image.push('latest')
             }
