@@ -11,8 +11,6 @@ test results.
    developer-guide
    api
    release-notes
-   todo
-
 
 
 Indices and tables
