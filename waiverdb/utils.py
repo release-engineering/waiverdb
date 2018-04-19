@@ -123,6 +123,8 @@ def insert_headers(response):
     """ Insert the CORS headers for the give reponse if there are any
     configured for the application.
     """
+    if isinstance(response, dict):
+        response = jsonify(response)
     if current_app.config.get('CORS_URL'):
         response.headers['Access-Control-Allow-Origin'] = \
             current_app.config['CORS_URL']
