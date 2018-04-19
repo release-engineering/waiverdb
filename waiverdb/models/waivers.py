@@ -36,13 +36,27 @@ class Waiver(db.Model):
 
     @classmethod
     def by_results(cls, query, results):
-        return query.filter(or_(*[
-            and_(
-                cls.subject == d['subject'],
-                cls.testcase == d['testcase']
-            ) if d.get('testcase', None) else
-            and_(
-                cls.subject == d['subject']
-            ) if d.get('subject', None) else
-            and_() for d in results
-        ]))
+        """
+        Filter ``query`` by matching with at least one filter in ``results``.
+
+        If ``results`` is empty, ``query`` is not filtered.
+
+        Args:
+            query (flask_sqlalchemy.BaseQuery)
+            results (list): each item should be dict containing
+                "subject" (dict) and "testcase" (str), both optional
+
+        Returns:
+            Filtered query.
+        """
+        clauses = []
+        for result in results:
+            subject = result.get('subject', None)
+            testcase = result.get('testcase', None)
+            if subject or testcase:
+                clauses.append(and_(
+                    not subject or cls.subject == subject,
+                    not testcase or cls.testcase == testcase
+                ))
+
+        return query.filter(or_(*clauses))

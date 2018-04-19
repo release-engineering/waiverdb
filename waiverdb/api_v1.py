@@ -34,6 +34,19 @@ def get_resultsdb_result(result_id):
     return response.json()
 
 
+def _validate_results_filter(results):
+    expected = {
+        'subject': dict,
+        'testcase': str,
+    }
+    for item in results:
+        for k, v in item.items():
+            if not (k in expected and isinstance(v, expected[k])):
+                raise BadRequest(
+                    ("'results' parameter should be a list of dictionaries with"
+                     " subject and testcase"))
+
+
 # RP contains request parsers (reqparse.RequestParser).
 #    Parsers are added in each 'resource section' for better readability
 RP = {}
@@ -114,16 +127,11 @@ class WaiversResource(Resource):
         query = Waiver.query.order_by(Waiver.timestamp.desc())
 
         if args['results']:
-            results = json.loads(args['results'])
-            for d in results:
-                if d.get('subject', None):
-                    if not isinstance(d.get('subject', None), dict):
-                        raise BadRequest("'results' parameter should be a list \
-                                          of dictionaries with subject and testcase")
-                if d.get('testcase', None):
-                    if not isinstance(d.get('testcase', None), str):
-                        raise BadRequest("'results' parameter should be a list \
-                                      of dictionaries with subject and testcase")
+            try:
+                results = json.loads(args['results'])
+            except json.JSONDecodeError:
+                raise BadRequest("'results' parameter should be in JSON format")
+            _validate_results_filter(results)
             query = Waiver.by_results(query, results)
         if args['product_version']:
             query = query.filter(Waiver.product_version == args['product_version'])
@@ -368,17 +376,10 @@ class GetWaiversBySubjectsAndTestcases(Resource):
             raise UnsupportedMediaType('No JSON payload in request')
         data = request.get_json()
         query = Waiver.query.order_by(Waiver.timestamp.desc())
-        if data.get('results'):
-            for d in data['results']:
-                if d.get('subject', None):
-                    if not isinstance(d.get('subject', None), dict):
-                        raise BadRequest("'results' parameter should be a list \
-                                          of dictionaries with subject and testcase")
-                if d.get('testcase', None):
-                    if not isinstance(d.get('testcase', None), str):
-                        raise BadRequest("'results' parameter should be a list \
-                                          of dictionaries with subject and testcase")
-            query = Waiver.by_results(query, data['results'])
+        if 'results' in data:
+            results = data['results']
+            _validate_results_filter(results)
+            query = Waiver.by_results(query, results)
         if 'product_version' in data:
             query = query.filter(Waiver.product_version == data['product_version'])
         if 'username' in data:

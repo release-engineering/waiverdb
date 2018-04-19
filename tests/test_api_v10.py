@@ -324,6 +324,40 @@ def test_filtering_waivers_by_subject_without_testcase(client, session):
     assert res_data['data'][0]['testcase'] == 'testcase1'
 
 
+@pytest.mark.parametrize("results", [
+    [{'item': {'subject.test1': 'subject1'}}], # Unexpected key
+    [{'subject': 'subject1'}], # Unexpected key type
+])
+def test_filtering_waivers_with_bad_key(client, session, results):
+    param = json.dumps(results)
+    r = client.get('/api/v1.0/waivers/?results=%s' % param)
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 400
+    assert "'results' parameter should be a list of dictionaries with subject and testcase" \
+        in res_data.get('message')
+
+
+@pytest.mark.parametrize("results", [
+    [],
+    [{}],
+])
+def test_filtering_waivers_with_empty_results(client, session, results):
+    create_waiver(session, subject={'subject.test1': 'subject1'},
+                  testcase='testcase1', username='foo-1', product_version='foo-1')
+    param = json.dumps(results)
+    r = client.get('/api/v1.0/waivers/?results=%s' % param)
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 200
+    assert len(res_data['data']) == 1
+
+
+def test_filtering_waivers_with_invalid_json(client, session):
+    r = client.get('/api/v1.0/waivers/?results=[')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 400
+    assert "'results' parameter should be in JSON format" in res_data.get('message')
+
+
 def test_filtering_waivers_by_product_version(client, session):
     create_waiver(session, subject={'subject.test1': 'subject1'},
                   testcase='testcase1', username='foo-1', product_version='release-1')
