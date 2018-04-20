@@ -134,7 +134,7 @@ node('docker') {
             /* Note that the docker.build step has some magic to guess the
              * Dockerfile used, which will break if the build directory (here ".")
              * is not the final argument in the string. */
-            def image = docker.build "factory2/waiverdb:${appversion}", "--build-arg waiverdb_rpm=$f26_rpm --build-arg waiverdb_common_rpm=$waiverdb_common ."
+            def image = docker.build "factory2/waiverdb:internal-${appversion}", "--build-arg waiverdb_rpm=$f26_rpm --build-arg waiverdb_common_rpm=$waiverdb_common ."
             image.push()
         }
         docker.withRegistry(
@@ -214,7 +214,7 @@ node('docker') {
             docker.withRegistry(
                     'https://docker-registry.engineering.redhat.com/',
                     'docker-registry-factory2-builder-sa-credentials') {
-                def image = docker.image("factory2/waiverdb:${appversion}")
+                def image = docker.image("factory2/waiverdb:internal-${appversion}")
                 image.push('latest')
             }
             docker.withRegistry(
