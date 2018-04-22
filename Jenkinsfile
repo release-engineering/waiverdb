@@ -144,7 +144,7 @@ node('docker') {
             image.push()
         }
         /* Save container version for later steps (this is ugly but I can't find anything better...) */
-        writeFile file: 'appversion', text: appversion
+        writeFile file: 'appversion', text: "internal-${appversion}"
         archiveArtifacts artifacts: 'appversion'
     }
 }
