@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import json
+import datetime
 
 import requests
 from flask import Blueprint, request, current_app
@@ -10,7 +11,7 @@ from sqlalchemy.sql.expression import func, cast
 
 from waiverdb import __version__
 from waiverdb.models import db, Waiver
-from waiverdb.utils import reqparse_since, json_collection, jsonp
+from waiverdb.utils import json_collection, jsonp
 from waiverdb.fields import waiver_fields
 import waiverdb.auth
 
@@ -57,6 +58,33 @@ def _validate_results_filter(results):
                      " subject and testcase"))
 
 
+def reqparse_since(since):
+    """
+    Parses the 'since' query parameter, which is expected to be either a
+    single ISO8601 timestamp representing the start of a time period::
+
+        2017-02-13T23:37:58.193281
+
+    or a comma-separated pair of timestamps representing the start and end of
+    a range::
+
+        2017-02-13T23:37:58.193281,2017-02-16T23:37:58.193281
+
+    Returns a tuple (start, end) of datetime.datetime instances.
+    """
+    start = None
+    end = None
+    if ',' in since:
+        start, end = since.split(',', 1)
+    else:
+        start = since
+    if start:
+        start = datetime.datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%f")
+    if end:
+        end = datetime.datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%f")
+    return start, end
+
+
 # RP contains request parsers (reqparse.RequestParser).
 #    Parsers are added in each 'resource section' for better readability
 RP = {}
@@ -77,7 +105,7 @@ RP['get_waivers'].add_argument('username', location='args')
 RP['get_waivers'].add_argument('include_obsolete', type=bool, default=False, location='args')
 # XXX This matches the since query parameter in resultsdb but I think it would
 # be good to use two parameters(since and until).
-RP['get_waivers'].add_argument('since', location='args')
+RP['get_waivers'].add_argument('since', type=reqparse_since, location='args')
 RP['get_waivers'].add_argument('page', default=1, type=int, location='args')
 RP['get_waivers'].add_argument('limit', default=10, type=int, location='args')
 RP['get_waivers'].add_argument('proxied_by', location='args')
@@ -148,12 +176,7 @@ class WaiversResource(Resource):
         if args['proxied_by']:
             query = query.filter(Waiver.proxied_by == args['proxied_by'])
         if args['since']:
-            try:
-                since_start, since_end = reqparse_since(args['since'])
-            except ValueError:
-                raise BadRequest("'since' parameter not in ISO8601 format")
-            except TypeError:
-                raise BadRequest("'since' parameter not in ISO8601 format")
+            since_start, since_end = args['since']
             if since_start:
                 query = query.filter(Waiver.timestamp >= since_start)
             if since_end:

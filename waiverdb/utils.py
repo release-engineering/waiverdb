@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-import datetime
 import functools
 import stomp
 from flask import request, url_for, jsonify, current_app
@@ -8,24 +7,6 @@ from flask_restful import marshal
 from waiverdb.fields import waiver_fields
 from werkzeug.exceptions import NotFound, HTTPException
 from contextlib import contextmanager
-
-
-def reqparse_since(since):
-    """
-    This parses the since(i.e. 2017-02-13T23:37:58.193281, 2017-02-16T23:37:58.193281)
-    query parameter and returns a tuple.
-    """
-    start = None
-    end = None
-    if ',' in since:
-        start, end = since.split(',')
-    else:
-        start = since
-    if start:
-        start = datetime.datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%f")
-    if end:
-        end = datetime.datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%f")
-    return start, end
 
 
 def json_collection(query, page=1, limit=10):

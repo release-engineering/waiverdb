@@ -376,13 +376,24 @@ def test_filtering_waivers_by_since(client, session):
 
 
 def test_filtering_waivers_by_malformed_since(client, session):
-    create_waiver(session, subject={'subject.test1': 'subject1'},
-                  testcase='testcase1', username='foo', product_version='foo-1')
-    wrong_since = 123
-    r = client.get('/api/v1.0/waivers/?since=%s' % wrong_since)
+    r = client.get('/api/v1.0/waivers/?since=123')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    assert res_data['message'] == "'since' parameter not in ISO8601 format"
+    assert res_data['message']['since'] == \
+        "time data '123' does not match format '%Y-%m-%dT%H:%M:%S.%f'"
+
+    r = client.get('/api/v1.0/waivers/?since=%s,badend' % datetime.datetime.utcnow().isoformat())
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 400
+    assert res_data['message']['since'] == \
+        "time data 'badend' does not match format '%Y-%m-%dT%H:%M:%S.%f'"
+
+    r = client.get('/api/v1.0/waivers/?since=%s,too,many,commas'
+                   % datetime.datetime.utcnow().isoformat())
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 400
+    assert res_data['message']['since'] == \
+        "time data 'too,many,commas' does not match format '%Y-%m-%dT%H:%M:%S.%f'"
 
 
 def test_filtering_waivers_by_proxied_by(client, session):
