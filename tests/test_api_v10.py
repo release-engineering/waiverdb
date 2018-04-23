@@ -325,8 +325,8 @@ def test_filtering_waivers_by_subject_without_testcase(client, session):
 
 
 @pytest.mark.parametrize("results", [
-    [{'item': {'subject.test1': 'subject1'}}], # Unexpected key
-    [{'subject': 'subject1'}], # Unexpected key type
+    [{'item': {'subject.test1': 'subject1'}}],  # Unexpected key
+    [{'subject': 'subject1'}],  # Unexpected key type
 ])
 def test_filtering_waivers_with_bad_key(client, session, results):
     param = json.dumps(results)
