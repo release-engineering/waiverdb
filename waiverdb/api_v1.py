@@ -149,10 +149,12 @@ class WaiversResource(Resource):
         :query int limit: Limit the number of items returned.
         :query dict subject: Only include waivers for the given subject.
         :query string testcase: Only include waivers for the given test case name.
-        :query string product_version: Filter the waivers by product version.
-        :query string username: Filter the waivers by username.
-        :query string proxied_by: Filter the waivers by the users who are
-            allowed to create waivers on behalf of other users.
+        :query string product_version: Only include waivers for the given
+            product version.
+        :query string username: Only include waivers which were submitted by
+            the given user.
+        :query string proxied_by: Only include waivers which were proxied on
+            behalf of someone else by the given user.
         :query string since: An ISO 8601 formatted datetime (e.g. 2017-03-16T13:40:05+00:00)
             to filter results by. Optionally provide a second ISO 8601 datetime separated
             by a comma to retrieve a range (e.g. 2017-03-16T13:40:05+00:00,
