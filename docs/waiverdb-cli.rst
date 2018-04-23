@@ -1,3 +1,5 @@
+.. _waiverdb-cli:
+
 ============
 waiverdb-cli
 ============
