@@ -144,7 +144,7 @@ node('docker') {
             image.push()
         }
         /* Save container version for later steps (this is ugly but I can't find anything better...) */
-        writeFile file: 'appversion', text: "internal-${appversion}"
+        writeFile file: 'appversion', text: "${appversion}"
         archiveArtifacts artifacts: 'appversion'
     }
 }
@@ -160,7 +160,7 @@ node('fedora') {
                     def template = readYaml file: 'openshift/waiverdb-test-template.yaml'
                     def models = openshift.process(template,
                             '-p', "TEST_ID=${env.BUILD_TAG}",
-                            '-p', "WAIVERDB_APP_VERSION=${appversion}")
+                            '-p', "WAIVERDB_APP_VERSION=internal-${appversion}")
                     def environment_label = "test-${env.BUILD_TAG}"
                     try {
                         def objects = openshift.create(models)
