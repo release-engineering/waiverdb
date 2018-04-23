@@ -7,7 +7,7 @@ try:
 except ImportError:
     from urlparse import urlparse, urlunsplit
 
-from flask import Flask
+from flask import Flask, current_app
 from flask_migrate import Migrate
 from sqlalchemy import event
 import requests
@@ -58,6 +58,18 @@ def populate_db_config(app):
     app.config['SQLALCHEMY_DATABASE_URI'] = dburi
 
 
+def insert_headers(response):
+    """ Insert the CORS headers for the give response if there are any
+    configured for the application.
+    """
+    cors_url = current_app.config.get('CORS_URL')
+    if cors_url:
+        response.headers['Access-Control-Allow-Origin'] = cors_url
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        response.headers['Access-Control-Allow-Method'] = 'POST, OPTIONS'
+    return response
+
+
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
 def create_app(config_obj=None):
     app = Flask(__name__)
@@ -89,6 +101,9 @@ def create_app(config_obj=None):
     app.register_blueprint(api_v1, url_prefix="/api/v1.0")
     app.add_url_rule('/healthcheck', view_func=healthcheck)
     register_event_handlers(app)
+
+    app.after_request(insert_headers)
+
     return app
 
 

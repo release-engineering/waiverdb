@@ -75,7 +75,7 @@ def json_error(error):
         response = jsonify(message=str(error))
         response.status_code = 500
 
-    return insert_headers(response)
+    return response
 
 
 def jsonp(func):
@@ -117,17 +117,3 @@ def stomp_connection():
     else:
         raise RuntimeError('stomp was configured to publish messages, '
                            'but STOMP_CONFIGS is not configured')
-
-
-def insert_headers(response):
-    """ Insert the CORS headers for the give reponse if there are any
-    configured for the application.
-    """
-    if isinstance(response, dict):
-        response = jsonify(response)
-    if current_app.config.get('CORS_URL'):
-        response.headers['Access-Control-Allow-Origin'] = \
-            current_app.config['CORS_URL']
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        response.headers['Access-Control-Allow-Method'] = 'POST, OPTIONS'
-    return response
