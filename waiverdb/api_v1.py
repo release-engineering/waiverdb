@@ -1,16 +1,16 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-import json
 import datetime
 
 import requests
 from flask import Blueprint, request, current_app
 from flask_restful import Resource, Api, reqparse, marshal_with, marshal
 from werkzeug.exceptions import BadRequest, Forbidden, ServiceUnavailable
-from sqlalchemy.sql.expression import func, cast
+from sqlalchemy.sql.expression import func
 
 from waiverdb import __version__
-from waiverdb.models import db, Waiver
+from waiverdb.models import db
+from waiverdb.models.waivers import Waiver, subject_dict_to_type_identifier
 from waiverdb.utils import json_collection, jsonp
 from waiverdb.fields import waiver_fields
 import waiverdb.auth
@@ -21,16 +21,6 @@ requests_session = requests.Session()
 
 
 def valid_dict(value):
-    if not isinstance(value, dict):
-        raise ValueError("Must be a valid dict, not %r" % value)
-    return value
-
-
-def json_dict(value):
-    try:
-        value = json.loads(value)
-    except ValueError as e:
-        raise ValueError("Invalid JSON: %s" % e)
     if not isinstance(value, dict):
         raise ValueError("Must be a valid dict, not %r" % value)
     return value
@@ -92,7 +82,8 @@ def _filter_out_obsolete_waivers(query):
     same subject, test case name, username and product_version.
     """
     subquery = db.session.query(func.max(Waiver.id)).group_by(
-        cast(Waiver.subject, db.Text),
+        Waiver.subject_type,
+        Waiver.subject_identifier,
         Waiver.testcase,
         Waiver.username,
         Waiver.product_version,
@@ -104,8 +95,11 @@ def _filter_out_obsolete_waivers(query):
 #    Parsers are added in each 'resource section' for better readability
 RP = {}
 RP['create_waiver'] = reqparse.RequestParser()
-RP['create_waiver'].add_argument('subject', type=valid_dict, location='json')
+RP['create_waiver'].add_argument('subject_type', type=str, location='json')
+RP['create_waiver'].add_argument('subject_identifier', type=str, location='json')
 RP['create_waiver'].add_argument('testcase', type=str, location='json')
+# These are accepted for backwards compatibility
+RP['create_waiver'].add_argument('subject', type=valid_dict, location='json')
 RP['create_waiver'].add_argument('result_id', type=int, location='json')
 RP['create_waiver'].add_argument('waived', type=bool, required=True, location='json')
 RP['create_waiver'].add_argument('product_version', type=str, required=True, location='json')
@@ -113,7 +107,8 @@ RP['create_waiver'].add_argument('comment', type=str, required=True, location='j
 RP['create_waiver'].add_argument('username', type=str, default=None, location='json')
 
 RP['get_waivers'] = reqparse.RequestParser()
-RP['get_waivers'].add_argument('subject', type=json_dict, location='args')
+RP['get_waivers'].add_argument('subject_type', location='args')
+RP['get_waivers'].add_argument('subject_identifier', location='args')
 RP['get_waivers'].add_argument('testcase', location='args')
 RP['get_waivers'].add_argument('product_version', location='args')
 RP['get_waivers'].add_argument('username', location='args')
@@ -180,7 +175,8 @@ class WaiversResource(Resource):
 
         :query int page: The page to get.
         :query int limit: Limit the number of items returned.
-        :query dict subject: Only include waivers for the given subject.
+        :query string subject_type: Only include waivers for the given subject type.
+        :query string subject_identifier: Only include waivers for the given subject identifier.
         :query string testcase: Only include waivers for the given test case name.
         :query string product_version: Only include waivers for the given
             product version.
@@ -200,8 +196,10 @@ class WaiversResource(Resource):
         args = RP['get_waivers'].parse_args()
         query = Waiver.query.order_by(Waiver.timestamp.desc())
 
-        if args['subject']:
-            query = query.filter(Waiver.subject == args['subject'])
+        if args['subject_type']:
+            query = query.filter(Waiver.subject_type == args['subject_type'])
+        if args['subject_identifier']:
+            query = query.filter(Waiver.subject_identifier == args['subject_identifier'])
         if args['testcase']:
             query = query.filter(Waiver.testcase == args['testcase'])
         if args['product_version']:
@@ -245,7 +243,8 @@ class WaiversResource(Resource):
            Content-Length: 91
 
            {
-               "subject": {"productmd.compose.id": "Fedora-9000-19700101.n.18"},
+               "subject_type": "compose",
+               "subject_identifier": "Fedora-9000-19700101.n.18",
                "testcase": "compose.install_no_user",
                "waived": false,
                "product_version": "Parrot",
@@ -276,7 +275,11 @@ class WaiversResource(Resource):
                "proxied_by": null
            }
 
-        :json object subject: The result subject for the waiver.
+        :json string subject_type: The type of thing which this waiver is for
+            ("koji_build", "bodhi_update", "compose").
+        :json string subject_identifier: The identifier of the thing this
+            waiver is for. The semantics of this identifier depend on the
+            "subject_type". For example, Koji builds are identified by their NVR.
         :json string testcase: The result testcase for the waiver.
         :json boolean waived: Whether or not the result is waived.
         :json string product_version: The product version string.
@@ -313,13 +316,13 @@ class WaiversResource(Resource):
             proxied_by = user
             user = args['username']
 
-        # XXX - remove this in a future release (it was for temp backwards compat)
+        # WaiverDB < 0.6
         if args['result_id']:
             if args['subject'] or args['testcase']:
                 raise BadRequest('Only result_id or subject and '
                                  'testcase are allowed.  Not both.')
             try:
-                result = get_resultsdb_result(args['result_id'])
+                result = get_resultsdb_result(args.pop('result_id'))
             except requests.HTTPError as e:
                 if e.response.status_code == 404:
                     raise BadRequest('Result id not found in Resultsdb')
@@ -327,28 +330,41 @@ class WaiversResource(Resource):
                     raise ServiceUnavailable('Failed looking up result in Resultsdb: %s' % e)
             except Exception as e:
                 raise ServiceUnavailable('Failed looking up result in Resultsdb: %s' % e)
-            if 'original_spec_nvr' in result['data']:
-                subject = {'original_spec_nvr': result['data']['original_spec_nvr'][0]}
+            result_data = result['data']  # ResultsDB "extra data" for the given result
+            if 'original_spec_nvr' in result_data:
+                args['subject_type'] = 'koji_build'
+                args['subject_identifier'] = result_data['original_spec_nvr'][0]
+            elif 'type' in result_data and result_data['type'][0] in ['koji_build', 'brew-build']:
+                args['subject_type'] = 'koji_build'
+                args['subject_identifier'] = result_data['item'][0]
+            elif 'type' in result_data and result_data['type'][0] == 'bodhi_update':
+                args['subject_type'] = 'bodhi_update'
+                args['subject_identifier'] = result_data['item'][0]
             else:
-                if result['data']['type'][0] == 'koji_build' or \
-                   result['data']['type'][0] == 'brew-build' or \
-                   result['data']['type'][0] == 'bodhi_update':
-                    SUBJECT_KEYS = ['item', 'type']
-                    subject = dict([(k, v[0]) for k, v in result['data'].items()
-                                    if k in SUBJECT_KEYS])
-                else:
-                    raise BadRequest('It is not possible to submit a waiver by '
-                                     'id for this result. Please try again specifying '
-                                     'a subject and a testcase.')
-            args['subject'] = subject
+                raise BadRequest('It is not possible to submit a waiver by '
+                                 'id for this result. Please try again specifying '
+                                 'a subject and a testcase.')
             args['testcase'] = result['testcase']['name']
 
-        if not args['subject'] or not args['testcase']:
-            raise BadRequest('Either result_id or subject/testcase '
-                             'are required arguments.')
+        # WaiverDB < 0.11
+        if args['subject']:
+            args['subject_type'], args['subject_identifier'] = \
+                subject_dict_to_type_identifier(args.pop('subject'))
+
+        # These are not marked required in the RequestParser, because they may
+        # be absent in the request but filled in by the backwards
+        # compatibility logic above. So we check explicitly here, and give
+        # back an error matching what RequestParser would do.
+        if not args['subject_type']:
+            raise BadRequest({'subject_type': 'Missing required parameter in the JSON body'})
+        if not args['subject_identifier']:
+            raise BadRequest({'subject_identifier': 'Missing required parameter in the JSON body'})
+        if not args['testcase']:
+            raise BadRequest({'testcase': 'Missing required parameter in the JSON body'})
 
         return Waiver(
-            args['subject'],
+            args['subject_type'],
+            args['subject_identifier'],
             args['testcase'],
             user,
             args['product_version'],

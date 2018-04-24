@@ -9,7 +9,8 @@ from waiverdb.models import Waiver
 @mock.patch('waiverdb.events.fedmsg')
 def test_publish_new_waiver_with_fedmsg(mock_fedmsg, session):
     waiver = Waiver(
-        subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+        subject_type='koji_build',
+        subject_identifier='glibc-2.26-27.fc27',
         testcase='testcase1',
         username='jcline',
         product_version='something',
@@ -23,6 +24,8 @@ def test_publish_new_waiver_with_fedmsg(mock_fedmsg, session):
         topic='waiver.new',
         msg={
             'id': waiver.id,
+            'subject_type': 'koji_build',
+            'subject_identifier': 'glibc-2.26-27.fc27',
             'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
             'testcase': 'testcase1',
             'username': 'jcline',
@@ -38,7 +41,8 @@ def test_publish_new_waiver_with_fedmsg(mock_fedmsg, session):
 @mock.patch('waiverdb.events.fedmsg')
 def test_publish_new_waiver_with_fedmsg_for_proxy_user(mock_fedmsg, session):
     waiver = Waiver(
-        subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+        subject_type='koji_build',
+        subject_identifier='glibc-2.26-27.fc27',
         testcase='testcase1',
         username='jcline',
         product_version='something',
@@ -53,6 +57,8 @@ def test_publish_new_waiver_with_fedmsg_for_proxy_user(mock_fedmsg, session):
         topic='waiver.new',
         msg={
             'id': waiver.id,
+            'subject_type': 'koji_build',
+            'subject_identifier': 'glibc-2.26-27.fc27',
             'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
             'testcase': 'testcase1',
             'username': 'jcline',

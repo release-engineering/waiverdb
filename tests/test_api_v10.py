@@ -15,7 +15,8 @@ from waiverdb.models import Waiver
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
 def test_create_waiver(mocked_get_user, client, session):
     data = {
-        'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+        'subject_type': 'koji_build',
+        'subject_identifier': 'glibc-2.26-27.fc27',
         'testcase': 'testcase1',
         'product_version': 'fool-1',
         'waived': True,
@@ -27,15 +28,42 @@ def test_create_waiver(mocked_get_user, client, session):
     assert r.status_code == 201
     assert res_data['username'] == 'foo'
     assert res_data['subject'] == {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}
+    assert res_data['subject_type'] == 'koji_build'
+    assert res_data['subject_identifier'] == 'glibc-2.26-27.fc27'
     assert res_data['testcase'] == 'testcase1'
     assert res_data['product_version'] == 'fool-1'
     assert res_data['waived'] is True
     assert res_data['comment'] == 'it broke'
 
 
+@patch('waiverdb.auth.get_user', return_value=('foo', {}))
+def test_create_waiver_with_subject(mocked_get_user, client, session):
+    # 'subject' key was the API in Waiverdb < 0.11
+    data = {
+        'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+        'subject_identifier': 'glibc-2.26-27.fc27',
+        'testcase': 'dist.rpmdeplint',
+        'product_version': 'fedora-27',
+        'waived': True,
+        'comment': 'it really broke',
+    }
+    r = client.post('/api/v1.0/waivers/', data=json.dumps(data),
+                    content_type='application/json')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 201
+    assert res_data['username'] == 'foo'
+    assert res_data['subject'] == {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}
+    assert res_data['subject_type'] == 'koji_build'
+    assert res_data['subject_identifier'] == 'glibc-2.26-27.fc27'
+    assert res_data['testcase'] == 'dist.rpmdeplint'
+    assert res_data['product_version'] == 'fedora-27'
+    assert res_data['waived'] is True
+    assert res_data['comment'] == 'it really broke'
+
+
 @patch('waiverdb.api_v1.get_resultsdb_result')
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver_legacy(mocked_get_user, mocked_resultsdb, client, session):
+def test_create_waiver_with_result_id(mocked_get_user, mocked_resultsdb, client, session):
     mocked_resultsdb.return_value = {
         'data': {
             'type': ['koji_build'],
@@ -44,6 +72,7 @@ def test_create_waiver_legacy(mocked_get_user, mocked_resultsdb, client, session
         'testcase': {'name': 'sometest'}
     }
 
+    # 'result_id' key was the API in Waiverdb < 0.6
     data = {
         'result_id': 123,
         'product_version': 'fool-1',
@@ -56,6 +85,8 @@ def test_create_waiver_legacy(mocked_get_user, mocked_resultsdb, client, session
     assert r.status_code == 201
     assert res_data['username'] == 'foo'
     assert res_data['subject'] == {'type': 'koji_build', 'item': 'somebuild'}
+    assert res_data['subject_type'] == 'koji_build'
+    assert res_data['subject_identifier'] == 'somebuild'
     assert res_data['testcase'] == 'sometest'
     assert res_data['product_version'] == 'fool-1'
     assert res_data['waived'] is True
@@ -64,8 +95,8 @@ def test_create_waiver_legacy(mocked_get_user, mocked_resultsdb, client, session
 
 @patch('waiverdb.api_v1.get_resultsdb_result')
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver_with_original_spec_nvr_subject(mocked_get_user, mocked_resultsdb, client,
-                                                      session):
+def test_create_waiver_with_result_for_original_spec_nvr(
+        mocked_get_user, mocked_resultsdb, client, session):
     mocked_resultsdb.return_value = {
         'data': {
             'original_spec_nvr': ['somedata'],
@@ -84,26 +115,20 @@ def test_create_waiver_with_original_spec_nvr_subject(mocked_get_user, mocked_re
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 201
     assert res_data['username'] == 'foo'
-    assert res_data['subject'] == {'original_spec_nvr': 'somedata'}
+    assert res_data['subject'] == {'type': 'koji_build', 'item': 'somedata'}
+    assert res_data['subject_type'] == 'koji_build'
+    assert res_data['subject_identifier'] == 'somedata'
     assert res_data['testcase'] == 'sometest'
     assert res_data['product_version'] == 'fool-1'
     assert res_data['waived'] is True
     assert res_data['comment'] == 'it broke'
 
 
-@patch('waiverdb.api_v1.get_resultsdb_result')
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver_without_comment(mocked_get_user, mocked_resultsdb, client,
-                                       session):
-    mocked_resultsdb.return_value = {
-        'data': {
-            'original_spec_nvr': ['somedata'],
-        },
-        'testcase': {'name': 'sometest'}
-    }
-
+def test_create_waiver_without_comment(mocked_get_user, client, session):
     data = {
-        'result_id': 123,
+        'subject_type': 'koji_build',
+        'subject_identifier': 'glibc-2.26-27.fc27',
         'product_version': 'fool-1',
         'waived': True,
     }
@@ -134,7 +159,8 @@ def test_create_waiver_with_unknown_result_id(mocked_get_user, mocked_resultsdb,
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
 def test_create_waiver_with_no_testcase(mocked_get_user, client):
     data = {
-        'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+        'subject_type': 'koji_build',
+        'subject_identifier': 'glibc-2.26-27.fc27',
         'waived': True,
         'product_version': 'the-best',
         'comment': 'it broke',
@@ -143,10 +169,7 @@ def test_create_waiver_with_no_testcase(mocked_get_user, client):
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    # XXX - when we ditch result_id and make subject and testcase required
-    # again, this assertion will change back to the original.
-#   assert 'Missing required parameter in the JSON body' in res_data['message']['testcase']
-    assert 'Either result_id or subject/testcase are required arguments.' in res_data['message']
+    assert 'Missing required parameter in the JSON body' in res_data['message']['testcase']
 
 
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
@@ -165,7 +188,8 @@ def test_create_waiver_with_malformed_subject(mocked_get_user, client):
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
 def test_non_superuser_cannot_create_waiver_for_other_users(mocked_get_user, client):
     data = {
-        'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+        'subject_type': 'koji_build',
+        'subject_identifier': 'glibc-2.26-27.fc27',
         'testcase': 'testcase1',
         'product_version': 'fool-1',
         'waived': True,
@@ -182,7 +206,8 @@ def test_non_superuser_cannot_create_waiver_for_other_users(mocked_get_user, cli
 @patch('waiverdb.auth.get_user', return_value=('bodhi', {}))
 def test_superuser_can_create_waiver_for_other_users(mocked_get_user, client, session):
     data = {
-        'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+        'subject_type': 'koji_build',
+        'subject_identifier': 'glibc-2.26-27.fc27',
         'testcase': 'testcase1',
         'product_version': 'fool-1',
         'waived': True,
@@ -200,14 +225,17 @@ def test_superuser_can_create_waiver_for_other_users(mocked_get_user, client, se
 
 def test_get_waiver(client, session):
     # create a new waiver
-    waiver = create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    waiver = create_waiver(session, subject_type='koji_build',
+                           subject_identifier='glibc-2.26-27.fc27',
                            testcase='testcase1', username='foo',
                            product_version='foo-1', comment='bla bla bla')
     r = client.get('/api/v1.0/waivers/%s' % waiver.id)
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 200
     assert res_data['username'] == waiver.username
-    assert res_data['subject'] == waiver.subject
+    assert res_data['subject'] == {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}
+    assert res_data['subject_type'] == waiver.subject_type
+    assert res_data['subject_identifier'] == waiver.subject_identifier
     assert res_data['testcase'] == waiver.testcase
     assert res_data['product_version'] == waiver.product_version
     assert res_data['waived'] is True
@@ -234,7 +262,7 @@ def test_500(mocked, client, session):
 
 def test_get_waivers(client, session):
     for i in range(0, 10):
-        create_waiver(session, subject={'type': 'koji_build', 'item': "%d" % i},
+        create_waiver(session, subject_type='koji_build', subject_identifier="%d" % i,
                       testcase="case %d" % i, username='foo %d' % i,
                       product_version='foo-%d' % i, comment='bla bla bla')
     r = client.get('/api/v1.0/waivers/')
@@ -245,7 +273,7 @@ def test_get_waivers(client, session):
 
 def test_pagination_waivers(client, session):
     for i in range(0, 30):
-        create_waiver(session, subject={'type': 'koji_build', 'item': "%d" % i},
+        create_waiver(session, subject_type='koji_build', subject_identifier="%d" % i,
                       testcase="case %d" % i, username='foo %d' % i,
                       product_version='foo-%d' % i, comment='bla bla bla')
     r = client.get('/api/v1.0/waivers/?page=2')
@@ -259,10 +287,12 @@ def test_pagination_waivers(client, session):
 
 
 def test_obsolete_waivers_are_excluded_by_default(client, session):
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    create_waiver(session, subject_type='koji_build',
+                  subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo',
                   product_version='foo-1')
-    new_waiver = create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    new_waiver = create_waiver(session, subject_type='koji_build',
+                               subject_identifier='glibc-2.26-27.fc27',
                                testcase='testcase1', username='foo',
                                product_version='foo-1', waived=False)
     r = client.get('/api/v1.0/waivers/')
@@ -274,10 +304,12 @@ def test_obsolete_waivers_are_excluded_by_default(client, session):
 
 
 def test_get_obsolete_waivers(client, session):
-    old_waiver = create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    old_waiver = create_waiver(session, subject_type='koji_build',
+                               subject_identifier='glibc-2.26-27.fc27',
                                testcase='testcase1', username='foo',
                                product_version='foo-1')
-    new_waiver = create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    new_waiver = create_waiver(session, subject_type='koji_build',
+                               subject_identifier='glibc-2.26-27.fc27',
                                testcase='testcase1', username='foo',
                                product_version='foo-1', waived=False)
     r = client.get('/api/v1.0/waivers/?include_obsolete=1')
@@ -289,10 +321,12 @@ def test_get_obsolete_waivers(client, session):
 
 
 def test_obsolete_waivers_with_different_product_version(client, session):
-    old_waiver = create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    old_waiver = create_waiver(session, subject_type='koji_build',
+                               subject_identifier='glibc-2.26-27.fc27',
                                testcase='testcase1', username='foo',
                                product_version='foo-1')
-    new_waiver = create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    new_waiver = create_waiver(session, subject_type='koji_build',
+                               subject_identifier='glibc-2.26-27.fc27',
                                testcase='testcase1', username='foo',
                                product_version='foo-2')
     r = client.get('/api/v1.0/waivers/?include_obsolete=0')
@@ -304,10 +338,12 @@ def test_obsolete_waivers_with_different_product_version(client, session):
 
 
 def test_obsolete_waivers_with_different_username(client, session):
-    old_waiver = create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    old_waiver = create_waiver(session, subject_type='koji_build',
+                               subject_identifier='glibc-2.26-27.fc27',
                                testcase='testcase1', username='foo',
                                product_version='foo-1')
-    new_waiver = create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    new_waiver = create_waiver(session, subject_type='koji_build',
+                               subject_identifier='glibc-2.26-27.fc27',
                                testcase='testcase1', username='bar',
                                product_version='foo-1')
     r = client.get('/api/v1.0/waivers/?include_obsolete=0')
@@ -318,31 +354,36 @@ def test_obsolete_waivers_with_different_username(client, session):
     assert res_data['data'][1]['id'] == old_waiver.id
 
 
-def test_filtering_waivers_by_subject(client, session):
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+def test_filtering_waivers_by_subject_type(client, session):
+    create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase', username='foo-1', product_version='foo-1')
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'kernel-4.15.17-300.fc27'},
+    create_waiver(session, subject_type='bodhi_update', subject_identifier='FEDORA-2017-7e594f96bb',
                   testcase='testcase', username='foo-2', product_version='foo-1')
 
-    r = client.get('/api/v1.0/waivers/?subject=%s' % json.dumps({'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}))
+    r = client.get('/api/v1.0/waivers/?subject_type=bodhi_update')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 200
     assert len(res_data['data']) == 1
-    assert res_data['data'][0]['subject'] == {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}
+    assert res_data['data'][0]['subject_type'] == 'bodhi_update'
 
 
-def test_filtering_waivers_with_invalid_json_subject(client, session):
-    r = client.get('/api/v1.0/waivers/?subject=[')
-    assert r.status_code == 400
+def test_filtering_waivers_by_subject_identifier(client, session):
+    create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
+                  testcase='testcase', username='foo-1', product_version='foo-1')
+    create_waiver(session, subject_type='koji_build', subject_identifier='kernel-4.15.17-300.fc27',
+                  testcase='testcase', username='foo-2', product_version='foo-1')
+
+    r = client.get('/api/v1.0/waivers/?subject_identifier=glibc-2.26-27.fc27')
     res_data = json.loads(r.get_data(as_text=True))
-    assert res_data['message']['subject'] == \
-        'Invalid JSON: Expecting value: line 1 column 2 (char 1)'
+    assert r.status_code == 200
+    assert len(res_data['data']) == 1
+    assert res_data['data'][0]['subject_identifier'] == 'glibc-2.26-27.fc27'
 
 
 def test_filtering_waivers_by_testcase(client, session):
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo-1', product_version='foo-1')
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase2', username='foo-2', product_version='foo-1')
 
     r = client.get('/api/v1.0/waivers/?testcase=testcase1')
@@ -353,9 +394,9 @@ def test_filtering_waivers_by_testcase(client, session):
 
 
 def test_filtering_waivers_by_product_version(client, session):
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo-1', product_version='release-1')
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'kernel-4.15.17-300.fc27'},
+    create_waiver(session, subject_type='koji_build', subject_identifier='kernel-4.15.17-300.fc27',
                   testcase='testcase2', username='foo-1', product_version='release-2')
     r = client.get('/api/v1.0/waivers/?product_version=release-1')
     res_data = json.loads(r.get_data(as_text=True))
@@ -365,9 +406,9 @@ def test_filtering_waivers_by_product_version(client, session):
 
 
 def test_filtering_waivers_by_username(client, session):
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo', product_version='foo-1')
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'kernel-4.15.17-300.fc27'},
+    create_waiver(session, subject_type='koji_build', subject_identifier='kernel-4.15.17-300.fc27',
                   testcase='testcase2', username='bar', product_version='foo-2')
     r = client.get('/api/v1.0/waivers/?username=foo')
     res_data = json.loads(r.get_data(as_text=True))
@@ -380,20 +421,20 @@ def test_filtering_waivers_by_since(client, session):
     before1 = (datetime.datetime.utcnow() - datetime.timedelta(seconds=100)).isoformat()
     before2 = (datetime.datetime.utcnow() - datetime.timedelta(seconds=99)).isoformat()
     after = (datetime.datetime.utcnow() + datetime.timedelta(seconds=100)).isoformat()
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo', product_version='foo-1')
     r = client.get('/api/v1.0/waivers/?since=%s' % before1)
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 200
     assert len(res_data['data']) == 1
-    assert res_data['data'][0]['subject'] == {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}
+    assert res_data['data'][0]['subject_identifier'] == 'glibc-2.26-27.fc27'
     assert res_data['data'][0]['testcase'] == 'testcase1'
 
     r = client.get('/api/v1.0/waivers/?since=%s,%s' % (before1, after))
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 200
     assert len(res_data['data']) == 1
-    assert res_data['data'][0]['subject'] == {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}
+    assert res_data['data'][0]['subject_identifier'] == 'glibc-2.26-27.fc27'
     assert res_data['data'][0]['testcase'] == 'testcase1'
 
     r = client.get('/api/v1.0/waivers/?since=%s' % (after))
@@ -429,10 +470,10 @@ def test_filtering_waivers_by_malformed_since(client, session):
 
 
 def test_filtering_waivers_by_proxied_by(client, session):
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo-1', product_version='foo-1',
                   proxied_by='bodhi')
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'kernel-4.15.17-300.fc27'},
+    create_waiver(session, subject_type='koji_build', subject_identifier='kernel-4.15.17-300.fc27',
                   testcase='testcase2', username='foo-2', product_version='foo-1')
     r = client.get('/api/v1.0/waivers/?proxied_by=bodhi')
     res_data = json.loads(r.get_data(as_text=True))
@@ -443,7 +484,8 @@ def test_filtering_waivers_by_proxied_by(client, session):
 
 
 def test_jsonp(client, session):
-    waiver = create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    waiver = create_waiver(session, subject_type='koji_build',
+                           subject_identifier='glibc-2.26-27.fc27',
                            testcase='testcase1', username='foo', product_version='foo-1')
     r = client.get('/api/v1.0/waivers/%s?callback=jsonpcallback' % waiver.id)
     assert r.mimetype == 'application/javascript'
@@ -465,7 +507,7 @@ def test_get_waivers_with_post_request(client, session):
     for i in range(1, 51):
         results.append({'subject': {'type': 'koji_build', 'item': '%d' % i},
                         'testcase': 'case %d' % i})
-        create_waiver(session, subject={'type': 'koji_build', 'item': "%d" % i},
+        create_waiver(session, subject_type='koji_build', subject_identifier="%d" % i,
                       testcase="case %d" % i, username='foo %d' % i,
                       product_version='foo-%d' % i, comment='bla bla bla')
     data = {
@@ -476,12 +518,12 @@ def test_get_waivers_with_post_request(client, session):
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 200
     assert len(res_data['data']) == 50
-    subjects = []
+    subject_identifiers = []
     testcases = []
     for i in reversed(range(1, 51)):
-        subjects.append({'type': 'koji_build', 'item': '%d' % i})
+        subject_identifiers.append('%d' % i)
         testcases.append('case %d' % i)
-    assert [w['subject'] for w in res_data['data']] == subjects
+    assert [w['subject_identifier'] for w in res_data['data']] == subject_identifiers
     assert set([w['testcase'] for w in res_data['data']]) == set(testcases)
     assert all(w['username'].startswith('foo') for w in res_data['data'])
     assert all(w['product_version'].startswith('foo-') for w in res_data['data'])
@@ -506,7 +548,7 @@ def test_filtering_waivers_with_bad_key(client, session, results):
     [{}],
 ])
 def test_filtering_waivers_with_empty_results(client, session, results):
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+    create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo-1', product_version='foo-1')
     data = {'results': results}
     r = client.post('/api/v1.0/waivers/+by-subjects-and-testcases', data=json.dumps(data),
@@ -572,7 +614,7 @@ def test_no_cors_about(client, session):
 @pytest.mark.usefixtures('enable_cors')
 def test_cors_waivers(client, session):
     for i in range(0, 3):
-        create_waiver(session, subject={'type': 'koji_build', 'item': "%d" % i},
+        create_waiver(session, subject_type='koji_build', subject_identifier="%d" % i,
                       testcase="case %d" % i, username='foo %d' % i,
                       product_version='foo-%d' % i, comment='bla bla bla')
     r = client.get('/api/v1.0/waivers/')
@@ -591,7 +633,7 @@ def test_cors_waivers(client, session):
 
 def test_no_cors_waivers(client, session):
     for i in range(0, 3):
-        create_waiver(session, subject={'type': 'koji_build', 'item': "%d" % i},
+        create_waiver(session, subject_type='koji_build', subject_identifier="%d" % i,
                       testcase="case %d" % i, username='foo %d' % i,
                       product_version='foo-%d' % i, comment='bla bla bla')
     r = client.get('/api/v1.0/waivers/')
@@ -608,14 +650,16 @@ def test_no_cors_waivers(client, session):
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
 def test_create_multiple_waivers(mocked_get_user, client, session):
     item1 = {
-        'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+        'subject_type': 'koji_build',
+        'subject_identifier': 'glibc-2.26-27.fc27',
         'testcase': 'testcase1',
         'product_version': 'fool-1',
         'waived': True,
         'comment': 'it broke',
     }
     item2 = {
-        'subject': {'type': 'koji_build', 'item': 'kernel-4.15.17-300.fc27'},
+        'subject_type': 'koji_build',
+        'subject_identifier': 'kernel-4.15.17-300.fc27',
         'testcase': 'testcase2',
         'product_version': 'fool-2',
         'waived': False,
@@ -643,7 +687,8 @@ def test_create_multiple_waivers(mocked_get_user, client, session):
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
 def test_create_multiple_waivers_rollback_on_error(mocked_get_user, client, session):
     item1 = {
-        'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+        'subject_type': 'koji_build',
+        'subject_identifier': 'glibc-2.26-27.fc27',
         'testcase': 'testcase1',
         'product_version': 'fool-1',
         'waived': True,
