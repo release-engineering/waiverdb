@@ -6,7 +6,7 @@ import datetime
 import requests
 from flask import Blueprint, request, current_app
 from flask_restful import Resource, Api, reqparse, marshal_with, marshal
-from werkzeug.exceptions import BadRequest, UnsupportedMediaType, Forbidden, ServiceUnavailable
+from werkzeug.exceptions import BadRequest, Forbidden, ServiceUnavailable
 from sqlalchemy.sql.expression import func, cast
 
 from waiverdb import __version__
@@ -45,7 +45,7 @@ def get_resultsdb_result(result_id):
     return response.json()
 
 
-def _validate_results_filter(results):
+def valid_results_list(results):
     expected = {
         'subject': dict,
         'testcase': str,
@@ -53,9 +53,8 @@ def _validate_results_filter(results):
     for item in results:
         for k, v in item.items():
             if not (k in expected and isinstance(v, expected[k])):
-                raise BadRequest(
-                    ("'results' parameter should be a list of dictionaries with"
-                     " subject and testcase"))
+                raise ValueError('Must be a list of dictionaries with "subject" and "testcase"')
+    return results
 
 
 def reqparse_since(since):
@@ -125,6 +124,15 @@ RP['get_waivers'].add_argument('since', type=reqparse_since, location='args')
 RP['get_waivers'].add_argument('page', default=1, type=int, location='args')
 RP['get_waivers'].add_argument('limit', default=10, type=int, location='args')
 RP['get_waivers'].add_argument('proxied_by', location='args')
+
+RP['get_waivers_by_subjects_and_testcase'] = rp = reqparse.RequestParser()
+rp.add_argument('results', type=valid_results_list, location='json')
+rp.add_argument('testcase', type=str, location='json')
+rp.add_argument('product_version', type=str, location='json')
+rp.add_argument('username', type=str, location='json')
+rp.add_argument('proxied_by', location='json')
+rp.add_argument('since', type=reqparse_since, location='json')
+rp.add_argument('include_obsolete', type=bool, default=False, location='json')
 
 
 class DummyJsonRequest(object):
@@ -456,32 +464,23 @@ class GetWaiversBySubjectsAndTestcases(Resource):
         :statuscode 200: If the query was valid and no problems were encountered.
             Note that the response may still contain 0 waivers.
         """
-        if not request.get_json():
-            raise UnsupportedMediaType('No JSON payload in request')
-        data = request.get_json()
+        args = RP['get_waivers_by_subjects_and_testcase'].parse_args()
         query = Waiver.query.order_by(Waiver.timestamp.desc())
-        if 'results' in data:
-            results = data['results']
-            _validate_results_filter(results)
-            query = Waiver.by_results(query, results)
-        if 'product_version' in data:
-            query = query.filter(Waiver.product_version == data['product_version'])
-        if 'username' in data:
-            query = query.filter(Waiver.username == data['username'])
-        if 'proxied_by' in data:
-            query = query.filter(Waiver.proxied_by == data['proxied_by'])
-        if 'since' in data:
-            try:
-                since_start, since_end = reqparse_since(data['since'])
-            except ValueError:
-                raise BadRequest("'since' parameter not in ISO8601 format")
-            except TypeError:
-                raise BadRequest("'since' parameter not in ISO8601 format")
+        if args['results']:
+            query = Waiver.by_results(query, args['results'])
+        if args['product_version']:
+            query = query.filter(Waiver.product_version == args['product_version'])
+        if args['username']:
+            query = query.filter(Waiver.username == args['username'])
+        if args['proxied_by']:
+            query = query.filter(Waiver.proxied_by == args['proxied_by'])
+        if args['since']:
+            since_start, since_end = args['since']
             if since_start:
                 query = query.filter(Waiver.timestamp >= since_start)
             if since_end:
                 query = query.filter(Waiver.timestamp <= since_end)
-        if not data.get('include_obsolete', False):
+        if not args['include_obsolete']:
             query = _filter_out_obsolete_waivers(query)
 
         query = query.order_by(Waiver.timestamp.desc())

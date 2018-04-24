@@ -496,8 +496,8 @@ def test_filtering_waivers_with_bad_key(client, session, results):
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    assert "'results' parameter should be a list of dictionaries with subject and testcase" \
-        in res_data.get('message')
+    assert res_data['message']['results'] == \
+        'Must be a list of dictionaries with "subject" and "testcase"'
 
 
 @pytest.mark.parametrize("results", [
@@ -516,16 +516,20 @@ def test_filtering_waivers_with_empty_results(client, session, results):
 
 
 def test_get_waivers_with_post_malformed_since(client, session):
-    create_waiver(session, subject={'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
-                  testcase='testcase1', username='foo', product_version='foo-1')
-    data = {
-        'since': 123
-    }
+    data = {'since': 123}
     r = client.post('/api/v1.0/waivers/+by-subjects-and-testcases', data=json.dumps(data),
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    assert res_data['message'] == "'since' parameter not in ISO8601 format"
+    assert res_data['message']['since'] == "argument of type 'int' is not iterable"
+
+    data = {'since': 'asdf'}
+    r = client.post('/api/v1.0/waivers/+by-subjects-and-testcases', data=json.dumps(data),
+                    content_type='application/json')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 400
+    assert res_data['message']['since'] == \
+        "time data 'asdf' does not match format '%Y-%m-%dT%H:%M:%S.%f'"
 
 
 def test_about_endpoint(client):
