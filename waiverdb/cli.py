@@ -92,6 +92,8 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
     result_ids = result_id
     if not product_version:
         raise click.ClickException('Please specify product version')
+    if not comment:
+        raise click.ClickException('Please specify comment')
     if result_ids and (subject or testcase):
         raise click.ClickException('Please specify result_id or subject/testcase. Not both')
     if not result_ids and not subject:
