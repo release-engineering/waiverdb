@@ -25,6 +25,16 @@ def valid_dict(value):
     return value
 
 
+def json_dict(value):
+    try:
+        value = json.loads(value)
+    except ValueError as e:
+        raise ValueError("Invalid JSON: %s" % e)
+    if not isinstance(value, dict):
+        raise ValueError("Must be a valid dict, not %r" % value)
+    return value
+
+
 def get_resultsdb_result(result_id):
     response = requests_session.request('GET', '{0}/results/{1}'.format(
         current_app.config['RESULTSDB_API_URL'], result_id),
@@ -60,7 +70,8 @@ RP['create_waiver'].add_argument('comment', type=str, default=None, location='js
 RP['create_waiver'].add_argument('username', type=str, default=None, location='json')
 
 RP['get_waivers'] = reqparse.RequestParser()
-RP['get_waivers'].add_argument('results', location='args')
+RP['get_waivers'].add_argument('subject', type=json_dict, location='args')
+RP['get_waivers'].add_argument('testcase', location='args')
 RP['get_waivers'].add_argument('product_version', location='args')
 RP['get_waivers'].add_argument('username', location='args')
 RP['get_waivers'].add_argument('include_obsolete', type=bool, default=False, location='args')
@@ -108,8 +119,8 @@ class WaiversResource(Resource):
 
         :query int page: The page to get.
         :query int limit: Limit the number of items returned.
-        :query string results: Filter the waivers by result. Accepts a list of
-            dictionaries, with one key 'subject' and one key 'testcase'.
+        :query dict subject: Only include waivers for the given subject.
+        :query string testcase: Only include waivers for the given test case name.
         :query string product_version: Filter the waivers by product version.
         :query string username: Filter the waivers by username.
         :query string proxied_by: Filter the waivers by the users who are
@@ -126,13 +137,10 @@ class WaiversResource(Resource):
         args = RP['get_waivers'].parse_args()
         query = Waiver.query.order_by(Waiver.timestamp.desc())
 
-        if args['results']:
-            try:
-                results = json.loads(args['results'])
-            except json.JSONDecodeError:
-                raise BadRequest("'results' parameter should be in JSON format")
-            _validate_results_filter(results)
-            query = Waiver.by_results(query, results)
+        if args['subject']:
+            query = query.filter(Waiver.subject == args['subject'])
+        if args['testcase']:
+            query = query.filter(Waiver.testcase == args['testcase'])
         if args['product_version']:
             query = query.filter(Waiver.product_version == args['product_version'])
         if args['username']:
