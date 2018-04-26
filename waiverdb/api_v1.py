@@ -111,6 +111,15 @@ RP['get_waivers'].add_argument('limit', default=10, type=int, location='args')
 RP['get_waivers'].add_argument('proxied_by', location='args')
 
 
+class DummyJsonRequest(object):
+    """
+    Can be passed to reqparse.RequestParser.parse_args() instead of current
+    request.
+    """
+    def __init__(self, data):
+        self.json = data
+
+
 class WaiversResource(Resource):
     @jsonp
     def get(self):
@@ -194,7 +203,10 @@ class WaiversResource(Resource):
     @marshal_with(waiver_fields)
     def post(self):
         """
-        Create a new waiver.
+        Create a new waiver or multiple waivers.
+
+        To create multiple waivers, pass list of dict instead. Response also
+        contains list on success.
 
         **Sample request**:
 
@@ -251,7 +263,26 @@ class WaiversResource(Resource):
         """
 
         user, headers = waiverdb.auth.get_user(request)
-        args = RP['create_waiver'].parse_args()
+        data = request.get_json(force=True)
+
+        if isinstance(data, list):
+            result = []
+            for sub_data in data:
+                sub_request = DummyJsonRequest(sub_data)
+                args = RP['create_waiver'].parse_args(sub_request)
+                one_result = self._create_waiver(args, user)
+                result.append(one_result)
+            db.session.add_all(result)
+        else:
+            args = RP['create_waiver'].parse_args()
+            result = self._create_waiver(args, user)
+            db.session.add(result)
+
+        db.session.commit()
+
+        return result, 201, headers
+
+    def _create_waiver(self, args, user):
         proxied_by = None
         if args.get('username'):
             if user not in current_app.config['SUPERUSERS']:
@@ -295,11 +326,14 @@ class WaiversResource(Resource):
         if not args['comment']:
             raise BadRequest('Comment is a required argument.')
 
-        waiver = Waiver(args['subject'], args['testcase'], user,
-                        args['product_version'], args['waived'], args['comment'], proxied_by)
-        db.session.add(waiver)
-        db.session.commit()
-        return waiver, 201, headers
+        return Waiver(
+            args['subject'],
+            args['testcase'],
+            user,
+            args['product_version'],
+            args['waived'],
+            args['comment'],
+            proxied_by)
 
 
 class WaiverResource(Resource):

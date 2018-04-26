@@ -9,6 +9,7 @@ from mock import patch, Mock
 
 from .utils import create_waiver
 from waiverdb import __version__
+from waiverdb.models import Waiver
 
 
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))
@@ -567,3 +568,59 @@ def test_no_cors_waivers(client, session):
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 200
     assert len(res_data['data']) == 3
+
+
+@patch('waiverdb.auth.get_user', return_value=('foo', {}))
+def test_create_multiple_waivers(mocked_get_user, client, session):
+    item1 = {
+        'subject': {'subject.test': 'subject1'},
+        'testcase': 'testcase1',
+        'product_version': 'fool-1',
+        'waived': True,
+        'comment': 'it broke',
+    }
+    item2 = {
+        'subject': {'subject.test': 'subject2'},
+        'testcase': 'testcase2',
+        'product_version': 'fool-2',
+        'waived': False,
+        'comment': 'fixed',
+    }
+    data = [item1, item2]
+
+    r = client.post('/api/v1.0/waivers/', data=json.dumps(data),
+                    content_type='application/json')
+
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 201
+    assert isinstance(res_data, list)
+    assert len(res_data) == 2
+
+    actual_item1 = {k: v for k, v in res_data[0].items() if k in item1}
+    actual_item2 = {k: v for k, v in res_data[1].items() if k in item2}
+    assert actual_item1 == item1
+    assert actual_item2 == item2
+
+    # Transaction was not rolled back.
+    assert session.query(Waiver).count() == 2
+
+
+@patch('waiverdb.auth.get_user', return_value=('foo', {}))
+def test_create_multiple_waivers_rollback_on_error(mocked_get_user, client, session):
+    item1 = {
+        'subject': {'subject.test': 'subject1'},
+        'testcase': 'testcase1',
+        'product_version': 'fool-1',
+        'waived': True,
+        'comment': 'it broke',
+    }
+    item2 = {}
+    data = [item1, item2]
+
+    r = client.post('/api/v1.0/waivers/', data=json.dumps(data),
+                    content_type='application/json')
+
+    assert r.status_code == 400
+
+    # Transaction was rolled back.
+    assert session.query(Waiver).count() == 0
