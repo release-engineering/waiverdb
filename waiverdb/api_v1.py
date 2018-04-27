@@ -109,7 +109,7 @@ RP['create_waiver'].add_argument('testcase', type=str, location='json')
 RP['create_waiver'].add_argument('result_id', type=int, location='json')
 RP['create_waiver'].add_argument('waived', type=bool, required=True, location='json')
 RP['create_waiver'].add_argument('product_version', type=str, required=True, location='json')
-RP['create_waiver'].add_argument('comment', type=str, default=None, location='json')
+RP['create_waiver'].add_argument('comment', type=str, required=True, location='json')
 RP['create_waiver'].add_argument('username', type=str, default=None, location='json')
 
 RP['get_waivers'] = reqparse.RequestParser()
@@ -346,8 +346,6 @@ class WaiversResource(Resource):
         if not args['subject'] or not args['testcase']:
             raise BadRequest('Either result_id or subject/testcase '
                              'are required arguments.')
-        if not args['comment']:
-            raise BadRequest('Comment is a required argument.')
 
         return Waiver(
             args['subject'],
