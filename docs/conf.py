@@ -149,8 +149,10 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'waiverdb', u'WaiverDB Documentation',
-     [author], 1)
+    ('waiverdb-cli', 'waiverdb-cli', u'waiverdb-cli Documentation',
+     [author], 1),
+    ('api', 'waiverdb', u'WaiverDB Documentation',
+     [author], 7)
 ]
 
 

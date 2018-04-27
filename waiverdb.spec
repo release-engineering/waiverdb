@@ -112,7 +112,7 @@ sed -i 's/\.stg\.fedoraproject\.org/.fedoraproject.org/g' conf/client.conf.examp
 %build
 %if 0%{?fedora} || 0%{?rhel} > 7
 %py3_build
-make -C docs SPHINXOPTS= html text
+make -C docs SPHINXOPTS= html man text
 %else
 %py2_build
 %endif
@@ -140,6 +140,14 @@ install -d %{buildroot}%{_sysconfdir}/waiverdb/
 install -m0644 \
     conf/client.conf.example \
     %{buildroot}%{_sysconfdir}/waiverdb/client.conf
+
+install -D -m0644 \
+    docs/_build/man/waiverdb-cli.1 \
+    %{buildroot}%{_mandir}/man1/waiverdb-cli.1
+
+install -D -m0644 \
+    docs/_build/man/waiverdb.7 \
+    %{buildroot}%{_mandir}/man7/waiverdb.7
 
 # Tests don't make sense here now that we require postgres to run them.
 #%%check
@@ -176,6 +184,8 @@ install -m0644 \
 %endif
 %attr(755,root,root) %{_bindir}/waiverdb-cli
 %config(noreplace) %{_sysconfdir}/waiverdb/client.conf
+%{_mandir}/man1/waiverdb-cli.1*
+%{_mandir}/man7/waiverdb.7*
 
 %post
 %systemd_post %{name}.service
