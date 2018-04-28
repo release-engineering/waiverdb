@@ -14,6 +14,8 @@ node('fedora') {
         sh 'sudo dnf -y install dnf-utils'
         /* Unit tests need local Postgres */
         sh """
+        sudo dnf -y remove postgresql-server || true
+        sudo rm -rf /var/lib/pgsql/ || true
         sudo dnf -y install postgresql-server
         sudo postgresql-setup --initdb
         sudo systemctl enable --now postgresql
