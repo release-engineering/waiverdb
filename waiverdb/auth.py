@@ -31,7 +31,7 @@ def process_gssapi_request(token):
         user = str(sc.initiator_name)
         return user, token
     except gssapi.exceptions.GSSError as e:
-        current_app.logger.error(
+        current_app.logger.exception(
             'Unable to authenticate: failed to %s: %s' %
             (stage, e.gen_message()))
         raise Forbidden("Authentication failed")
