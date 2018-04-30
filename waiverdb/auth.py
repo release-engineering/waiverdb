@@ -4,25 +4,15 @@
 import base64
 import gssapi
 from flask import current_app, Response, g
-from socket import gethostname
 from werkzeug.exceptions import Unauthorized, Forbidden
 
 
 # Inspired by https://github.com/mkomitee/flask-kerberos/blob/master/flask_kerberos.py
 # Later cleaned and ported to python-gssapi
 def process_gssapi_request(token):
-    if current_app.config['KERBEROS_HTTP_HOST']:
-        hostname = current_app.config['KERBEROS_HTTP_HOST']
-    else:
-        hostname = gethostname()
-
-    service_name = gssapi.Name("HTTP@%s" % hostname,
-                               gssapi.NameType.hostbased_service)
-
     try:
         stage = "initialize server context"
-        creds = gssapi.Credentials(name=service_name, usage="accept")
-        sc = gssapi.SecurityContext(usage="accept", creds=creds)
+        sc = gssapi.SecurityContext(usage="accept")
 
         stage = "step context"
         token = sc.step(token if token != "" else None)

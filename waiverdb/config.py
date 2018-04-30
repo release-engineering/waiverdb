@@ -24,8 +24,6 @@ class Config(object):
     # https://github.com/flask-restful/flask-restful/issues/449
     ERROR_404_HELP = False
     AUTH_METHOD = 'OIDC'  # Specify OIDC, Kerberos or SSL for authentication
-    # Change it if the Kerberos service is not running on which the waiverdb is run.
-    KERBEROS_HTTP_HOST = None
     # Set this to True or False to enable publishing to a message bus
     MESSAGE_BUS_PUBLISH = True
     # Specify fedmsg or stomp for publishing messages
