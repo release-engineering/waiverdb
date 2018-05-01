@@ -59,7 +59,8 @@ def publish_new_waiver(session):
             database. This session is not active and cannot emit SQL.
 
     """
-    _log.debug('The publish_new_waiver SQLAlchemy event has been activated.')
+    _log.debug('The publish_new_waiver SQLAlchemy event has been activated (%r)',
+               current_app.config['MESSAGE_PUBLISHER'])
     if current_app.config['MESSAGE_PUBLISHER'] == 'stomp':
         with stomp_connection() as conn:
             stomp_configs = current_app.config.get('STOMP_CONFIGS')
@@ -71,8 +72,12 @@ def publish_new_waiver(session):
                     if stomp.__version__[0] < 4:
                         kwargs['message'] = kwargs.pop('body')  # On EL7, different sig.
                     conn.send(**kwargs)
-    else:
+    elif current_app.config['MESSAGE_PUBLISHER'] == 'fedmsg':
         for row in session.identity_map.values():
             if isinstance(row, Waiver):
                 _log.debug('Publishing a message for %r', row)
                 fedmsg.publish(topic='waiver.new', msg=marshal(row, waiver_fields))
+    elif current_app.config['MESSAGE_PUBLISHER'] is None:
+        _log.info('No message published.  MESSAGE_PUBLISHER disabled.')
+    else:
+        _log.warning('Unhandled MESSAGE_PUBLISHER %r', current_app.config['MESSAGE_PUBLISHER'])
