@@ -12,6 +12,8 @@ node('fedora') {
         sh 'sudo dnf -y install python3-flake8 python3-pylint python3-pytest python3-sphinx python3-sphinxcontrib-httpdomain'
         /* Needed for mock EPEL7 builds: https://bugzilla.redhat.com/show_bug.cgi?id=1528272 */
         sh 'sudo dnf -y install dnf-utils'
+        /* Needed to get the latest /etc/mock/fedora-28-x86_64.cfg */
+        sh 'sudo dnf -y update mock-core-configs'
         /* Unit tests need local Postgres */
         sh """
         sudo dnf -y remove postgresql-server || true
