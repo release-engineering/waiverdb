@@ -57,8 +57,6 @@ BuildRequires:  python-configparser
 BuildRequires:  python-flask-migrate
 BuildRequires:  stomppy
 BuildRequires:  fedmsg
-%{?systemd_requires}
-BuildRequires:  systemd
 Requires:       python3-flask
 Requires:       python3-sqlalchemy
 Requires:       python3-flask-restful
@@ -124,13 +122,7 @@ make -C docs SPHINXOPTS= html man text
 PYTHONDONTWRITEBYTECODE=1 %py2_install
 %endif
 
-%if %{with server}
-install -d %{buildroot}%{_unitdir}
-install -m0644 \
-    systemd/%{name}.service \
-    systemd/%{name}.socket \
-    %{buildroot}%{_unitdir}
-%else
+%if ! %{with server}
 # Need to properly split out the client one day...
 rm %{buildroot}%{_bindir}/waiverdb
 ls -d %{buildroot}%{python2_sitelib}/waiverdb/* | grep -E -v '(__init__.py|cli.py)$' | xargs rm -r
@@ -160,8 +152,6 @@ install -D -m0644 \
 %files
 %{python3_sitelib}/%{name}
 %{python3_sitelib}/%{name}*.egg-info
-%{_unitdir}/%{name}.service
-%{_unitdir}/%{name}.socket
 %attr(755,root,root) %{_bindir}/waiverdb
 %endif
 
@@ -191,16 +181,5 @@ install -D -m0644 \
 %{_mandir}/man1/waiverdb-cli.1*
 %{_mandir}/man7/waiverdb.7*
 %endif
-
-%post
-%systemd_post %{name}.service
-%systemd_post %{name}.socket
-
-%preun
-%systemd_preun %{name}.service
-%systemd_preun %{name}.socket
-
-%postun
-%systemd_postun_with_restart %{name}.service
 
 %changelog

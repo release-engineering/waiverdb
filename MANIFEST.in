@@ -6,7 +6,6 @@ include pytest.ini
 include tests/*.py tests/client_secrets.json
 include tox.ini
 include fedmsg.d/*.py
-recursive-include systemd *
 recursive-include conf *
 exclude conf/settings.py
 exclude conf/client.conf
