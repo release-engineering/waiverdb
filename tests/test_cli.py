@@ -32,20 +32,6 @@ auth_method=OIDC
     assert result.output == 'Error: The config option "api_url" is required\n'
 
 
-def test_misconfigured_resultdb_api_url(tmpdir):
-    p = tmpdir.join('client.conf')
-    p.write("""
-[waiverdb]
-auth_method=dummy
-api_url=http://localhost:5004/api/v1.0
-        """)
-    runner = CliRunner()
-    args = ['-C', p.strpath]
-    result = runner.invoke(waiverdb_cli, args)
-    assert result.exit_code == 1
-    assert result.output == 'Error: The config option "resultsdb_api_url" is required\n'
-
-
 def test_misconfigured_oidc_id_provider(tmpdir):
     p = tmpdir.join('client.conf')
     p.write("""
@@ -101,7 +87,6 @@ oidc_id_provider=https://id.stg.fedoraproject.org/openidc/
 oidc_client_id=waiverdb
 oidc_scopes=
     openid
-resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
     runner = CliRunner()
     args = ['-C', p.strpath]
@@ -120,7 +105,6 @@ oidc_id_provider=https://id.stg.fedoraproject.org/openidc/
 oidc_client_id=waiverdb
 oidc_scopes=
     openid
-resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
     runner = CliRunner()
     args = ['-C', p.strpath, '-p', 'fedora-26', '-c', 'comment']
@@ -139,7 +123,6 @@ oidc_id_provider=https://id.stg.fedoraproject.org/openidc/
 oidc_client_id=waiverdb
 oidc_scopes=
     openid
-resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
     runner = CliRunner()
     args = ['-C', p.strpath, '-p', 'fedora-26', '-s', 'subject', '-c', 'comment']
@@ -158,7 +141,6 @@ oidc_id_provider=https://id.stg.fedoraproject.org/openidc/
 oidc_client_id=waiverdb
 oidc_scopes=
     openid
-resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
     runner = CliRunner()
     args = ['-C', p.strpath, '-p', 'fedora-26', '-s', 'subject', '-t', 'testcase']
@@ -193,7 +175,6 @@ oidc_id_provider=https://id.stg.fedoraproject.org/openidc/
 oidc_client_id=waiverdb
 oidc_scopes=
     openid
-resultsdb_api_url=http://localhost:5001/api/v2.0
             """)
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-s', '{"subject.test": "test", "s": "t"}',
@@ -241,7 +222,6 @@ def test_gssapi_is_enabled(tmpdir):
 [waiverdb]
 auth_method=Kerberos
 api_url=http://localhost:5004/api/v1.0
-resultsdb_api_url=http://localhost:5001/api/v2.0
             """)
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-s', '{"subject.test": "test", "s": "t"}',
@@ -273,7 +253,6 @@ def test_submit_waiver_with_id(tmpdir):
 [waiverdb]
 auth_method=dummy
 api_url=http://localhost:5004/api/v1.0
-resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123',
@@ -301,7 +280,6 @@ def test_submit_waiver_with_multiple_ids(tmpdir):
 [waiverdb]
 auth_method=dummy
 api_url=http://localhost:5004/api/v1.0
-resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123', '-r', '456',
@@ -320,7 +298,6 @@ def test_malformed_submission_with_id_and_subject_and_testcase(tmpdir):
 [waiverdb]
 auth_method=dummy
 api_url=http://localhost:5004/api/v1.0
-resultsdb_api_url=http://localhost:5001/api/v2.0
         """)
         args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123', '-s',
                 '{"subject.test": "test", "s": "t"}', '-c', "This is fine"]
@@ -347,7 +324,6 @@ def test_submit_waiver_for_original_spec_nvr_result(tmpdir):
 [waiverdb]
 auth_method=dummy
 api_url=http://localhost:5004/api/v1.0
-resultsdb_api_url=http://localhost:5001/api/v2.0
             """)
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123',

@@ -31,8 +31,6 @@ def validate_config(config):
     for required_config in required_configs:
         if not config.has_option('waiverdb', required_config):
             raise click.ClickException(config_error.format(required_config))
-    if not config.has_option('waiverdb', 'resultsdb_api_url'):
-        raise click.ClickException(config_error.format('resultsdb_api_url'))
 
 
 def check_response(resp, data, result_id=None):
