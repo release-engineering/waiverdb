@@ -20,4 +20,4 @@ RUN dnf -y install \
 USER 1001
 EXPOSE 8080
 
-ENTRYPOINT python3-gunicorn --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance waiverdb.wsgi:app
+ENTRYPOINT gunicorn-3 --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance waiverdb.wsgi:app
