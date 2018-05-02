@@ -12,6 +12,8 @@ node('fedora') {
         sh 'sudo dnf -y install python3-flake8 python3-pylint python3-pytest python3-sphinx python3-sphinxcontrib-httpdomain'
         /* Needed for mock EPEL7 builds: https://bugzilla.redhat.com/show_bug.cgi?id=1528272 */
         sh 'sudo dnf -y install dnf-utils'
+        /* Needed to get the latest /etc/mock/fedora-28-x86_64.cfg */
+        sh 'sudo dnf -y update mock-core-configs'
         /* Unit tests need local Postgres */
         sh """
         sudo dnf -y remove postgresql-server || true
@@ -82,14 +84,6 @@ node('fedora') {
                 """
                 archiveArtifacts artifacts: 'mock-result/el7/**'
             },
-            'F26': {
-                sh """
-                mkdir -p mock-result/f26
-                flock /etc/mock/fedora-26-x86_64.cfg \
-                /usr/bin/mock -v --enable-network --resultdir=mock-result/f26 -r fedora-26-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
-                """
-                archiveArtifacts artifacts: 'mock-result/f26/**'
-            },
             'F27': {
                 sh """
                 mkdir -p mock-result/f27
@@ -98,6 +92,14 @@ node('fedora') {
                 """
                 archiveArtifacts artifacts: 'mock-result/f27/**'
             },
+            'F28': {
+                sh """
+                mkdir -p mock-result/f28
+                flock /etc/mock/fedora-28-x86_64.cfg \
+                /usr/bin/mock -v --enable-network --resultdir=mock-result/f28 -r fedora-28-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
+                """
+                archiveArtifacts artifacts: 'mock-result/f28/**'
+            },
         )
     }
     stage('Invoke Rpmlint') {
@@ -105,11 +107,11 @@ node('fedora') {
             'EPEL7': {
                 sh 'rpmlint -f rpmlint-config.py mock-result/el7/*.rpm'
             },
-            'F26': {
-                sh 'rpmlint -f rpmlint-config.py mock-result/f26/*.rpm'
-            },
             'F27': {
                 sh 'rpmlint -f rpmlint-config.py mock-result/f27/*.rpm'
+            },
+            'F28': {
+                sh 'rpmlint -f rpmlint-config.py mock-result/f28/*.rpm'
             },
         )
     }
@@ -117,12 +119,12 @@ node('fedora') {
 node('docker') {
     checkout scm
     stage('Build Docker container') {
-        unarchive mapping: ['mock-result/f26/': '.']
-        def f26_rpm = findFiles(glob: 'mock-result/f26/**/*.noarch.rpm')[0]
+        unarchive mapping: ['mock-result/f28/': '.']
+        def f28_rpm = findFiles(glob: 'mock-result/f28/**/*.noarch.rpm')[0]
         /* XXX: remove this once we divorce waiverdb-cli from waiverdb. */
-        def waiverdb_common = findFiles(glob: 'mock-result/f26/**/waiverdb-common-*.noarch.rpm')[0]
+        def waiverdb_common = findFiles(glob: 'mock-result/f28/**/waiverdb-common-*.noarch.rpm')[0]
         def appversion = sh(returnStdout: true, script: """
-            rpm2cpio ${f26_rpm} | \
+            rpm2cpio ${f28_rpm} | \
             cpio --quiet --extract --to-stdout ./usr/lib/python\\*/site-packages/waiverdb\\*.egg-info/PKG-INFO | \
             awk '/^Version: / {print \$2}'
         """).trim()
@@ -136,13 +138,13 @@ node('docker') {
             /* Note that the docker.build step has some magic to guess the
              * Dockerfile used, which will break if the build directory (here ".")
              * is not the final argument in the string. */
-            def image = docker.build "factory2/waiverdb:internal-${appversion}", "--build-arg waiverdb_rpm=$f26_rpm --build-arg waiverdb_common_rpm=$waiverdb_common ."
+            def image = docker.build "factory2/waiverdb:internal-${appversion}", "--build-arg waiverdb_rpm=$f28_rpm --build-arg waiverdb_common_rpm=$waiverdb_common ."
             image.push()
         }
         docker.withRegistry(
                 'https://quay.io/',
                 'quay-io-factory2-builder-sa-credentials') {
-            def image = docker.build "factory2/waiverdb:${appversion}", "--build-arg waiverdb_rpm=$f26_rpm --build-arg waiverdb_common_rpm=$waiverdb_common ."
+            def image = docker.build "factory2/waiverdb:${appversion}", "--build-arg waiverdb_rpm=$f28_rpm --build-arg waiverdb_common_rpm=$waiverdb_common ."
             image.push()
         }
         /* Save container version for later steps (this is ugly but I can't find anything better...) */
