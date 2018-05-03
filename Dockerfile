@@ -4,9 +4,13 @@ LABEL \
     vendor="WaiverDB developers" \
     license="GPLv2+" \
     build-date=""
+
 # The caller should build a waiverdb RPM package using ./rpmbuild.sh and then pass it in this arg.
 ARG waiverdb_rpm
 ARG waiverdb_common_rpm
+# The caller can optionally provide a cacert url
+ARG cacert_url=undefined
+
 COPY $waiverdb_rpm /tmp
 COPY $waiverdb_common_rpm /tmp
 
