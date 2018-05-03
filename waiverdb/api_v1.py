@@ -277,6 +277,7 @@ class WaiversResource(Resource):
                 subject = {'original_spec_nvr': result['data']['original_spec_nvr'][0]}
             else:
                 if result['data']['type'][0] == 'koji_build' or \
+                   result['data']['type'][0] == 'brew-build' or \
                    result['data']['type'][0] == 'bodhi_update':
                     SUBJECT_KEYS = ['item', 'type']
                     subject = dict([(k, v[0]) for k, v in result['data'].items()
