@@ -138,7 +138,7 @@ node('docker') {
             /* Note that the docker.build step has some magic to guess the
              * Dockerfile used, which will break if the build directory (here ".")
              * is not the final argument in the string. */
-            def image = docker.build "factory2/waiverdb:internal-${appversion}", "--build-arg waiverdb_rpm=$f28_rpm --build-arg waiverdb_common_rpm=$waiverdb_common ."
+            def image = docker.build "factory2/waiverdb:internal-${appversion}", "--build-arg waiverdb_rpm=$f28_rpm --build-arg waiverdb_common_rpm=$waiverdb_common --build-arg cacert_url=https://password.corp.redhat.com/RH-IT-Root-CA.crt ."
             image.push()
         }
         docker.withRegistry(

@@ -17,6 +17,12 @@ RUN dnf -y install \
     && dnf -y clean all \
     && rm -f /tmp/*
 
+RUN if [ "$cacert_url" != "undefined" ]; then \
+        cd /etc/pki/ca-trust/source/anchors \
+        && curl -O --insecure $cacert_url \
+        && update-ca-trust extract; \
+    fi
+
 USER 1001
 EXPOSE 8080
 
