@@ -6,7 +6,7 @@ import requests
 from flask import Blueprint, request, current_app
 from flask_restful import Resource, Api, reqparse, marshal_with, marshal
 from werkzeug.exceptions import BadRequest, Forbidden, ServiceUnavailable
-from sqlalchemy.sql.expression import func
+from sqlalchemy.sql.expression import func, and_, or_
 
 from waiverdb import __version__
 from waiverdb.models import db
@@ -45,6 +45,15 @@ def valid_results_list(results):
             if not (k in expected and isinstance(v, expected[k])):
                 raise ValueError('Must be a list of dictionaries with "subject" and "testcase"')
     return results
+
+
+def valid_filter_list(filters):
+    if not filters:
+        raise ValueError('Must be a list of non-empty dictionaries')
+    for item in filters:
+        if not isinstance(item, dict) or not item:
+            raise ValueError('Must be a list of non-empty dictionaries')
+    return filters
 
 
 def reqparse_since(since):
@@ -119,6 +128,10 @@ RP['get_waivers'].add_argument('since', type=reqparse_since, location='args')
 RP['get_waivers'].add_argument('page', default=1, type=int, location='args')
 RP['get_waivers'].add_argument('limit', default=10, type=int, location='args')
 RP['get_waivers'].add_argument('proxied_by', location='args')
+
+RP['filter_waivers'] = reqparse.RequestParser()
+RP['filter_waivers'].add_argument('filters', type=valid_filter_list, required=True, location='json')
+RP['filter_waivers'].add_argument('include_obsolete', type=bool, default=False, location='json')
 
 RP['get_waivers_by_subjects_and_testcase'] = rp = reqparse.RequestParser()
 rp.add_argument('results', type=valid_results_list, location='json')
@@ -391,28 +404,123 @@ class WaiverResource(Resource):
             raise type(NotFound)('Waiver not found')
 
 
-class GetWaiversBySubjectsAndTestcases(Resource):
-    @jsonp
+class FilteredWaiversResource(Resource):
+
+    @marshal_with(waiver_fields, envelope='data')
     def post(self):
         """
-        Return a list of waivers by filtering the waivers with a
-        list of result subjects and testcases.
-        This accepts POST requests in order to handle a special
-        case where a GET /waivers/ request has a long query string with many
-        result subjects/testcases that could cause 413 errors.
+        Get waiver records, filtered by some criteria.
+
+        This API behaves the same way as :http:get:`/api/v1.0/waivers/`, but it
+        allows for longer or more complex filter criteria that cannot be
+        expressed in the query string.
+
+        Note that the response is not paginated (that is, *all* waivers are
+        returned in the 'data' key, even if there is a large number of them).
 
         **Sample request**:
 
         .. sourcecode:: http
 
-           POST /api/v1.0/waivers/+by-subjects-and-testcases HTTP/1.1
-           Host: localhost:5004
-           Accept-Encoding: gzip, deflate
+           POST /api/v1.0/waivers/+filtered HTTP/1.1
            Accept: application/json
-           Connection: keep-alive
-           User-Agent: HTTPie/0.9.4
            Content-Type: application/json
-           Content-Length: 40
+
+           {
+                "filters": [
+                    {
+                        "subject_type": "compose",
+                        "subject_identifier": "Fedora-9000-19700101.n.18",
+                        "testcase": "compose.install_no_user"
+                    },
+                    {
+                        "subject_type": "koji_build",
+                        "subject_identifier": "gzip-1.9-1.fc28",
+                        "testcase": "dist.rpmlint"
+                    }
+                ]
+           }
+
+        **Sample response**:
+
+        .. sourcecode:: none
+
+           HTTP/1.1 200 OK
+           Content-Type: application/json
+
+           {
+                "data": [
+                    {
+                        "id": 15,
+                        "comment": "The tests broke",
+                        "product_version": "fedora-27",
+                        "subject_type": "compose",
+                        "subject_identifier": "Fedora-9000-19700101.n.18",
+                        "testcase": "compose.install_no_user",
+                        "timestamp": "2017-03-16T17:42:04.209638",
+                        "username": "jcline",
+                        "waived": true,
+                        "proxied_by": null
+                    }
+                ]
+           }
+
+        :json list filters: List of filter dicts. If the list contains
+            multiple filter dicts, they are combined with logical OR. Within
+            each filter dict, the criteria are combined with logical AND. Keys
+            within the filter dict are the same as the filtering
+            parameters accepted by :http:get:`/api/v1.0/waivers/`.
+        :json boolean include_obsolete: If true, obsolete waivers will be included.
+        :statuscode 200: Returns matching waivers, if any.
+        :statuscode 400: The request was malformed (invalid filter critera).
+        """
+        args = RP['filter_waivers'].parse_args()
+        query = Waiver.query.order_by(Waiver.timestamp.desc())
+        clauses = []
+        for filter_ in args['filters']:
+            inner_clauses = []
+            if 'subject_type' in filter_:
+                inner_clauses.append(Waiver.subject_type == filter_['subject_type'])
+            if 'subject_identifier' in filter_:
+                inner_clauses.append(Waiver.subject_identifier == filter_['subject_identifier'])
+            if 'testcase' in filter_:
+                inner_clauses.append(Waiver.testcase == filter_['testcase'])
+            if 'product_version' in filter_:
+                inner_clauses.append(Waiver.product_version == filter_['product_version'])
+            if 'username' in filter_:
+                inner_clauses.append(Waiver.username == filter_['username'])
+            if 'proxied_by' in filter_:
+                inner_clauses.append(Waiver.proxied_by == filter_['proxied_by'])
+            if 'since' in filter_:
+                try:
+                    since_start, since_end = reqparse_since(filter_['since'])
+                except ValueError as e:
+                    raise BadRequest({'since': str(e)})
+                if since_start:
+                    inner_clauses.append(Waiver.timestamp >= since_start)
+                if since_end:
+                    inner_clauses.append(Waiver.timestamp <= since_end)
+            clauses.append(and_(*inner_clauses))
+        query = query.filter(or_(*clauses))
+        if not args['include_obsolete']:
+            subquery = db.session.query(func.max(Waiver.id))\
+                .group_by(Waiver.subject_type, Waiver.subject_identifier, Waiver.testcase)
+            query = query.filter(Waiver.id.in_(subquery))
+        return query.all()
+
+
+class GetWaiversBySubjectsAndTestcases(Resource):
+    @jsonp
+    def post(self):
+        """
+        **Deprecated.** Use :http:post:`/api/v1.0/waivers/+filtered` instead.
+
+        Instead of making a deprecated request like this:
+
+        .. sourcecode:: http
+
+           POST /api/v1.0/waivers/+by-subjects-and-testcases HTTP/1.1
+           Content-Type: application/json
 
            {
                 "results": [
@@ -427,56 +535,27 @@ class GetWaiversBySubjectsAndTestcases(Resource):
                 ]
            }
 
-        **Sample response**:
+        make the following equivalent request:
 
         .. sourcecode:: http
 
-            HTTP/1.0 200 OK
-            Content-Length: 562
-            Content-Type: application/json
-            Date: Thu, 21 Sep 2017 04:58:37 GMT
-            Server: Werkzeug/0.11.10 Python/2.7.13
+           POST /api/v1.0/waivers/+filtered HTTP/1.1
+           Content-Type: application/json
 
-            {
-                "data": [
+           {
+                "filters": [
                     {
-                        "comment": "This is fine",
-                        "id": 5,
-                        "product_version": "Parrot",
-                        "subject": {"productmd.compose.id": "Fedora-9000-19700101.n.18"},
-                        "testcase": "compose.install_no_user",
-                        "timestamp": "2017-09-21T04:55:53.343368",
-                        "username": "dummy",
-                        "waived": true,
-                        "proxied_by": null
+                        "subject_type": "compose",
+                        "subject_identifier": "Fedora-9000-19700101.n.18",
+                        "testcase": "compose.install_no_user"
                     },
                     {
-                        "comment": "This is fine",
-                        "id": 4,
-                        "product_version": "Parrot",
-                        "subject": {"item": "gzip-1.9-1.fc28", "type": "koji_build"},
-                        "testcase": "dist.rpmlint",
-                        "timestamp": "2017-09-21T04:55:51.936658",
-                        "username": "dummy",
-                        "waived": true,
-                        "proxied_by": null
+                        "subject_type": "koji_build",
+                        "subject_identifier": "gzip-1.9-1.fc28",
+                        "testcase": "dist.rpmlint"
                     }
                 ]
-            }
-
-        :jsonparam array results: Filter the waivers by a list of dictionaries
-            with result subjects and testcase.
-        :jsonparam string product_version: Filter the waivers by product version.
-        :jsonparam string username: Filter the waivers by username.
-        :jsonparam string proxied_by: Filter the waivers by the users who are
-            allowed to create waivers on behalf of other users.
-        :jsonparam string since: An ISO 8601 formatted datetime (e.g. 2017-03-16T13:40:05+00:00)
-            to filter results by. Optionally provide a second ISO 8601 datetime separated
-            by a comma to retrieve a range (e.g. 2017-03-16T13:40:05+00:00,
-            2017-03-16T13:40:15+00:00)
-        :jsonparam boolean include_obsolete: If true, obsolete waivers will be included.
-        :statuscode 200: If the query was valid and no problems were encountered.
-            Note that the response may still contain 0 waivers.
+           }
         """
         args = RP['get_waivers_by_subjects_and_testcase'].parse_args()
         query = Waiver.query.order_by(Waiver.timestamp.desc())
@@ -531,5 +610,6 @@ class AboutResource(Resource):
 # set up the Api resource routing here
 api.add_resource(WaiversResource, '/waivers/')
 api.add_resource(WaiverResource, '/waivers/<int:waiver_id>')
+api.add_resource(FilteredWaiversResource, '/waivers/+filtered')
 api.add_resource(GetWaiversBySubjectsAndTestcases, '/waivers/+by-subjects-and-testcases')
 api.add_resource(AboutResource, '/about')

@@ -498,7 +498,40 @@ def test_healthcheck(client):
     assert r.get_data(as_text=True) == 'Health check OK'
 
 
-def test_get_waivers_with_post_request(client, session):
+def test_filtering_waivers_with_post(client, session):
+    filters = []
+    for i in range(1, 51):
+        filters.append({'subject_type': 'koji_build',
+                        'subject_identifier': 'python2-2.7.14-%d.fc27' % i,
+                        'testcase': 'case %d' % i})
+        create_waiver(session, subject_type='koji_build',
+                      subject_identifier='python2-2.7.14-%d.fc27' % i,
+                      testcase='case %d' % i, username='person',
+                      product_version='fedora-27', comment='bla bla bla')
+    # Unrelated waiver which should not be included
+    create_waiver(session, subject_type='koji_build',
+                  subject_identifier='glibc-2.26-27.fc27',
+                  testcase='dist.rpmdeplint', username='person',
+                  product_version='fedora-27', comment='bla bla bla')
+    r = client.post('/api/v1.0/waivers/+filtered',
+                    data=json.dumps({'filters': filters}),
+                    content_type='application/json')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 200
+    assert len(res_data['data']) == 50
+    assert all(w['subject_identifier'].startswith('python2-2.7.14') for w in res_data['data'])
+
+
+def test_filtering_with_missing_filter(client, session):
+    r = client.post('/api/v1.0/waivers/+filtered',
+                    data=json.dumps({'somethingelse': 'what'}),
+                    content_type='application/json')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 400
+    assert res_data['message']['filters'] == 'Missing required parameter in the JSON body'
+
+
+def test_waivers_by_subjects_and_testcases(client, session):
     """
     This tests that users can get waivers by sending a POST request with a long
     list of result subject/testcase.
@@ -533,7 +566,7 @@ def test_get_waivers_with_post_request(client, session):
     [{'item': {'subject.test1': 'subject1'}}],  # Unexpected key
     [{'subject': 'subject1'}],  # Unexpected key type
 ])
-def test_filtering_waivers_with_bad_key(client, session, results):
+def test_waivers_by_subjects_and_testcases_with_bad_results_parameter(client, session, results):
     data = {'results': results}
     r = client.post('/api/v1.0/waivers/+by-subjects-and-testcases', data=json.dumps(data),
                     content_type='application/json')
@@ -547,7 +580,7 @@ def test_filtering_waivers_with_bad_key(client, session, results):
     [],
     [{}],
 ])
-def test_filtering_waivers_with_empty_results(client, session, results):
+def test_waivers_by_subjects_and_testcases_with_empty_results_parameter(client, session, results):
     create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo-1', product_version='foo-1')
     data = {'results': results}
@@ -558,7 +591,7 @@ def test_filtering_waivers_with_empty_results(client, session, results):
     assert len(res_data['data']) == 1
 
 
-def test_get_waivers_with_post_malformed_since(client, session):
+def test_waivers_by_subjects_and_testcases_with_malformed_since(client, session):
     data = {'since': 123}
     r = client.post('/api/v1.0/waivers/+by-subjects-and-testcases', data=json.dumps(data),
                     content_type='application/json')
