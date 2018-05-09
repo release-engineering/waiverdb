@@ -2,6 +2,46 @@
 Release Notes
 =============
 
+WaiverDB 0.10
+=============
+
+Released 10 May 2018.
+
+* Comment is now explicitly required when creating waivers (both in API and
+  CLI).
+
+* Multiple waivers can now be created with single POST request (#98). To create
+  multiple waivers, POST list to "waivers/" instead of single waiver.
+
+* When creating a waiver by referring to a result ID, WaiverDB now accepts
+  results with ``'type': 'brew-build'`` as an alias for ``'koji_build'``.
+
+* Messaging can be disabled is settings with ``MESSAGE_PUBLISHER = None``.
+
+* The ``KERBEROS_HTTP_HOST`` setting in the server configuration is now
+  ignored. This setting is no longer needed because GSSAPI will automatically
+  find a key in the Kerberos keytab matching the service principal in the
+  client request.
+
+* New man pages are available for ``waiverdb-cli(1)`` and ``waiverdb(7)`` (REST
+  API).
+
+* Changed error message for bad ``since`` value. E.g.
+  ``api/v1.0/waivers/?since=123`` results in HTTP 400 with message
+  ``{"message": {"since": "time data '123' does not match format
+  '%Y-%m-%dT%H:%M:%S.%f'"}}``.
+
+* CORS headers are now supported for every request (#160).
+
+* Wrong ``subject`` filter produces more user-friendly error (#162).
+
+* Setting a keytab file is no longer required: if one is not explicitly set,
+  ``/etc/krb5.keytab`` will be used (#55).
+
+* Unused option ``resultsdb_api_url`` was removed from client.conf.
+
+* Containers on Quay (`<https://quay.io/repository/factory2/waiverdb>`__).
+
 WaiverDB 0.9
 ============
 
