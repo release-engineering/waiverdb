@@ -15,7 +15,7 @@ COPY $waiverdb_rpm /tmp
 COPY $waiverdb_common_rpm /tmp
 
 RUN dnf -y install \
-    --enablerepo=epel-testing \
+    --enablerepo=updates-testing \
     python3-gunicorn \
     /tmp/$(basename $waiverdb_rpm) \
     /tmp/$(basename $waiverdb_common_rpm) \
