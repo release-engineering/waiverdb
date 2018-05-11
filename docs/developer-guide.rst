@@ -5,6 +5,17 @@ Development Guide
 Quick development setup
 =======================
 
+Clone `upstream git repository <https://pagure.io/waiverdb>`__::
+
+    $ git clone https://pagure.io/waiverdb.git
+    $ cd waiverdb
+
+If you plan to fix issues or implement new features, create fork. Then update
+"upstream" and "origin" remotes::
+
+    $ git remote rename origin upstream
+    $ git remote add origin ssh://git@pagure.io/forks/$USER/waiverdb.git
+
 Install packages required by pip to compile some python packages::
     
     $ sudo dnf install swig openssl-devel cpp gcc

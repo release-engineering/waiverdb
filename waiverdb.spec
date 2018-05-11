@@ -139,6 +139,10 @@ install -D -m0644 \
     %{buildroot}%{_mandir}/man1/waiverdb-cli.1
 
 install -D -m0644 \
+    docs/_build/man/client.conf.5 \
+    %{buildroot}%{_mandir}/man5/waiverdb-client.conf.5
+
+install -D -m0644 \
     docs/_build/man/waiverdb.7 \
     %{buildroot}%{_mandir}/man7/waiverdb.7
 %endif
@@ -179,6 +183,7 @@ install -D -m0644 \
 
 %if 0%{?fedora} || 0%{?rhel} > 7
 %{_mandir}/man1/waiverdb-cli.1*
+%{_mandir}/man5/waiverdb-client.conf.5*
 %{_mandir}/man7/waiverdb.7*
 %endif
 

@@ -8,9 +8,11 @@ test results.
    :maxdepth: 2
    :caption: Contents:
 
-   developer-guide
+   user-guide
    api
    waiverdb-cli
+   client-conf
+   developer-guide
    release-notes
 
 
