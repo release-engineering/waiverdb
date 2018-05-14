@@ -37,6 +37,7 @@ objects:
     name: "waiverdb-test-${TEST_ID}-secret"
     labels:
       environment: "test-${TEST_ID}"
+      app: waiverdb
   stringData:
     flask-secret-key: "${FLASK_SECRET_KEY}"
     database-password: "${DATABASE_PASSWORD}"
@@ -57,6 +58,7 @@ objects:
     name: "waiverdb-test-${TEST_ID}-configmap"
     labels:
       environment: "test-${TEST_ID}"
+      app: waiverdb
   data:
     settings.py: |-
       DATABASE_URI = 'postgresql+psycopg2://waiverdb@waiverdb-test-${TEST_ID}-database:5432/waiverdb'
@@ -71,9 +73,11 @@ objects:
     name: "waiverdb-test-${TEST_ID}-database"
     labels:
       environment: "test-${TEST_ID}"
+      app: waiverdb
   spec:
     selector:
       environment: "test-${TEST_ID}"
+      app: waiverdb
       service: database
     ports:
     - name: postgresql
@@ -85,6 +89,7 @@ objects:
     name: "waiverdb-test-${TEST_ID}-database"
     labels:
       environment: "test-${TEST_ID}"
+      app: waiverdb
       service: database
   spec:
     replicas: 1
@@ -92,11 +97,13 @@ objects:
       type: Recreate
     selector:
       environment: "test-${TEST_ID}"
+      app: waiverdb
       service: database
     template:
       metadata:
         labels:
           environment: "test-${TEST_ID}"
+          app: waiverdb
           service: database
       spec:
         containers:
@@ -133,12 +140,14 @@ objects:
     name: "waiverdb-test-${TEST_ID}-web"
     labels:
       environment: "test-${TEST_ID}"
+      app: waiverdb
     annotations:
       service.alpha.openshift.io/dependencies: |-
         [{"name": "waiverdb-test-${TEST_ID}-database", "kind": "Service"}]
   spec:
     selector:
       environment: "test-${TEST_ID}"
+      app: waiverdb
       service: web
     ports:
     - name: web
@@ -150,6 +159,7 @@ objects:
     name: "waiverdb-test-${TEST_ID}-web"
     labels:
       environment: "test-${TEST_ID}"
+      app: waiverdb
   spec:
     port:
       targetPort: web
@@ -165,11 +175,13 @@ objects:
     name: "waiverdb-test-${TEST_ID}-web"
     labels:
       environment: "test-${TEST_ID}"
+      app: waiverdb
       service: web
   spec:
     replicas: 2
     selector:
       environment: "test-${TEST_ID}"
+      app: waiverdb
       service: web
     strategy:
       type: Rolling
@@ -186,6 +198,7 @@ objects:
       metadata:
         labels:
           environment: "test-${TEST_ID}"
+          app: waiverdb
           service: web
       spec:
         containers:
