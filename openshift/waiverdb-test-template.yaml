@@ -64,6 +64,7 @@ objects:
       AUTH_METHOD = 'dummy'
       OIDC_CLIENT_SECRETS = '/etc/secret/client_secrets.json'
       RESULTSDB_API_URL = 'https://resultsdb-api.engineering.redhat.com/api/v2.0'
+      MESSAGE_BUS_PUBLISH = False
 - apiVersion: v1
   kind: Service
   metadata:
