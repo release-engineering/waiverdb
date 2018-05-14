@@ -61,7 +61,7 @@ objects:
     settings.py: |-
       DATABASE_URI = 'postgresql+psycopg2://waiverdb@waiverdb-test-${TEST_ID}-database:5432/waiverdb'
       PORT = 8080
-      AUTH_METHOD = 'OIDC'
+      AUTH_METHOD = 'dummy'
       OIDC_CLIENT_SECRETS = '/etc/secret/client_secrets.json'
       RESULTSDB_API_URL = 'https://resultsdb-api.engineering.redhat.com/api/v2.0'
 - apiVersion: v1
