@@ -9,7 +9,7 @@ PORT = 5004
 ## Alternatively, you could use stomp to publish messages to a message bus.
 #MESSAGE_PUBLISHER = 'stomp'
 #STOMP_CONFIGS = {
-#    'destination': 'topic://VirtualTopic.eng.waiverdb.waiver.new',
+#    'destination': '/topic/VirtualTopic.eng.waiverdb.waiver.new',
 #    'connection': {
 #        'host_and_ports': [
 #            ('broker01', 61612),
