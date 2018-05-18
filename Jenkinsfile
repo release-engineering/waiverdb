@@ -198,6 +198,8 @@ node('fedora') {
                         }
                         junit 'junit-functional-tests.xml'
                     } finally {
+                        /* Extract logs for debugging purposes */
+                        openshift.selector('deploy,pods', ['environment': environment_label]).logs()
                         /* Tear down everything we just created */
                         openshift.selector('dc,deploy,configmap,secret,svc,route',
                                 ['environment': environment_label]).delete()
