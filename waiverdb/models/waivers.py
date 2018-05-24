@@ -13,7 +13,7 @@ def subject_dict_to_type_identifier(subject):
     """
     if subject.get('type') == 'bodhi_update' and 'item' in subject:
         return ('bodhi_update', subject['item'])
-    elif subject.get('type') == 'koji_build' and 'item' in subject:
+    elif subject.get('type') in ['koji_build', 'brew-build'] and 'item' in subject:
         return ('koji_build', subject['item'])
     elif 'original_spec_nvr' in subject:
         return ('koji_build', subject['original_spec_nvr'])
