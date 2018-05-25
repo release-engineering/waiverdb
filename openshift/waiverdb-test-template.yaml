@@ -30,6 +30,16 @@ parameters:
   displayName: Database password
   generate: expression
   from: "[\\w]{32}"
+- name: RESULTSDB_API_URL
+  displayName: ResultsDB URL
+  description: ResultsDB URL in which to pull results against
+  required: true
+  value: https://resultsdb-api.engineering.redhat.com/api/v2.0
+- name: WAIVERDB_REPLICAS
+  displayName: WaiverDB-web Replicas
+  description: Number of replicas to deploy for the web frontend
+  required: true
+  value: "2"
 objects:
 - apiVersion: v1
   kind: Secret
@@ -65,7 +75,7 @@ objects:
       PORT = 8080
       AUTH_METHOD = 'dummy'
       OIDC_CLIENT_SECRETS = '/etc/secret/client_secrets.json'
-      RESULTSDB_API_URL = 'https://resultsdb-api.engineering.redhat.com/api/v2.0'
+      RESULTSDB_API_URL = '${RESULTSDB_API_URL}'
       MESSAGE_BUS_PUBLISH = False
 - apiVersion: v1
   kind: Service
@@ -178,7 +188,7 @@ objects:
       app: waiverdb
       service: web
   spec:
-    replicas: 2
+    replicas: ${WAIVERDB_REPLICAS}
     selector:
       environment: "test-${TEST_ID}"
       app: waiverdb
