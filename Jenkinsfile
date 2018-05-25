@@ -80,7 +80,7 @@ node('fedora') {
                 sh """
                 mkdir -p mock-result/el7
                 flock /etc/mock/epel-7-x86_64.cfg \
-                /usr/bin/mock -v --enable-network --resultdir=mock-result/el7 -r epel-7-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
+                /usr/bin/mock -v --resultdir=mock-result/el7 -r epel-7-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
                 """
                 archiveArtifacts artifacts: 'mock-result/el7/**'
             },
@@ -88,7 +88,7 @@ node('fedora') {
                 sh """
                 mkdir -p mock-result/f27
                 flock /etc/mock/fedora-27-x86_64.cfg \
-                /usr/bin/mock -v --enable-network --resultdir=mock-result/f27 -r fedora-27-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
+                /usr/bin/mock -v --resultdir=mock-result/f27 -r fedora-27-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
                 """
                 archiveArtifacts artifacts: 'mock-result/f27/**'
             },
@@ -96,7 +96,7 @@ node('fedora') {
                 sh """
                 mkdir -p mock-result/f28
                 flock /etc/mock/fedora-28-x86_64.cfg \
-                /usr/bin/mock -v --enable-network --resultdir=mock-result/f28 -r fedora-28-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
+                /usr/bin/mock -v --resultdir=mock-result/f28 -r fedora-28-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
                 """
                 archiveArtifacts artifacts: 'mock-result/f28/**'
             },
