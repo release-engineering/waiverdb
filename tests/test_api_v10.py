@@ -287,6 +287,36 @@ def test_get_obsolete_waivers(client, session):
     assert res_data['data'][1]['id'] == old_waiver.id
 
 
+def test_obsolete_waivers_with_different_product_version(client, session):
+    old_waiver = create_waiver(session, subject={'subject.test': 'subject'},
+                               testcase='testcase1', username='foo',
+                               product_version='foo-1')
+    new_waiver = create_waiver(session, subject={'subject.test': 'subject'},
+                               testcase='testcase1', username='foo',
+                               product_version='foo-2')
+    r = client.get('/api/v1.0/waivers/?include_obsolete=0')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 200
+    assert len(res_data['data']) == 2
+    assert res_data['data'][0]['id'] == new_waiver.id
+    assert res_data['data'][1]['id'] == old_waiver.id
+
+
+def test_obsolete_waivers_with_different_username(client, session):
+    old_waiver = create_waiver(session, subject={'subject.test': 'subject'},
+                               testcase='testcase1', username='foo',
+                               product_version='foo-1')
+    new_waiver = create_waiver(session, subject={'subject.test': 'subject'},
+                               testcase='testcase1', username='bar',
+                               product_version='foo-1')
+    r = client.get('/api/v1.0/waivers/?include_obsolete=0')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 200
+    assert len(res_data['data']) == 2
+    assert res_data['data'][0]['id'] == new_waiver.id
+    assert res_data['data'][1]['id'] == old_waiver.id
+
+
 def test_filtering_waivers_by_subject(client, session):
     create_waiver(session, subject={'subject.test1': 'subject1'},
                   testcase='testcase', username='foo-1', product_version='foo-1')
