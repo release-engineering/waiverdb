@@ -4,6 +4,7 @@ import json
 from mock import Mock, patch
 from click.testing import CliRunner
 from waiverdb.cli import cli as waiverdb_cli
+from waiverdb.cli import guess_product_version
 
 
 def test_misconfigured_auth_method(tmpdir):
@@ -89,10 +90,11 @@ oidc_scopes=
     openid
         """)
     runner = CliRunner()
-    args = ['-C', p.strpath]
+    args = ['-C', p.strpath, '-s', '{"subject.test": "test", "s": "t"}', '-t', 'testcase',
+            '-c', 'comment']
     result = runner.invoke(waiverdb_cli, args)
     assert result.exit_code == 1
-    assert result.output == 'Error: Please specify product version\n'
+    assert result.output == 'Error: Please specify product version using --product-version\n'
 
 
 def test_no_subject(tmpdir):
@@ -292,17 +294,17 @@ Created waiver 15 for result with id 456\n'
 
 
 def test_malformed_submission_with_id_and_subject_and_testcase(tmpdir):
-        runner = CliRunner()
-        p = tmpdir.join('client.conf')
-        p.write("""
+    runner = CliRunner()
+    p = tmpdir.join('client.conf')
+    p.write("""
 [waiverdb]
 auth_method=dummy
 api_url=http://localhost:5004/api/v1.0
-        """)
-        args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123', '-s',
-                '{"subject.test": "test", "s": "t"}', '-c', "This is fine"]
-        result = runner.invoke(waiverdb_cli, args)
-        assert result.output == 'Error: Please specify result_id or subject/testcase. Not both\n'
+    """)
+    args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123', '-s',
+            '{"subject.test": "test", "s": "t"}', '-c', "This is fine"]
+    result = runner.invoke(waiverdb_cli, args)
+    assert result.output == 'Error: Please specify result_id or subject/testcase. Not both\n'
 
 
 def test_submit_waiver_for_original_spec_nvr_result(tmpdir):
@@ -331,3 +333,59 @@ api_url=http://localhost:5004/api/v1.0
         result = runner.invoke(waiverdb_cli, args)
         mock_request.assert_called()
         assert result.output == 'Created waiver 15 for result with id 123\n'
+
+
+def test_create_waiver_no_product_version(tmpdir):
+    with patch('requests.request') as mock_request:
+        mock_rv = Mock()
+        mock_rv.json.return_value = {
+            "comment": "This is fine",
+            "id": 15,
+            "subject": {"type": "koji_build", "item": "setup-2.8.71-7.el7_4"},
+            "testcase": "test.testcase",
+            "timestamp": "2017-010-16T17:42:04.209638",
+            "username": "foo",
+            "waived": True
+        }
+        mock_request.return_value = mock_rv
+        p = tmpdir.join('client.conf')
+        p.write("""
+[waiverdb]
+auth_method=dummy
+api_url=http://localhost:5004/api/v1.0
+koji_base_url=https://koji.fedoraproject.org/kojihub
+        """)
+        runner = CliRunner()
+        args = ['-C', p.strpath, '-s', '{"type": "koji_build", "item": "setup-2.8.71-7.el7_4"}',
+                '-t', 'test.testcase', '-c', "This is fine"]
+        result = runner.invoke(waiverdb_cli, args)
+        mock_request.assert_called()
+        assert result.output.startswith('Created waiver 15 for result with subject ')
+        assert result.output.endswith(' and testcase test.testcase\n')
+        assert any(['{"type": "koji_build", "item": "setup-2.8.71-7.el7_4"}' in result.output,
+                    '{"item": "setup-2.8.71-7.el7_4", "type": "koji_build"}' in result.output])
+
+        args = ['-C', p.strpath, '-s', '{"type": "koji_build", "item": "this-will-not-work"}',
+                '-t', 'test.testcase', '-c', "This is fine"]
+        result = runner.invoke(waiverdb_cli, args)
+        assert result.output == 'Error: Please specify product version using --product-version\n'
+
+        args = ['-C', p.strpath, '-s', ('{"productmd.compose.id": "Fedora-Rawhide-20180526.n.1",'
+                                        '"type": "compose",'
+                                        '"item": "Fedora-Rawhide-20180526.n.1"}'),
+                '-t', 'test.testcase', '-c', "This is fine"]
+        result = runner.invoke(waiverdb_cli, args)
+        mock_request.assert_called()
+        assert result.output == ('Created waiver 15 for result with subject '
+                                 '{"productmd.compose.id": "Fedora-Rawhide-20180526.n.1", "type": '
+                                 '"compose", "item": "Fedora-Rawhide-20180526.n.1"} and testcase '
+                                 'test.testcase\n')
+
+
+def test_guess_product_version():
+    # some more tests for checking "guess_product_version"
+    assert guess_product_version('epel7-infra-mailman') == 'epel-7'
+    assert guess_product_version('f26-infra', koji_build=True) == 'fedora-26'
+    assert guess_product_version('Fedora-28-20180423.n.0') == 'fedora-28'
+    assert guess_product_version('Fedora-Rawhide-20180524.n.0') == 'fedora-rawhide'
+    assert guess_product_version('Fedora-Atomic-28-20180424.4') is None
