@@ -85,6 +85,22 @@ def reqparse_since(since):
     return start, end
 
 
+def _filter_out_obsolete_waivers(query):
+    """
+    Filters out obsolete waivers.
+
+    A waiver is obsolete if there exist another one that is more recent with
+    same subject, test case name, username and product_version.
+    """
+    subquery = db.session.query(func.max(Waiver.id)).group_by(
+        cast(Waiver.subject, db.Text),
+        Waiver.testcase,
+        Waiver.username,
+        Waiver.product_version,
+    )
+    return query.filter(Waiver.id.in_(subquery))
+
+
 # RP contains request parsers (reqparse.RequestParser).
 #    Parsers are added in each 'resource section' for better readability
 RP = {}
@@ -193,9 +209,8 @@ class WaiversResource(Resource):
             if since_end:
                 query = query.filter(Waiver.timestamp <= since_end)
         if not args['include_obsolete']:
-            subquery = db.session.query(func.max(Waiver.id)).group_by(cast(Waiver.subject, db.Text),
-                                                                      Waiver.testcase)
-            query = query.filter(Waiver.id.in_(subquery))
+            query = _filter_out_obsolete_waivers(query)
+
         query = query.order_by(Waiver.timestamp.desc())
         return json_collection(query, args['page'], args['limit'])
 
@@ -467,9 +482,7 @@ class GetWaiversBySubjectsAndTestcases(Resource):
             if since_end:
                 query = query.filter(Waiver.timestamp <= since_end)
         if not data.get('include_obsolete', False):
-            subquery = db.session.query(func.max(Waiver.id)).group_by(cast(Waiver.subject, db.Text),
-                                                                      Waiver.testcase)
-            query = query.filter(Waiver.id.in_(subquery))
+            query = _filter_out_obsolete_waivers(query)
 
         query = query.order_by(Waiver.timestamp.desc())
         return {'data': marshal(query.all(), waiver_fields)}
