@@ -576,6 +576,26 @@ def test_waivers_by_subjects_and_testcases_with_bad_results_parameter(client, se
         'Must be a list of dictionaries with "subject" and "testcase"'
 
 
+def test_waivers_by_subjects_and_testcases_with_unrecognized_subject_type(client, session):
+    create_waiver(session, subject_type='koji_build',
+                  subject_identifier='python3-flask-0.12.2-1.fc29',
+                  testcase='dist.rpmdeplint', username='person',
+                  product_version='fedora-29', comment='bla bla bla')
+    # This doesn't match any of the known subject types which we understand
+    # for backwards compatibility. So if you tried to submit a waiver with a
+    # subject like this, Waiverdb would reject it. But if the caller is just
+    # *searching* and not *submitting* then instead of giving back an error
+    # Waiverdb should just return an empty result set.
+    data = {'results': [
+        {'subject': {'item': 'python3-flask-0.12.2-1.fc29'}, 'testcase': 'dist.rpmdeplint'},
+    ]}
+    r = client.post('/api/v1.0/waivers/+by-subjects-and-testcases', data=json.dumps(data),
+                    content_type='application/json')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 200
+    assert res_data['data'] == []
+
+
 @pytest.mark.parametrize("results", [
     [],
     [{}],

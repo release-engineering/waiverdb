@@ -2,7 +2,7 @@
 
 import datetime
 from .base import db
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, false
 
 
 def subject_dict_to_type_identifier(subject):
@@ -93,9 +93,13 @@ class Waiver(db.Model):
                 continue
             inner_clauses = []
             if subject:
-                subject_type, subject_identifier = subject_dict_to_type_identifier(subject)
-                inner_clauses.append(cls.subject_type == subject_type)
-                inner_clauses.append(cls.subject_identifier == subject_identifier)
+                try:
+                    subject_type, subject_identifier = subject_dict_to_type_identifier(subject)
+                except ValueError:
+                    inner_clauses.append(false())
+                else:
+                    inner_clauses.append(cls.subject_type == subject_type)
+                    inner_clauses.append(cls.subject_identifier == subject_identifier)
             if testcase:
                 inner_clauses.append(cls.testcase == testcase)
             clauses.append(and_(*inner_clauses))
