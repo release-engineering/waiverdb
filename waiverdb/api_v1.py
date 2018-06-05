@@ -1,16 +1,16 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-import json
 import datetime
 
 import requests
 from flask import Blueprint, request, current_app
 from flask_restful import Resource, Api, reqparse, marshal_with, marshal
-from werkzeug.exceptions import BadRequest, UnsupportedMediaType, Forbidden, ServiceUnavailable
-from sqlalchemy.sql.expression import func, cast
+from werkzeug.exceptions import BadRequest, Forbidden, ServiceUnavailable
+from sqlalchemy.sql.expression import func, and_, or_
 
 from waiverdb import __version__
-from waiverdb.models import db, Waiver
+from waiverdb.models import db
+from waiverdb.models.waivers import Waiver, subject_dict_to_type_identifier
 from waiverdb.utils import json_collection, jsonp
 from waiverdb.fields import waiver_fields
 import waiverdb.auth
@@ -26,16 +26,6 @@ def valid_dict(value):
     return value
 
 
-def json_dict(value):
-    try:
-        value = json.loads(value)
-    except ValueError as e:
-        raise ValueError("Invalid JSON: %s" % e)
-    if not isinstance(value, dict):
-        raise ValueError("Must be a valid dict, not %r" % value)
-    return value
-
-
 def get_resultsdb_result(result_id):
     response = requests_session.request('GET', '{0}/results/{1}'.format(
         current_app.config['RESULTSDB_API_URL'], result_id),
@@ -45,7 +35,7 @@ def get_resultsdb_result(result_id):
     return response.json()
 
 
-def _validate_results_filter(results):
+def valid_results_list(results):
     expected = {
         'subject': dict,
         'testcase': str,
@@ -53,9 +43,17 @@ def _validate_results_filter(results):
     for item in results:
         for k, v in item.items():
             if not (k in expected and isinstance(v, expected[k])):
-                raise BadRequest(
-                    ("'results' parameter should be a list of dictionaries with"
-                     " subject and testcase"))
+                raise ValueError('Must be a list of dictionaries with "subject" and "testcase"')
+    return results
+
+
+def valid_filter_list(filters):
+    if not filters:
+        raise ValueError('Must be a list of non-empty dictionaries')
+    for item in filters:
+        if not isinstance(item, dict) or not item:
+            raise ValueError('Must be a list of non-empty dictionaries')
+    return filters
 
 
 def reqparse_since(since):
@@ -93,7 +91,8 @@ def _filter_out_obsolete_waivers(query):
     same subject, test case name, username and product_version.
     """
     subquery = db.session.query(func.max(Waiver.id)).group_by(
-        cast(Waiver.subject, db.Text),
+        Waiver.subject_type,
+        Waiver.subject_identifier,
         Waiver.testcase,
         Waiver.username,
         Waiver.product_version,
@@ -105,16 +104,20 @@ def _filter_out_obsolete_waivers(query):
 #    Parsers are added in each 'resource section' for better readability
 RP = {}
 RP['create_waiver'] = reqparse.RequestParser()
-RP['create_waiver'].add_argument('subject', type=valid_dict, location='json')
+RP['create_waiver'].add_argument('subject_type', type=str, location='json')
+RP['create_waiver'].add_argument('subject_identifier', type=str, location='json')
 RP['create_waiver'].add_argument('testcase', type=str, location='json')
+# These are accepted for backwards compatibility
+RP['create_waiver'].add_argument('subject', type=valid_dict, location='json')
 RP['create_waiver'].add_argument('result_id', type=int, location='json')
 RP['create_waiver'].add_argument('waived', type=bool, required=True, location='json')
 RP['create_waiver'].add_argument('product_version', type=str, required=True, location='json')
-RP['create_waiver'].add_argument('comment', type=str, default=None, location='json')
+RP['create_waiver'].add_argument('comment', type=str, required=True, location='json')
 RP['create_waiver'].add_argument('username', type=str, default=None, location='json')
 
 RP['get_waivers'] = reqparse.RequestParser()
-RP['get_waivers'].add_argument('subject', type=json_dict, location='args')
+RP['get_waivers'].add_argument('subject_type', location='args')
+RP['get_waivers'].add_argument('subject_identifier', location='args')
 RP['get_waivers'].add_argument('testcase', location='args')
 RP['get_waivers'].add_argument('product_version', location='args')
 RP['get_waivers'].add_argument('username', location='args')
@@ -125,6 +128,19 @@ RP['get_waivers'].add_argument('since', type=reqparse_since, location='args')
 RP['get_waivers'].add_argument('page', default=1, type=int, location='args')
 RP['get_waivers'].add_argument('limit', default=10, type=int, location='args')
 RP['get_waivers'].add_argument('proxied_by', location='args')
+
+RP['filter_waivers'] = reqparse.RequestParser()
+RP['filter_waivers'].add_argument('filters', type=valid_filter_list, required=True, location='json')
+RP['filter_waivers'].add_argument('include_obsolete', type=bool, default=False, location='json')
+
+RP['get_waivers_by_subjects_and_testcase'] = rp = reqparse.RequestParser()
+rp.add_argument('results', type=valid_results_list, location='json')
+rp.add_argument('testcase', type=str, location='json')
+rp.add_argument('product_version', type=str, location='json')
+rp.add_argument('username', type=str, location='json')
+rp.add_argument('proxied_by', location='json')
+rp.add_argument('since', type=reqparse_since, location='json')
+rp.add_argument('include_obsolete', type=bool, default=False, location='json')
 
 
 class DummyJsonRequest(object):
@@ -172,7 +188,8 @@ class WaiversResource(Resource):
 
         :query int page: The page to get.
         :query int limit: Limit the number of items returned.
-        :query dict subject: Only include waivers for the given subject.
+        :query string subject_type: Only include waivers for the given subject type.
+        :query string subject_identifier: Only include waivers for the given subject identifier.
         :query string testcase: Only include waivers for the given test case name.
         :query string product_version: Only include waivers for the given
             product version.
@@ -192,8 +209,10 @@ class WaiversResource(Resource):
         args = RP['get_waivers'].parse_args()
         query = Waiver.query.order_by(Waiver.timestamp.desc())
 
-        if args['subject']:
-            query = query.filter(Waiver.subject == args['subject'])
+        if args['subject_type']:
+            query = query.filter(Waiver.subject_type == args['subject_type'])
+        if args['subject_identifier']:
+            query = query.filter(Waiver.subject_identifier == args['subject_identifier'])
         if args['testcase']:
             query = query.filter(Waiver.testcase == args['testcase'])
         if args['product_version']:
@@ -237,7 +256,8 @@ class WaiversResource(Resource):
            Content-Length: 91
 
            {
-               "subject": {"productmd.compose.id": "Fedora-9000-19700101.n.18"},
+               "subject_type": "compose",
+               "subject_identifier": "Fedora-9000-19700101.n.18",
                "testcase": "compose.install_no_user",
                "waived": false,
                "product_version": "Parrot",
@@ -268,7 +288,11 @@ class WaiversResource(Resource):
                "proxied_by": null
            }
 
-        :json object subject: The result subject for the waiver.
+        :json string subject_type: The type of thing which this waiver is for
+            ("koji_build", "bodhi_update", "compose").
+        :json string subject_identifier: The identifier of the thing this
+            waiver is for. The semantics of this identifier depend on the
+            "subject_type". For example, Koji builds are identified by their NVR.
         :json string testcase: The result testcase for the waiver.
         :json boolean waived: Whether or not the result is waived.
         :json string product_version: The product version string.
@@ -305,13 +329,13 @@ class WaiversResource(Resource):
             proxied_by = user
             user = args['username']
 
-        # XXX - remove this in a future release (it was for temp backwards compat)
+        # WaiverDB < 0.6
         if args['result_id']:
             if args['subject'] or args['testcase']:
                 raise BadRequest('Only result_id or subject and '
                                  'testcase are allowed.  Not both.')
             try:
-                result = get_resultsdb_result(args['result_id'])
+                result = get_resultsdb_result(args.pop('result_id'))
             except requests.HTTPError as e:
                 if e.response.status_code == 404:
                     raise BadRequest('Result id not found in Resultsdb')
@@ -319,30 +343,41 @@ class WaiversResource(Resource):
                     raise ServiceUnavailable('Failed looking up result in Resultsdb: %s' % e)
             except Exception as e:
                 raise ServiceUnavailable('Failed looking up result in Resultsdb: %s' % e)
-            if 'original_spec_nvr' in result['data']:
-                subject = {'original_spec_nvr': result['data']['original_spec_nvr'][0]}
+            result_data = result['data']  # ResultsDB "extra data" for the given result
+            if 'original_spec_nvr' in result_data:
+                args['subject_type'] = 'koji_build'
+                args['subject_identifier'] = result_data['original_spec_nvr'][0]
+            elif 'type' in result_data and result_data['type'][0] in ['koji_build', 'brew-build']:
+                args['subject_type'] = 'koji_build'
+                args['subject_identifier'] = result_data['item'][0]
+            elif 'type' in result_data and result_data['type'][0] == 'bodhi_update':
+                args['subject_type'] = 'bodhi_update'
+                args['subject_identifier'] = result_data['item'][0]
             else:
-                if result['data']['type'][0] == 'koji_build' or \
-                   result['data']['type'][0] == 'brew-build' or \
-                   result['data']['type'][0] == 'bodhi_update':
-                    SUBJECT_KEYS = ['item', 'type']
-                    subject = dict([(k, v[0]) for k, v in result['data'].items()
-                                    if k in SUBJECT_KEYS])
-                else:
-                    raise BadRequest('It is not possible to submit a waiver by '
-                                     'id for this result. Please try again specifying '
-                                     'a subject and a testcase.')
-            args['subject'] = subject
+                raise BadRequest('It is not possible to submit a waiver by '
+                                 'id for this result. Please try again specifying '
+                                 'a subject and a testcase.')
             args['testcase'] = result['testcase']['name']
 
-        if not args['subject'] or not args['testcase']:
-            raise BadRequest('Either result_id or subject/testcase '
-                             'are required arguments.')
-        if not args['comment']:
-            raise BadRequest('Comment is a required argument.')
+        # WaiverDB < 0.11
+        if args['subject']:
+            args['subject_type'], args['subject_identifier'] = \
+                subject_dict_to_type_identifier(args.pop('subject'))
+
+        # These are not marked required in the RequestParser, because they may
+        # be absent in the request but filled in by the backwards
+        # compatibility logic above. So we check explicitly here, and give
+        # back an error matching what RequestParser would do.
+        if not args['subject_type']:
+            raise BadRequest({'subject_type': 'Missing required parameter in the JSON body'})
+        if not args['subject_identifier']:
+            raise BadRequest({'subject_identifier': 'Missing required parameter in the JSON body'})
+        if not args['testcase']:
+            raise BadRequest({'testcase': 'Missing required parameter in the JSON body'})
 
         return Waiver(
-            args['subject'],
+            args['subject_type'],
+            args['subject_identifier'],
             args['testcase'],
             user,
             args['product_version'],
@@ -369,28 +404,123 @@ class WaiverResource(Resource):
             raise type(NotFound)('Waiver not found')
 
 
-class GetWaiversBySubjectsAndTestcases(Resource):
-    @jsonp
+class FilteredWaiversResource(Resource):
+
+    @marshal_with(waiver_fields, envelope='data')
     def post(self):
         """
-        Return a list of waivers by filtering the waivers with a
-        list of result subjects and testcases.
-        This accepts POST requests in order to handle a special
-        case where a GET /waivers/ request has a long query string with many
-        result subjects/testcases that could cause 413 errors.
+        Get waiver records, filtered by some criteria.
+
+        This API behaves the same way as :http:get:`/api/v1.0/waivers/`, but it
+        allows for longer or more complex filter criteria that cannot be
+        expressed in the query string.
+
+        Note that the response is not paginated (that is, *all* waivers are
+        returned in the 'data' key, even if there is a large number of them).
 
         **Sample request**:
 
         .. sourcecode:: http
 
-           POST /api/v1.0/waivers/+by-subjects-and-testcases HTTP/1.1
-           Host: localhost:5004
-           Accept-Encoding: gzip, deflate
+           POST /api/v1.0/waivers/+filtered HTTP/1.1
            Accept: application/json
-           Connection: keep-alive
-           User-Agent: HTTPie/0.9.4
            Content-Type: application/json
-           Content-Length: 40
+
+           {
+                "filters": [
+                    {
+                        "subject_type": "compose",
+                        "subject_identifier": "Fedora-9000-19700101.n.18",
+                        "testcase": "compose.install_no_user"
+                    },
+                    {
+                        "subject_type": "koji_build",
+                        "subject_identifier": "gzip-1.9-1.fc28",
+                        "testcase": "dist.rpmlint"
+                    }
+                ]
+           }
+
+        **Sample response**:
+
+        .. sourcecode:: none
+
+           HTTP/1.1 200 OK
+           Content-Type: application/json
+
+           {
+                "data": [
+                    {
+                        "id": 15,
+                        "comment": "The tests broke",
+                        "product_version": "fedora-27",
+                        "subject_type": "compose",
+                        "subject_identifier": "Fedora-9000-19700101.n.18",
+                        "testcase": "compose.install_no_user",
+                        "timestamp": "2017-03-16T17:42:04.209638",
+                        "username": "jcline",
+                        "waived": true,
+                        "proxied_by": null
+                    }
+                ]
+           }
+
+        :json list filters: List of filter dicts. If the list contains
+            multiple filter dicts, they are combined with logical OR. Within
+            each filter dict, the criteria are combined with logical AND. Keys
+            within the filter dict are the same as the filtering
+            parameters accepted by :http:get:`/api/v1.0/waivers/`.
+        :json boolean include_obsolete: If true, obsolete waivers will be included.
+        :statuscode 200: Returns matching waivers, if any.
+        :statuscode 400: The request was malformed (invalid filter critera).
+        """
+        args = RP['filter_waivers'].parse_args()
+        query = Waiver.query.order_by(Waiver.timestamp.desc())
+        clauses = []
+        for filter_ in args['filters']:
+            inner_clauses = []
+            if 'subject_type' in filter_:
+                inner_clauses.append(Waiver.subject_type == filter_['subject_type'])
+            if 'subject_identifier' in filter_:
+                inner_clauses.append(Waiver.subject_identifier == filter_['subject_identifier'])
+            if 'testcase' in filter_:
+                inner_clauses.append(Waiver.testcase == filter_['testcase'])
+            if 'product_version' in filter_:
+                inner_clauses.append(Waiver.product_version == filter_['product_version'])
+            if 'username' in filter_:
+                inner_clauses.append(Waiver.username == filter_['username'])
+            if 'proxied_by' in filter_:
+                inner_clauses.append(Waiver.proxied_by == filter_['proxied_by'])
+            if 'since' in filter_:
+                try:
+                    since_start, since_end = reqparse_since(filter_['since'])
+                except ValueError as e:
+                    raise BadRequest({'since': str(e)})
+                if since_start:
+                    inner_clauses.append(Waiver.timestamp >= since_start)
+                if since_end:
+                    inner_clauses.append(Waiver.timestamp <= since_end)
+            clauses.append(and_(*inner_clauses))
+        query = query.filter(or_(*clauses))
+        if not args['include_obsolete']:
+            subquery = db.session.query(func.max(Waiver.id))\
+                .group_by(Waiver.subject_type, Waiver.subject_identifier, Waiver.testcase)
+            query = query.filter(Waiver.id.in_(subquery))
+        return query.all()
+
+
+class GetWaiversBySubjectsAndTestcases(Resource):
+    @jsonp
+    def post(self):
+        """
+        **Deprecated.** Use :http:post:`/api/v1.0/waivers/+filtered` instead.
+
+        Instead of making a deprecated request like this:
+
+        .. sourcecode:: http
+
+           POST /api/v1.0/waivers/+by-subjects-and-testcases HTTP/1.1
+           Content-Type: application/json
 
            {
                 "results": [
@@ -405,83 +535,45 @@ class GetWaiversBySubjectsAndTestcases(Resource):
                 ]
            }
 
-        **Sample response**:
+        make the following equivalent request:
 
         .. sourcecode:: http
 
-            HTTP/1.0 200 OK
-            Content-Length: 562
-            Content-Type: application/json
-            Date: Thu, 21 Sep 2017 04:58:37 GMT
-            Server: Werkzeug/0.11.10 Python/2.7.13
+           POST /api/v1.0/waivers/+filtered HTTP/1.1
+           Content-Type: application/json
 
-            {
-                "data": [
+           {
+                "filters": [
                     {
-                        "comment": "This is fine",
-                        "id": 5,
-                        "product_version": "Parrot",
-                        "subject": {"productmd.compose.id": "Fedora-9000-19700101.n.18"},
-                        "testcase": "compose.install_no_user",
-                        "timestamp": "2017-09-21T04:55:53.343368",
-                        "username": "dummy",
-                        "waived": true,
-                        "proxied_by": null
+                        "subject_type": "compose",
+                        "subject_identifier": "Fedora-9000-19700101.n.18",
+                        "testcase": "compose.install_no_user"
                     },
                     {
-                        "comment": "This is fine",
-                        "id": 4,
-                        "product_version": "Parrot",
-                        "subject": {"item": "gzip-1.9-1.fc28", "type": "koji_build"},
-                        "testcase": "dist.rpmlint",
-                        "timestamp": "2017-09-21T04:55:51.936658",
-                        "username": "dummy",
-                        "waived": true,
-                        "proxied_by": null
+                        "subject_type": "koji_build",
+                        "subject_identifier": "gzip-1.9-1.fc28",
+                        "testcase": "dist.rpmlint"
                     }
                 ]
-            }
-
-        :jsonparam array results: Filter the waivers by a list of dictionaries
-            with result subjects and testcase.
-        :jsonparam string product_version: Filter the waivers by product version.
-        :jsonparam string username: Filter the waivers by username.
-        :jsonparam string proxied_by: Filter the waivers by the users who are
-            allowed to create waivers on behalf of other users.
-        :jsonparam string since: An ISO 8601 formatted datetime (e.g. 2017-03-16T13:40:05+00:00)
-            to filter results by. Optionally provide a second ISO 8601 datetime separated
-            by a comma to retrieve a range (e.g. 2017-03-16T13:40:05+00:00,
-            2017-03-16T13:40:15+00:00)
-        :jsonparam boolean include_obsolete: If true, obsolete waivers will be included.
-        :statuscode 200: If the query was valid and no problems were encountered.
-            Note that the response may still contain 0 waivers.
+           }
         """
-        if not request.get_json():
-            raise UnsupportedMediaType('No JSON payload in request')
-        data = request.get_json()
+        args = RP['get_waivers_by_subjects_and_testcase'].parse_args()
         query = Waiver.query.order_by(Waiver.timestamp.desc())
-        if 'results' in data:
-            results = data['results']
-            _validate_results_filter(results)
-            query = Waiver.by_results(query, results)
-        if 'product_version' in data:
-            query = query.filter(Waiver.product_version == data['product_version'])
-        if 'username' in data:
-            query = query.filter(Waiver.username == data['username'])
-        if 'proxied_by' in data:
-            query = query.filter(Waiver.proxied_by == data['proxied_by'])
-        if 'since' in data:
-            try:
-                since_start, since_end = reqparse_since(data['since'])
-            except ValueError:
-                raise BadRequest("'since' parameter not in ISO8601 format")
-            except TypeError:
-                raise BadRequest("'since' parameter not in ISO8601 format")
+        if args['results']:
+            query = Waiver.by_results(query, args['results'])
+        if args['product_version']:
+            query = query.filter(Waiver.product_version == args['product_version'])
+        if args['username']:
+            query = query.filter(Waiver.username == args['username'])
+        if args['proxied_by']:
+            query = query.filter(Waiver.proxied_by == args['proxied_by'])
+        if args['since']:
+            since_start, since_end = args['since']
             if since_start:
                 query = query.filter(Waiver.timestamp >= since_start)
             if since_end:
                 query = query.filter(Waiver.timestamp <= since_end)
-        if not data.get('include_obsolete', False):
+        if not args['include_obsolete']:
             query = _filter_out_obsolete_waivers(query)
 
         query = query.order_by(Waiver.timestamp.desc())
@@ -518,5 +610,6 @@ class AboutResource(Resource):
 # set up the Api resource routing here
 api.add_resource(WaiversResource, '/waivers/')
 api.add_resource(WaiverResource, '/waivers/<int:waiver_id>')
+api.add_resource(FilteredWaiversResource, '/waivers/+filtered')
 api.add_resource(GetWaiversBySubjectsAndTestcases, '/waivers/+by-subjects-and-testcases')
 api.add_resource(AboutResource, '/about')

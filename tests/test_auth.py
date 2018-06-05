@@ -28,7 +28,7 @@ class TestGSSAPIAuthentication(object):
     def test_authorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
         data = {
-            'subject': {'subject.test': 'subject'},
+            'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
             'testcase': 'testcase1',
             'product_version': 'fool-1',
             'waived': True,
