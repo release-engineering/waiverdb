@@ -6,6 +6,8 @@ import click
 import requests
 import json
 import configparser
+import re
+from xmlrpc import client
 
 requests_session = requests.Session()
 
@@ -51,6 +53,32 @@ def check_response(resp, data, result_id=None):
         resp.json()['id'], msg))
 
 
+def guess_product_version(toparse, koji_build=False):
+    if toparse == 'rawhide' or toparse.startswith('Fedora-Rawhide'):
+        return 'fedora-rawhide'
+    else:
+        product_version = None
+        if (toparse.startswith('f') and koji_build):
+            product_version = 'fedora-'
+        elif toparse.startswith('epel'):
+            product_version = 'epel-'
+        elif toparse.startswith('el'):
+            product_version = 'rhel-'
+        elif toparse.startswith('fc') or toparse.startswith('Fedora'):
+            product_version = 'fedora-'
+        if product_version:
+            # seperate the prefix from the number
+            result = list(filter(None, '-'.join(re.split(r'(\d+)', toparse)).split('-')))
+            if len(result) >= 2:
+                try:
+                    int(result[1])
+                    product_version += result[1]
+                    return product_version
+                except ValueError:
+                    pass
+    return None
+
+
 @click.command(context_settings={'help_option_names': ['-h', '--help']})
 @click.option('--config-file', '-C', default='/etc/waiverdb/client.conf',
               type=click.Path(exists=True),
@@ -80,7 +108,6 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
         waiverdb-cli -t dist.rpmdeplint \\
             -s '{"item": "qclib-1.3.1-3.fc28", "type": "koji_build"}' \\
             -p "fedora-28" -c "This is expected for non-x86 packages"
-
     """
     config = configparser.SafeConfigParser()
 
@@ -88,8 +115,6 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
     validate_config(config)
 
     result_ids = result_id
-    if not product_version:
-        raise click.ClickException('Please specify product version')
     if not comment:
         raise click.ClickException('Please specify comment')
     if result_ids and (subject or testcase):
@@ -98,6 +123,36 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
         raise click.ClickException('Please specify one subject')
     if not result_ids and not testcase:
         raise click.ClickException('Please specify testcase')
+
+    if not product_version and not result_ids:
+        # trying to guess the product_version
+        if json.loads(subject).get('type', None) == 'koji_build':
+            try:
+                short_prod_version = json.loads(subject)['item'].split('.')[-1]
+                product_version = guess_product_version(short_prod_version, koji_build=True)
+            except KeyError:
+                pass
+
+        # try to call koji
+        if config.has_option('waiverdb', 'koji_base_url'):
+            koji_base_url = config.get('waiverdb', 'koji_base_url')
+            proxy = client.ServerProxy(koji_base_url)
+            try:
+                build = proxy.getBuild(json.loads(subject)['item'])
+                if build:
+                    target = proxy.getTaskRequest(build['task_id'])[1]
+                    product_version = guess_product_version(target, koji_build=True)
+            except KeyError:
+                pass
+            except client.Fault:
+                pass
+
+        if "productmd.compose.id" in json.loads(subject):
+            product_version = guess_product_version(
+                json.loads(subject)["productmd.compose.id"])
+
+    if not product_version:
+        raise click.ClickException('Please specify product version using --product-version')
 
     auth_method = config.get('waiverdb', 'auth_method')
     data_list = []
