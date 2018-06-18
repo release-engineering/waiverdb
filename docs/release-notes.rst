@@ -2,6 +2,34 @@
 Release Notes
 =============
 
+Next Release
+============
+
+* New endpoint :http:post:`/api/v1.0/waivers/+filtered` deprecates
+  :http:post:`/api/v1.0/waivers/+by-subjects-and-testcases`. This allows
+  posting an arbitrary set of filter criteria, instead of the using a
+  complicated and limited API.
+
+* New attributes `subject_type` and `subject_identifier` deprecate `subject`
+  (`<https://pagure.io/greenwave/issue/126>`__). The `subject` is kept for
+  backwards compatibility.
+
+* The :program:`waiverdb-cli` utility will now guess a suitable default value
+  for the :option:`--product-version` option in many common cases, in order to
+  make it easier to submit waivers (#111). Automated scripts should prefer to
+  explicitly pass :option:`--product-version` in case the guessing logic does
+  not work in all cases.
+
+* Previously, when you requested a list of waivers, WaiverDB would consider
+  waivers from unrelated users and product versions to obsolete each other. The
+  API now correctly returns the most recent waiver from each user, and for each
+  product version.
+
+* The documentation now includes a section describing how end users can submit
+  waivers using the command-line interface (see :ref:`user-guide`, #149).
+
+* New man page available for ``waiverdb-client.conf(5)`` (see :ref:`client-conf`).
+
 WaiverDB 0.10
 =============
 
