@@ -21,9 +21,9 @@ Next Release
   not work in all cases.
 
 * Previously, when you requested a list of waivers, WaiverDB would consider
-  waivers from unrelated users and product versions to obsolete each other. The
-  API now correctly returns the most recent waiver from each user, and for each
-  product version.
+  waivers from unrelated users and product versions to obsolete each other
+  (#137). The API now correctly returns the most recent waiver from each user,
+  and for each product version.
 
 * The documentation now includes a section describing how end users can submit
   waivers using the command-line interface (see :ref:`user-guide`, #149).
