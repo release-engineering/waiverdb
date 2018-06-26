@@ -5,14 +5,31 @@ Release Notes
 Next Release
 ============
 
+* Waivers now have two new attributes, ``subject_type`` and
+  ``subject_identifier``, to identify the subject of the waiver (that is, the
+  particular software artifact that the waiver is about). These new attributes
+  replace the ``subject`` attribute which is now deprecated.
+
+  The ``subject`` attribute previously accepted any arbitrary key-values, but
+  in practice the ``subject`` had to conform to one of several recognized
+  structures in order to be usable with Greenwave. This has now been made
+  explicit with the ``subject_type`` attribute.
+  See :ref:`greenwave:subject-types` in the Greenwave documentation for a list
+  of possible subject types and the meaning of their corresponding identifiers.
+  See `Greenwave issue 126 <https://pagure.io/greenwave/issue/126>`_ for more
+  background about this change.
+
+  For backwards compatibility the ``subject`` attribute is still included when
+  fetching waivers, and accepted when creating waivers. However if you create
+  a new waiver using the deprecated ``subject`` attribute, its structure must
+  match one of the recognized subject types, otherwise the request will fail
+  with 400 status code. In this release we have implemented support for all
+  known subject types in the wild.
+
 * New endpoint :http:post:`/api/v1.0/waivers/+filtered` deprecates
   :http:post:`/api/v1.0/waivers/+by-subjects-and-testcases`. This allows
   posting an arbitrary set of filter criteria, instead of the using a
   complicated and limited API.
-
-* New attributes `subject_type` and `subject_identifier` deprecate `subject`
-  (`<https://pagure.io/greenwave/issue/126>`__). The `subject` is kept for
-  backwards compatibility.
 
 * The :program:`waiverdb-cli` utility will now guess a suitable default value
   for the :option:`--product-version` option in many common cases, in order to
