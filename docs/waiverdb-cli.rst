@@ -18,35 +18,35 @@ ResultsDB, for recording waivers against).
 Options
 =======
 
-``-C, --config-file PATH``
+.. option:: -C, --config-file PATH
 
     Specify a config file to use.
 
-``-r, --result-id INTEGER``
+.. option:: -r, --result-id INTEGER
 
     Specify one or more results to be waived.
 
-``-s, --subject TEXT``
+.. option:: -s, --subject TEXT
 
     Specify one subject for a result to waive.
 
-``-t, --testcase TEXT``
+.. option:: -t, --testcase TEXT
 
     Specify a testcase for the subject.
 
-``-p, --product-version TEXT``
+.. option:: -p, --product-version TEXT
 
     Specify one of PDC's product version identifiers.
 
-``--waived / --no-waived``
+.. option:: --waived, --no-waived
 
     Whether or not the result is waived.
 
-``-c, --comment TEXT``
+.. option:: -c, --comment TEXT
 
     A comment explaining why the result is waived.
 
-``-h, --help``
+.. option:: -h, --help
 
     Print usage help and exit.
 
