@@ -2,8 +2,10 @@
 Release Notes
 =============
 
-Next Release
-============
+WaiverDB 0.11
+=============
+
+Released 3 July 2018.
 
 * Waivers now have two new attributes, ``subject_type`` and
   ``subject_identifier``, to identify the subject of the waiver (that is, the
