@@ -35,7 +35,16 @@ def upgrade():
     connection = op.get_bind()
     rows = connection.execute(select([waiver_table.c.id, waiver_table.c.subject]))
     for waiver_id, subject in rows:
-        subject_type, subject_identifier = subject_dict_to_type_identifier(subject)
+        try:
+            subject_type, subject_identifier = subject_dict_to_type_identifier(subject)
+        except ValueError:
+            # The 'subject' value might be invalid, see: https://pagure.io/waiverdb/issue/210
+            # Let's map it to something which is valid but will never match
+            # anything Greenwave is looking for.
+            # Note that the original, invalid 'subject' value is still
+            # preserved in the row in case of downgrade. So we are not losing
+            # any data here.
+            subject_type, subject_identifier = 'koji_build', ''
         connection.execute(update(waiver_table)
                            .where(waiver_table.c.id == waiver_id)
                            .values(subject_type=subject_type,

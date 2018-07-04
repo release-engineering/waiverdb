@@ -11,13 +11,17 @@ def subject_dict_to_type_identifier(subject):
     Now we expect a specific type and identifier.
     This maps from the old style to the new, for backwards compatibility.
     """
-    if subject.get('type') == 'bodhi_update' and 'item' in subject:
+    if (subject.get('type') == 'bodhi_update' and
+            'item' in subject and
+            isinstance(subject['item'], str)):
         return ('bodhi_update', subject['item'])
-    elif subject.get('type') in ['koji_build', 'brew-build'] and 'item' in subject:
+    elif (subject.get('type') in ['koji_build', 'brew-build'] and
+            'item' in subject and
+            isinstance(subject['item'], str)):
         return ('koji_build', subject['item'])
-    elif 'original_spec_nvr' in subject:
+    elif 'original_spec_nvr' in subject and isinstance(subject['original_spec_nvr'], str):
         return ('koji_build', subject['original_spec_nvr'])
-    elif 'productmd.compose.id' in subject:
+    elif 'productmd.compose.id' in subject and isinstance(subject['productmd.compose.id'], str):
         return ('compose', subject['productmd.compose.id'])
     else:
         raise ValueError('Unrecognised subject type: %r' % subject)
