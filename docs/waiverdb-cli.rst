@@ -28,7 +28,16 @@ Options
 
 .. option:: -s, --subject TEXT
 
-    Specify one subject for a result to waive.
+    Deprecated. Use --subject-identifier and --subject-type instead. Subject
+    for a result to waive.
+
+.. option:: -i, --subject-identifier TEXT
+
+    Subject identifier for a result to waive.
+
+.. option:: -T, --subject-type TEXT
+
+    Subject type for a result to waive.
 
 .. option:: -t, --testcase TEXT
 
