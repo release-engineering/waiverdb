@@ -26,15 +26,18 @@ def load_config(app):
     if os.getenv('DEV') == 'true':
         default_config_obj = 'waiverdb.config.DevelopmentConfig'
         default_config_file = os.getcwd() + '/conf/settings.py'
+        silent = True
     elif os.getenv('TEST') == 'true':
         default_config_obj = 'waiverdb.config.TestingConfig'
         default_config_file = os.getcwd() + '/conf/settings.py'
+        silent = True
     else:
         default_config_obj = 'waiverdb.config.ProductionConfig'
         default_config_file = '/etc/waiverdb/settings.py'
+        silent = False
     app.config.from_object(default_config_obj)
     config_file = os.environ.get('WAIVERDB_CONFIG', default_config_file)
-    app.config.from_pyfile(config_file)
+    app.config.from_pyfile(config_file, silent=silent)
     if os.environ.get('SECRET_KEY'):
         app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 

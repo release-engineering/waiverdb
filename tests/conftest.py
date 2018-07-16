@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import os
 from copy import copy
 import pytest
 from sqlalchemy import create_engine
@@ -8,7 +9,8 @@ from waiverdb.app import create_app
 
 @pytest.fixture(scope='session')
 def app(request):
-    app = create_app('waiverdb.config.TestingConfig')
+    os.environ['TEST'] = 'true'
+    app = create_app()
     # Establish an application context before running the tests.
     ctx = app.app_context()
     ctx.push()
