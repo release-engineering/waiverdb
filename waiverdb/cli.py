@@ -11,6 +11,30 @@ from xmlrpc import client
 
 requests_session = requests.Session()
 
+SUBJECT_TYPES = ("koji_build", "bodhi_update", "compose")
+
+
+class OldJSONSubject(click.ParamType):
+    """
+    Deprecated JSON subject CLI parameter.
+    """
+    name = 'Deprecated JSON subject'
+
+    def convert(self, value, param, ctx):
+        if not isinstance(value, str):
+            return value
+
+        try:
+            subject = json.loads(value)
+        except json.JSONDecodeError as e:
+            raise click.ClickException('Invalid JSON object: {}'.format(e))
+
+        if not isinstance(subject, dict):
+            raise click.ClickException(
+                'Failed to parse JSON. Please use id and type instead of using subject.')
+
+        return subject
+
 
 def validate_config(config):
     """
@@ -35,22 +59,36 @@ def validate_config(config):
             raise click.ClickException(config_error.format(required_config))
 
 
-def check_response(resp, data, result_id=None):
-    if result_id:
-        msg = 'for result with id {0}'.format(result_id)
-    else:
-        msg = 'for result with subject {0} and testcase {1}'.format(json.dumps(data['subject']),
-                                                                    data['testcase'])
+def print_result(waiver_id, result_description):
+    click.echo('Created waiver {0} for result with {1}'.format(waiver_id, result_description))
+
+
+def check_response(resp, result_ids):
     if not resp.ok:
         try:
             error_msg = resp.json()['message']
         except (ValueError, KeyError):
             error_msg = resp.text
         raise click.ClickException(
-            'Failed to create waiver {0}:\n{1}'
-            .format(msg, error_msg))
-    click.echo('Created waiver {0} {1}'.format(
-        resp.json()['id'], msg))
+            'Failed to create waivers: {0}'
+            .format(error_msg))
+
+    response_data = resp.json()
+    if result_ids:
+        if len(response_data) != len(result_ids):
+            raise RuntimeError(
+                'Unexpected number of results in response: {!r}'.format(response_data))
+
+        for result_id, data in zip(result_ids, response_data):
+            waiver_id = data['id']
+            msg = 'id {0}'.format(result_id)
+            print_result(waiver_id, msg)
+    else:
+        for data in response_data:
+            waiver_id = data['id']
+            msg = 'subject type {0}, identifier {1} and testcase {2}'.format(
+                data['subject_type'], data['subject_identifier'], data['testcase'])
+            print_result(waiver_id, msg)
 
 
 def guess_product_version(toparse, koji_build=False):
@@ -85,8 +123,13 @@ def guess_product_version(toparse, koji_build=False):
               help='Specify a config file to use')
 @click.option('--result-id', '-r', multiple=True, type=int,
               help='Specify one or more results to be waived')
-@click.option('--subject', '-s',
-              help='Specify one subject for a result to waive')
+@click.option('--subject', '-s', type=OldJSONSubject(),
+              help=('Deprecated. Use --subject-identifier and --subject-type instead. '
+                    'Subject for a result to waive.'))
+@click.option('--subject-identifier', '-i',
+              help='Subject identifier for a result to waive.')
+@click.option('--subject-type', '-T', type=click.Choice(SUBJECT_TYPES),
+              help='Subject type for a result to waive.')
 @click.option('--testcase', '-t',
               help='Specify a testcase for the subject')
 @click.option('--product-version', '-p',
@@ -95,7 +138,8 @@ def guess_product_version(toparse, koji_build=False):
               help='Whether or not the result is waived')
 @click.option('--comment', '-c',
               help='A comment explaining why the result is waived')
-def cli(comment, waived, product_version, testcase, subject, result_id, config_file):
+def cli(comment, waived, product_version, testcase, subject, subject_identifier, subject_type,
+        result_id, config_file):
     """
     Creates new waiver against test results.
 
@@ -105,8 +149,7 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
         waiverdb-cli -r 47 -r 48 -p "fedora-28" -c "This is fine"
 
     \b
-        waiverdb-cli -t dist.rpmdeplint \\
-            -s '{"item": "qclib-1.3.1-3.fc28", "type": "koji_build"}' \\
+        waiverdb-cli -t dist.rpmdeplint -i qclib-1.3.1-3.fc28 -T koji_build \\
             -p "fedora-28" -c "This is expected for non-x86 packages"
     """
     config = configparser.SafeConfigParser()
@@ -115,20 +158,39 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
     validate_config(config)
 
     result_ids = result_id
+
+    # Backward compatibility with v0.11.0.
+    if subject:
+        if subject_identifier or subject_type:
+            raise click.ClickException(
+                'Please don\'t specify subject when using identifier and type.')
+        if result_ids:
+            raise click.ClickException('Please specify result_id or subject/testcase. Not both')
+
+        subject_identifier = subject.get("productmd.compose.id")
+        if subject_identifier:
+            subject_type = "compose"
+        else:
+            subject_identifier = subject.get("item")
+            subject_type = subject.get("type")
+
     if not comment:
         raise click.ClickException('Please specify comment')
-    if result_ids and (subject or testcase):
-        raise click.ClickException('Please specify result_id or subject/testcase. Not both')
-    if not result_ids and not subject:
-        raise click.ClickException('Please specify one subject')
+    if result_ids and (testcase or subject_identifier):
+        raise click.ClickException('Please specify result_id or id/type/testcase. Not both')
+    if not result_ids and not subject_identifier:
+        raise click.ClickException('Please specify subject-identifier')
     if not result_ids and not testcase:
         raise click.ClickException('Please specify testcase')
+    if not result_ids and subject_type not in SUBJECT_TYPES:
+        raise click.ClickException(
+            'Please specify correct subject type {!r}.'.format(SUBJECT_TYPES))
 
     if not product_version and not result_ids:
         # trying to guess the product_version
-        if json.loads(subject).get('type', None) == 'koji_build':
+        if subject_type == 'koji_build':
             try:
-                short_prod_version = json.loads(subject)['item'].split('.')[-1]
+                short_prod_version = subject_identifier.split('.')[-1]
                 product_version = guess_product_version(short_prod_version, koji_build=True)
             except KeyError:
                 pass
@@ -138,7 +200,7 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
             koji_base_url = config.get('waiverdb', 'koji_base_url')
             proxy = client.ServerProxy(koji_base_url)
             try:
-                build = proxy.getBuild(json.loads(subject)['item'])
+                build = proxy.getBuild(subject_identifier)
                 if build:
                     target = proxy.getTaskRequest(build['task_id'])[1]
                     product_version = guess_product_version(target, koji_build=True)
@@ -147,9 +209,8 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
             except client.Fault:
                 pass
 
-        if "productmd.compose.id" in json.loads(subject):
-            product_version = guess_product_version(
-                json.loads(subject)["productmd.compose.id"])
+        if subject_type == "compose":
+            product_version = guess_product_version(subject_identifier)
 
     if not product_version:
         raise click.ClickException('Please specify product version using --product-version')
@@ -158,7 +219,8 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
     data_list = []
     if not result_ids:
         data_list.append({
-            'subject': json.loads(subject),
+            'subject_identifier': subject_identifier,
+            'subject_type': subject_type,
             'testcase': testcase,
             'waived': waived,
             'product_version': product_version,
@@ -175,6 +237,13 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
         })
 
     api_url = config.get('waiverdb', 'api_url')
+    url = '{0}/waivers/'.format(api_url.rstrip('/'))
+    data = json.dumps(data_list)
+    common_request_arguments = {
+        'data': data,
+        'headers': {'Content-Type': 'application/json'},
+        'timeout': 60,
+    }
     if auth_method == 'OIDC':
         # Try to import this now so the user gets immediate feedback if
         # it isn't installed
@@ -194,14 +263,11 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
             oidc_client_secret)
         scopes = config.get('waiverdb', 'oidc_scopes').strip().splitlines()
 
-        for data in data_list:
-            resp = oidc.send_request(
-                scopes=scopes,
-                url='{0}/waivers/'.format(api_url.rstrip('/')),
-                data=json.dumps(data),
-                headers={'Content-Type': 'application/json'},
-                timeout=60)
-            check_response(resp, data, data.get('result_id', None))
+        resp = oidc.send_request(
+            scopes=scopes,
+            url=url,
+            **common_request_arguments)
+        check_response(resp, result_ids)
     elif auth_method == 'Kerberos':
         # Try to import this now so the user gets immediate feedback if
         # it isn't installed
@@ -212,22 +278,16 @@ def cli(comment, waived, product_version, testcase, subject, result_id, config_f
                 'python-requests-gssapi needs to be installed')
         auth = requests_gssapi.HTTPKerberosAuth(
             mutual_authentication=requests_gssapi.OPTIONAL)
-        for data in data_list:
-            resp = requests.request('POST', '{0}/waivers/'.format(api_url.rstrip('/')),
-                                    data=json.dumps(data), auth=auth,
-                                    headers={'Content-Type': 'application/json'},
-                                    timeout=60)
-            if resp.status_code == 401:
-                raise click.ClickException('WaiverDB authentication using GSSAPI failed. '
-                                           'Make sure you have a valid Kerberos ticket.')
-            check_response(resp, data, data.get('result_id', None))
+        resp = requests.request(
+            'POST', url, auth=auth, **common_request_arguments)
+        if resp.status_code == 401:
+            raise click.ClickException('WaiverDB authentication using GSSAPI failed. '
+                                       'Make sure you have a valid Kerberos ticket.')
+        check_response(resp, result_ids)
     elif auth_method == 'dummy':
-        for data in data_list:
-            resp = requests.request('POST', '{0}/waivers/'.format(api_url.rstrip('/')),
-                                    data=json.dumps(data), auth=('user', 'pass'),
-                                    headers={'Content-Type': 'application/json'},
-                                    timeout=60)
-            check_response(resp, data, data.get('result_id', None))
+        resp = requests.request(
+            'POST', url, auth=('user', 'pass'), **common_request_arguments)
+        check_response(resp, result_ids)
 
 
 if __name__ == '__main__':

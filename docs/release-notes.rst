@@ -2,6 +2,13 @@
 Release Notes
 =============
 
+Next Release
+============
+
+* The :program:`waiverdb-cli` utility accepts new options
+  :option:`--subject-identifier` and :option:`--subject-type` which deprecate
+  :option:`--subject` option.
+
 WaiverDB 0.11
 =============
 

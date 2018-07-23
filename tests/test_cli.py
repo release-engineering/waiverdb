@@ -90,7 +90,7 @@ oidc_scopes=
     openid
         """)
     runner = CliRunner()
-    args = ['-C', p.strpath, '-s', '{"subject.test": "test", "s": "t"}', '-t', 'testcase',
+    args = ['-C', p.strpath, '-i', 'test', '-T', 'compose', '-t', 'testcase',
             '-c', 'comment']
     result = runner.invoke(waiverdb_cli, args)
     assert result.exit_code == 1
@@ -112,7 +112,7 @@ oidc_scopes=
     args = ['-C', p.strpath, '-p', 'fedora-26', '-c', 'comment']
     result = runner.invoke(waiverdb_cli, args)
     assert result.exit_code == 1
-    assert result.output == 'Error: Please specify one subject\n'
+    assert result.output == 'Error: Please specify subject-identifier\n'
 
 
 def test_no_testcase(tmpdir):
@@ -127,7 +127,7 @@ oidc_scopes=
     openid
         """)
     runner = CliRunner()
-    args = ['-C', p.strpath, '-p', 'fedora-26', '-s', 'subject', '-c', 'comment']
+    args = ['-C', p.strpath, '-p', 'fedora-26', '-i', 'item', '-T', 'compose', '-c', 'comment']
     result = runner.invoke(waiverdb_cli, args)
     assert result.exit_code == 1
     assert result.output == 'Error: Please specify testcase\n'
@@ -145,7 +145,7 @@ oidc_scopes=
     openid
         """)
     runner = CliRunner()
-    args = ['-C', p.strpath, '-p', 'fedora-26', '-s', 'subject', '-t', 'testcase']
+    args = ['-C', p.strpath, '-p', 'fedora-26', '-i', 'item', '-T', 'compose', '-t', 'testcase']
     result = runner.invoke(waiverdb_cli, args)
     assert result.exit_code == 1
     assert result.output == 'Error: Please specify comment\n'
@@ -157,7 +157,7 @@ def test_oidc_auth_is_enabled(tmpdir):
     pytest.importorskip('openidc_client')
     with patch('openidc_client.OpenIDCClient.send_request') as mock_oidc_req:
         mock_rv = Mock()
-        mock_rv.json.return_value = {
+        mock_rv.json.return_value = [{
             "comment": "This is fine",
             "id": 15,
             "product_version": "Parrot",
@@ -166,7 +166,7 @@ def test_oidc_auth_is_enabled(tmpdir):
             "timestamp": "2017-010-16T17:42:04.209638",
             "username": "foo",
             "waived": True
-        }
+        }]
         mock_oidc_req.return_value = mock_rv
         p = tmpdir.join('client.conf')
         p.write("""
@@ -208,7 +208,7 @@ def test_gssapi_is_enabled(tmpdir):
     pytest.importorskip('requests_gssapi')
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
-        mock_rv.json.return_value = {
+        mock_rv.json.return_value = [{
             "comment": "This is fine",
             "id": 15,
             "product_version": "Parrot",
@@ -217,7 +217,7 @@ def test_gssapi_is_enabled(tmpdir):
             "timestamp": "2017-010-16T17:42:04.209638",
             "username": "foo",
             "waived": True
-        }
+        }]
         mock_request.return_value = mock_rv
         p = tmpdir.join('client.conf')
         p.write("""
@@ -239,7 +239,7 @@ api_url=http://localhost:5004/api/v1.0
 def test_submit_waiver_with_id(tmpdir):
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
-        mock_rv.json.return_value = {
+        mock_rv.json.return_value = [{
             "comment": "This is fine",
             "data": {"item": ["htop-1.0-1.fc22"], "type": ["bodhi_update"]},
             "id": 15,
@@ -248,7 +248,7 @@ def test_submit_waiver_with_id(tmpdir):
             "timestamp": "2017-010-16T17:42:04.209638",
             "username": "foo",
             "waived": True
-        }
+        }]
         mock_request.return_value = mock_rv
         p = tmpdir.join('client.conf')
         p.write("""
@@ -259,7 +259,7 @@ api_url=http://localhost:5004/api/v1.0
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123',
                 '-c', "This is fine"]
-        result = runner.invoke(waiverdb_cli, args)
+        result = runner.invoke(waiverdb_cli, args, catch_exceptions=False)
         mock_request.assert_called()
         assert result.output == 'Created waiver 15 for result with id 123\n'
 
@@ -267,15 +267,25 @@ api_url=http://localhost:5004/api/v1.0
 def test_submit_waiver_with_multiple_ids(tmpdir):
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
-        mock_rv.json.return_value = {
-            "comment": "This is fine",
-            "data": {"item": ["htop-1.0-1.fc22"], "type": ["bodhi_update"]},
-            "id": 15,
-            "testcase": {"name": "test.testcase"},
-            "timestamp": "2017-010-16T17:42:04.209638",
-            "username": "foo",
-            "waived": True
-        }
+        mock_rv.json.return_value = [
+            {
+                "comment": "This is fine",
+                "data": {"item": ["htop-1.0-1.fc22"], "type": ["bodhi_update"]},
+                "id": 15,
+                "testcase": {"name": "test.testcase"},
+                "timestamp": "2017-010-16T17:42:04.209638",
+                "username": "foo",
+                "waived": True
+            }, {
+                "comment": "This is fine",
+                "data": {"item": ["htop-1.0-2.fc22"], "type": ["bodhi_update"]},
+                "id": 16,
+                "testcase": {"name": "test.testcase"},
+                "timestamp": "2017-010-16T17:42:04.209638",
+                "username": "foo",
+                "waived": True
+            }
+        ]
         mock_request.return_value = mock_rv
         p = tmpdir.join('client.conf')
         p.write("""
@@ -286,11 +296,11 @@ api_url=http://localhost:5004/api/v1.0
         runner = CliRunner()
         args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123', '-r', '456',
                 '-c', "This is fine"]
-        result = runner.invoke(waiverdb_cli, args)
+        result = runner.invoke(waiverdb_cli, args, catch_exceptions=False)
         mock_request.assert_called()
 
         assert result.output == 'Created waiver 15 for result with id 123\n\
-Created waiver 15 for result with id 456\n'
+Created waiver 16 for result with id 456\n'
 
 
 def test_malformed_submission_with_id_and_subject_and_testcase(tmpdir):
@@ -303,14 +313,14 @@ api_url=http://localhost:5004/api/v1.0
     """)
     args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123', '-s',
             '{"subject.test": "test", "s": "t"}', '-c', "This is fine"]
-    result = runner.invoke(waiverdb_cli, args)
+    result = runner.invoke(waiverdb_cli, args, catch_exceptions=False)
     assert result.output == 'Error: Please specify result_id or subject/testcase. Not both\n'
 
 
 def test_submit_waiver_for_original_spec_nvr_result(tmpdir):
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
-        mock_rv.json.return_value = {
+        mock_rv.json.return_value = [{
             "comment": "This is fine",
             "original_spec_nvr": "test",
             "id": 15,
@@ -319,7 +329,7 @@ def test_submit_waiver_for_original_spec_nvr_result(tmpdir):
             "timestamp": "2017-010-16T17:42:04.209638",
             "username": "foo",
             "waived": True
-        }
+        }]
         mock_request.return_value = mock_rv
         p = tmpdir.join('client.conf')
         p.write("""
@@ -335,18 +345,34 @@ api_url=http://localhost:5004/api/v1.0
         assert result.output == 'Created waiver 15 for result with id 123\n'
 
 
-def test_create_waiver_no_product_version(tmpdir):
+def test_create_waiver_product_version_missing(tmpdir):
+    p = tmpdir.join('client.conf')
+    p.write("""
+[waiverdb]
+auth_method=dummy
+api_url=http://localhost:5004/api/v1.0
+koji_base_url=https://koji.fedoraproject.org/kojihub
+    """)
+    runner = CliRunner()
+    args = ['-C', p.strpath, '-s', '{"type": "koji_build", "item": "this-will-not-work"}',
+            '-t', 'test.testcase', '-c', "This is fine"]
+    result = runner.invoke(waiverdb_cli, args)
+    assert result.output == 'Error: Please specify product version using --product-version\n'
+
+
+def test_create_waiver_product_version_from_koji_build(tmpdir):
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
-        mock_rv.json.return_value = {
+        mock_rv.json.return_value = [{
             "comment": "This is fine",
             "id": 15,
-            "subject": {"type": "koji_build", "item": "setup-2.8.71-7.el7_4"},
+            "subject_type": "koji_build",
+            "subject_identifier": "setup-2.8.71-7.el7_4",
             "testcase": "test.testcase",
             "timestamp": "2017-010-16T17:42:04.209638",
             "username": "foo",
             "waived": True
-        }
+        }]
         mock_request.return_value = mock_rv
         p = tmpdir.join('client.conf')
         p.write("""
@@ -358,28 +384,48 @@ koji_base_url=https://koji.fedoraproject.org/kojihub
         runner = CliRunner()
         args = ['-C', p.strpath, '-s', '{"type": "koji_build", "item": "setup-2.8.71-7.el7_4"}',
                 '-t', 'test.testcase', '-c', "This is fine"]
-        result = runner.invoke(waiverdb_cli, args)
+        result = runner.invoke(waiverdb_cli, args, catch_exceptions=False)
         mock_request.assert_called()
-        assert result.output.startswith('Created waiver 15 for result with subject ')
-        assert result.output.endswith(' and testcase test.testcase\n')
-        assert any(['{"type": "koji_build", "item": "setup-2.8.71-7.el7_4"}' in result.output,
-                    '{"item": "setup-2.8.71-7.el7_4", "type": "koji_build"}' in result.output])
+        assert result.output == (
+            'Created waiver 15 for result with '
+            'subject type koji_build, identifier setup-2.8.71-7.el7_4 '
+            'and testcase test.testcase\n'
+        )
 
-        args = ['-C', p.strpath, '-s', '{"type": "koji_build", "item": "this-will-not-work"}',
-                '-t', 'test.testcase', '-c', "This is fine"]
-        result = runner.invoke(waiverdb_cli, args)
-        assert result.output == 'Error: Please specify product version using --product-version\n'
 
+def test_create_waiver_product_version_from_compose(tmpdir):
+    with patch('requests.request') as mock_request:
+        mock_rv = Mock()
+        mock_rv.json.return_value = [{
+            "comment": "This is fine",
+            "id": 15,
+            "subject_type": "compose",
+            "subject_identifier": "Fedora-Rawhide-20180526.n.1",
+            "testcase": "test.testcase",
+            "timestamp": "2017-010-16T17:42:04.209638",
+            "username": "foo",
+            "waived": True
+        }]
+        mock_request.return_value = mock_rv
+        p = tmpdir.join('client.conf')
+        p.write("""
+[waiverdb]
+auth_method=dummy
+api_url=http://localhost:5004/api/v1.0
+koji_base_url=https://koji.fedoraproject.org/kojihub
+        """)
+        runner = CliRunner()
         args = ['-C', p.strpath, '-s', ('{"productmd.compose.id": "Fedora-Rawhide-20180526.n.1",'
                                         '"type": "compose",'
                                         '"item": "Fedora-Rawhide-20180526.n.1"}'),
                 '-t', 'test.testcase', '-c', "This is fine"]
         result = runner.invoke(waiverdb_cli, args)
         mock_request.assert_called()
-        assert result.output == ('Created waiver 15 for result with subject '
-                                 '{"productmd.compose.id": "Fedora-Rawhide-20180526.n.1", "type": '
-                                 '"compose", "item": "Fedora-Rawhide-20180526.n.1"} and testcase '
-                                 'test.testcase\n')
+        assert result.output == (
+            'Created waiver 15 for result with '
+            'subject type compose, identifier Fedora-Rawhide-20180526.n.1 '
+            'and testcase test.testcase\n'
+        )
 
 
 def test_guess_product_version():
@@ -389,3 +435,51 @@ def test_guess_product_version():
     assert guess_product_version('Fedora-28-20180423.n.0') == 'fedora-28'
     assert guess_product_version('Fedora-Rawhide-20180524.n.0') == 'fedora-rawhide'
     assert guess_product_version('Fedora-Atomic-28-20180424.4') is None
+
+
+def test_create_waiver_missing_subject_identifier(tmpdir):
+    p = tmpdir.join('client.conf')
+    p.write("""
+[waiverdb]
+auth_method=dummy
+api_url=http://localhost:5004/api/v1.0
+koji_base_url=https://koji.fedoraproject.org/kojihub
+    """)
+    runner = CliRunner()
+    args = ['-C', p.strpath, '-T', 'koji_build',
+            '-t', 'test.testcase', '-c', "This is fine"]
+    result = runner.invoke(waiverdb_cli, args)
+    assert result.exit_code != 0
+    assert 'Error: Please specify subject-identifier' in result.output
+
+
+def test_create_waiver_missing_subject_type(tmpdir):
+    p = tmpdir.join('client.conf')
+    p.write("""
+[waiverdb]
+auth_method=dummy
+api_url=http://localhost:5004/api/v1.0
+koji_base_url=https://koji.fedoraproject.org/kojihub
+    """)
+    runner = CliRunner()
+    args = ['-C', p.strpath, '-i', 'setup-2.8.71-7.el7_4',
+            '-t', 'test.testcase', '-c', "This is fine"]
+    result = runner.invoke(waiverdb_cli, args)
+    assert result.exit_code != 0
+    assert 'Error: Please specify correct subject type' in result.output
+
+
+def test_create_waiver_invalid_subject_type(tmpdir):
+    p = tmpdir.join('client.conf')
+    p.write("""
+[waiverdb]
+auth_method=dummy
+api_url=http://localhost:5004/api/v1.0
+koji_base_url=https://koji.fedoraproject.org/kojihub
+    """)
+    runner = CliRunner()
+    args = ['-C', p.strpath, '-T', 'brew-build', '-i', 'setup-2.8.71-7.el7_4',
+            '-t', 'test.testcase', '-c', "This is fine"]
+    result = runner.invoke(waiverdb_cli, args)
+    assert result.exit_code != 0
+    assert 'invalid choice: brew-build' in result.output
