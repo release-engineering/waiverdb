@@ -22,6 +22,10 @@ parameters:
   displayName: WaiverDB application version
   description: Python version of the WaiverDB application being tested
   required: true
+- name: WAIVERDB_APP_IMAGE_REPO
+  displayName: The registry/repo of WaiverDB application being tested
+  required: true
+  value: docker-registry.engineering.redhat.com/factory2/waiverdb
 - name: FLASK_SECRET_KEY
   displayName: Flask secret key
   generate: expression
@@ -142,6 +146,10 @@ objects:
                 key: database-password
           - name: POSTGRESQL_DATABASE
             value: waiverdb
+          resources:
+            limits:
+              memory: 200Mi
+              cpu: 100m
     triggers:
     - type: ConfigChange
 - apiVersion: v1
@@ -213,7 +221,7 @@ objects:
       spec:
         containers:
         - name: web
-          image: "docker-registry.engineering.redhat.com/factory2/waiverdb:${WAIVERDB_APP_VERSION}"
+          image: "${WAIVERDB_APP_IMAGE_REPO}:${WAIVERDB_APP_VERSION}"
           ports:
           - containerPort: 8080
           volumeMounts:
@@ -252,6 +260,7 @@ objects:
           resources:
             limits:
               memory: 384Mi
+              cpu: 100m
         volumes:
         - name: config-volume
           configMap:
