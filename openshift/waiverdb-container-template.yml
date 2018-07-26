@@ -1,0 +1,83 @@
+# Template to produce a new BuildConfig and ImageStream for WaiverDB container builds.
+
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: waiverdb-container-template
+labels:
+  template: "waiverdb-container-template"
+parameters:
+- name: NAME
+  displayName: Short unique identifier for the templated instances.
+  required: true
+  value: "waiverdb-container"
+- name: WAIVERDB_GIT_REPO
+  displayName: WaiverDB Git repo URL
+  description: Default WaiverDB Git repo URL in which to run dev tests against
+  required: true
+  value: https://pagure.io/waiverdb.git
+- name: WAIVERDB_GIT_REF
+  displayName: WaiverDB Git repo ref
+  description: Default WaiverDB Git repo ref in which to run dev tests against
+  required: true
+  value: master
+- name: WAIVERDB_IMAGESTREAM_NAME
+  displayName: ImageStream name of the resulting image
+  required: true
+  value: waiverdb
+- name: WAIVERDB_IMAGE_TAG
+  displayName: Tag of resulting image
+  required: true
+  value: latest
+- name: WAIVERDB_IMAGESTREAM_NAMESPACE
+  displayName: Namespace of ImageStream for WaiverDB container images
+  required: false
+- name: WAIVERDB_VERSION
+  displayName: WaiverDB app version
+  required: false
+  value: ''
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: "${WAIVERDB_IMAGESTREAM_NAME}"
+    labels:
+      app: "${NAME}"
+- kind: "BuildConfig"
+  apiVersion: "v1"
+  metadata:
+    name: "${NAME}"
+    metadata:
+      labels:
+        app: "${NAME}"
+  spec:
+    runPolicy: "Parallel"
+    completionDeadlineSeconds: 1800
+    strategy:
+      dockerStrategy:
+        forcePull: true
+        buildArgs:
+        - name: "WAIVERDB_GIT_REPO"
+          value: "${WAIVERDB_GIT_REPO}"
+        - name: "WAIVERDB_GIT_REF"
+          value: "${WAIVERDB_GIT_REF}"
+        - name: "WAIVERDB_VERSION"
+          value: "${WAIVERDB_VERSION}"
+        dockerfilePath: openshift/containers/waiverdb/Dockerfile
+    resources:
+      requests:
+        memory: "768Mi"
+        cpu: "300m"
+      limits:
+       memory: "1Gi"
+       cpu: "500m"
+    source:
+      git:
+        uri: "${WAIVERDB_GIT_REPO}"
+        ref: "${WAIVERDB_GIT_REF}"
+    output:
+      to:
+        kind: "ImageStreamTag"
+        name: "${WAIVERDB_IMAGESTREAM_NAME}:${WAIVERDB_IMAGE_TAG}"
+        namespace: "${WAIVERDB_IMAGESTREAM_NAMESPACE}"
