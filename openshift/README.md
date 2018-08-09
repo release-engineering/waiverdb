@@ -191,6 +191,78 @@ oc start-build waiverdb-integration-test \
 #### NOTE
 The stage of reporting test results to ResultsDB has not been implemented.
 
+### Image Promotion Pipeline
+Image Promotion Pipeline is a kind of pipeline that promoting an existing image to an upgraded tag.
+The pipeline pulls the image to be promoted, then pushes it to destinations with promoted tags.
+Optionally, it tags the promoted image into an image stream after pushes.
+
+NOTE:
+1. This pipeline *DOES NOT* cover the step of running tests before actually promoting the image.
+2. It's designed to be a callback pipeline triggered by a microservice that handles Greenwave messages.
+3. It can be triggered manually (as describe below) to force promoting an image without any tests.
+
+#### Installation
+An OpenShift Template is provided to produce pipelines for promotions between different environments.
+You need to instantiate the Template with corresponding parameters for each promotion, like `dev to stage` and `stage to prod`.
+
+Examples:
+- Installing a pipeline for promoting dev image to stage:
+```bash
+oc process --local -f pipelines/templates/waiverdb-image-promotion-template.yaml \
+    -p NAME=waiverdb-promoting-to-stage \
+    -p IMAGE="quay.io/factory2/waiverdb:latest" \
+    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:stage,docker-registry.engineering.redhat.com/factory2/waiverdb:stage" \
+  | oc apply -f -
+```
+
+- Installing a pipeline for promoting stage image to prod:
+```bash
+oc process --local -f pipelines/templates/waiverdb-image-promotion-template.yaml \
+    -p NAME=waiverdb-promoting-to-prod \
+    -p IMAGE="quay.io/factory2/waiverdb:stage" \
+    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:prod,docker-registry.engineering.redhat.com/factory2/waiverdb:prod" \
+  | oc apply -f -
+```
+
+- Installing a pipeline for promoting dev image to stage with the additional behavior
+that automatically tags the image into image stream `waiverdb-stage/waiverdb:stage`:
+```bash
+oc process --local -f pipelines/templates/waiverdb-image-promotion-template.yaml \
+    -p NAME=waiverdb-promoting-to-stage \
+    -p IMAGE="quay.io/factory2/waiverdb:latest" \
+    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:stage,docker-registry.engineering.redhat.com/factory2/waiverdb:stage" \
+    -p TAG_INTO_IMAGESTREAM=true \
+    -p DEST_IMAGESTREAM_NAME=waiverdb \
+    -p DEST_IMAGESTREAM_TAG=stage \
+    -p DEST_IMAGESTREAM_NAMESPACE=waiverdb-stage \
+  | oc apply -f -
+```
+
+- Installing a pipeline for promoting stage image to prod with the additional behavior
+that automatically tags the image into image stream `waiverdb-prod/waiverdb:prod`:
+```bash
+oc process --local -f ./waiverdb-image-promotion-pipeline-template.yml \
+    -p NAME=waiverdb-promoting-to-prod \
+    -p IMAGE="quay.io/factory2/waiverdb:stage" \
+    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:prod,docker-registry.engineering.redhat.com/factory2/waiverdb:prod" \
+    -p TAG_INTO_IMAGESTREAM=true \
+    -p DEST_IMAGESTREAM_NAME=waiverdb \
+    -p DEST_IMAGESTREAM_TAG=prod \
+    -p DEST_IMAGESTREAM_NAMESPACE=waiverdb-prod \
+  | oc apply -f -
+```
+
+#### Manually Trigger A Promotion
+To trigger a promotion, start the corresponding BuildConfig with `oc start-build $PIPELINE_NAME`:
+
+```bash
+  # Promoting to stage
+  oc start-build waiverdb-promoting-to-stage
+  # Promoting to prod
+  oc start-build waiverdb-promoting-to-prod
+```
+You can go to the OpenShift Web console for more details of the pipeline build.
+
 [OpenShift Pipeline]: https://docs.okd.io/3.9/dev_guide/openshift_pipeline.html
 [Jenkins Pipeline Build Strategy]: https://docs.openshift.com/container-platform/3.9/dev_guide/dev_tutorials/openshift_pipeline.html
 [Jenkinsfiles]: https://jenkins.io/doc/book/pipeline/jenkinsfile/
