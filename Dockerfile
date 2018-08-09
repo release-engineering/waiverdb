@@ -31,4 +31,6 @@ RUN if [ "$cacert_url" != "undefined" ]; then \
 USER 1001
 EXPOSE 8080
 
-ENTRYPOINT gunicorn-3 --bind 0.0.0.0:8080 --access-logfile=- --enable-stdio-inheritance waiverdb.wsgi:app
+CMD ["/usr/bin/gunicorn-3", "--bind", "0.0.0.0:8080", "--access-logfile", "-", "--enable-stdio-inheritance", "waiverdb.wsgi:app"]
+
+
