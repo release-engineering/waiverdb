@@ -92,6 +92,8 @@ Requires:       python3-click
 BuildRequires:  python-click
 Requires:       python-click
 Requires:       python-configparser
+# For xmlrpc.client
+Requires:       python2-future
 %endif
 
 Requires:       waiverdb-common = %{version}-%{release}
