@@ -88,9 +88,11 @@ Summary: A CLI tool for interacting with waiverdb
 %if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires:  python3-click
 Requires:       python3-click
+Requires:       python3-requests-gssapi
 %else
 BuildRequires:  python-click
 Requires:       python-click
+Requires:       python-requests-gssapi
 Requires:       python-configparser
 # For xmlrpc.client
 Requires:       python2-future
