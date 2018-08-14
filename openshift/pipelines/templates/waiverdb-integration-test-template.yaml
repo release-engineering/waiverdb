@@ -1,0 +1,93 @@
+# Template to produce a new OpenShift pipeline for running integration tests
+#
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: waiverdb-integration-test
+labels:
+  template: waiverdb-integration-test
+parameters:
+- name: NAME
+  displayName: Short unique identifier for the templated instances
+  description: This field is used to deploy multiple pipelines to one OpenShift project from this template.
+  required: true
+  value: waiverdb-integration-test
+- name: IMAGE
+  displayName: The container image to be tested
+  description: This field must be in repo:tag or repo@sha256 format
+  value: quay.io/factory2/waiverdb:latest
+- name: WAIVERDB_GIT_REPO
+  displayName: WaiverDB Git repo URL
+  description: Default WaiverDB Git repo URL in which to run functional tests against
+  required: true
+  value: "https://pagure.io/waiverdb.git"
+- name: WAIVERDB_GIT_REF
+  displayName: WaiverDB Git repo ref
+  description: Default WaiverDB Git repo ref in which to run functional tests against
+  required: true
+  value: master
+- name: JENKINS_AGENT_IMAGE
+  displayName: Container image for Jenkins slave pods
+  required: true
+  value: docker-registry.engineering.redhat.com/factory2/waiverdb-jenkins-slave:latest
+- name: CONTAINER_REGISTRY_CREDENTIALS
+  displayName: Secret name of container registries used for pulling and pushing images
+  value: factory2-pipeline-registry-credentials
+  required: false
+- name: JENKINS_AGENT_CLOUD_NAME
+  displayName: Name of OpenShift cloud in Jenkins master configuration
+  required: true
+  value: openshift
+objects:
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: "${NAME}-jenkins-slave"
+    labels:
+      app: "${NAME}"
+- kind: RoleBinding
+  apiVersion: v1
+  metadata:
+    name: "${NAME}-jenkins-slave_edit"
+    labels:
+      app: "${NAME}"
+  subjects:
+  - kind: ServiceAccount
+    name: "${NAME}-jenkins-slave"
+  roleRef:
+    name: edit
+- kind: "BuildConfig"
+  apiVersion: "v1"
+  metadata:
+    name: "${NAME}"
+    labels:
+      app: "${NAME}"
+  spec:
+    runPolicy: "Serial" # FIXME: Parallel is supported, but we have limited quota in UpShift.
+    completionDeadlineSeconds: 1800
+    source:
+      git:
+        uri: "${WAIVERDB_GIT_REPO}"
+        ref: "${WAIVERDB_GIT_REF}"
+    strategy:
+      type: JenkinsPipeline
+      jenkinsPipelineStrategy:
+        env:
+        - name: "WAIVERDB_GIT_REPO"
+          value: "${WAIVERDB_GIT_REPO}"
+        - name: "WAIVERDB_GIT_REF"
+          value: "${WAIVERDB_GIT_REF}"
+        - name: "IMAGE"
+          value: "${IMAGE}"
+        - name: "CONTAINER_REGISTRY_CREDENTIALS"
+          value: "${CONTAINER_REGISTRY_CREDENTIALS}"
+        - name: "TEST_ID"
+          value: ""
+        - name: JENKINS_AGENT_IMAGE
+          value: "${JENKINS_AGENT_IMAGE}"
+        - name: JENKINS_AGENT_CLOUD_NAME
+          value: "${JENKINS_AGENT_CLOUD_NAME}"
+        - name: JENKINS_AGENT_SERVICE_ACCOUNT
+          value: "${NAME}-jenkins-slave"
+        jenkinsfilePath: openshift/pipelines/templates/waiverdb-integration-test.Jenkinsfile

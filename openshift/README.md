@@ -116,6 +116,65 @@ test against:
 ```
 You can go to the OpenShift Web console to check the details of the pipeline build.
 
+### Integration Test Pipeline
+Typically, integration tests should be rerun
+- when a new container image of WaiverDB is built
+- when any service that WaiverDB depends on is updated to a new version
+- to ensure an image is mature enough for promotion
+
+Hence, splitting the functional test stage makes it possible to run integration
+tests individually. It can also be a step of a larger pipeline.
+
+#### Installation
+To install this OpenShift pipeline:
+```bash
+oc process --local -f pipelines/templates/waiverdb-integration-test-template.yaml \
+   -p NAME=waiverdb-integration-test \
+  | oc apply -f -
+```
+
+Additional installations with default parameters for dev, stage, and prod environments:
+```bash
+# for dev
+oc process --local -f pipelines/templates/waiverdb-integration-test-template.yaml \
+   -p NAME=waiverdb-dev-integration-test \
+   -p IMAGE="quay.io/factory2/waiverdb:latest" \
+  | oc apply -f -
+# for stage
+oc process --local -f pipelines/templates/waiverdb-integration-test-template.yaml \
+   -p NAME=waiverdb-stage-integration-test \
+   -p IMAGE="quay.io/factory2/waiverdb:stage" \
+  | oc apply -f -
+# for prod
+oc process --local -f pipelines/templates/waiverdb-integration-test-template.yaml \
+   -p NAME=waiverdb-prod-integration-test \
+   -p IMAGE="quay.io/factory2/waiverdb:prod" \
+  | oc apply -f -
+```
+
+#### Usage
+To trigger a pipeline build for each environment, run:
+```bash
+# for dev
+oc start-build waiverdb-dev-integration-test
+# for stage
+oc start-build waiverdb-stage-integration-test
+# for prod
+oc start-build waiverdb-prod-integration-test
+```
+
+To trigger a custom integration test, start a new pipeline build with the image reference you want to test against and the Git repository and commit ID/branch name
+where the functional test suite is used:
+```bash
+oc start-build waiverdb-integration-test \
+  -e IMAGE="quay.io/factory2/waiverdb:test" \
+  -e WAIVERDB_GIT_REPO=https://pagure.io/forks/<username>/waiverdb.git \
+  -e WAIVERDB_GIT_REF=my-branch # master branch is default
+```
+
+#### NOTE
+The stage of reporting test results to ResultsDB has not been implemented.
+
 [OpenShift Pipeline]: https://docs.okd.io/3.9/dev_guide/openshift_pipeline.html
 [Jenkins Pipeline Build Strategy]: https://docs.openshift.com/container-platform/3.9/dev_guide/dev_tutorials/openshift_pipeline.html
 [Jenkinsfiles]: https://jenkins.io/doc/book/pipeline/jenkinsfile/
