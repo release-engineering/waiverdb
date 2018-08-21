@@ -50,14 +50,14 @@ Then instantiate the template with default parameters
 (this will set up a pipeline to build the upstream repo and publish the result to upstream registries):
 
 ```bash
-  oc process --local -f ./waiverdb-dev-pipeline.yml | oc apply -f -
+  oc process --local -f pipelines/tempates/waiverdb-dev-template.yaml | oc apply -f -
 ```
 
 Or you want to set up a pipeline for your own fork:
 
 ```bash
-  NAME=waiverdb-dev-pipeline
-  oc process --local -f ./waiverdb-dev-pipeline-template.yml \
+  NAME=waiverdb-dev
+  oc process --local -f pipelines/tempates/waiverdb-dev-template.yaml \
    -p NAME="$NAME" \
    -p WAIVERDB_GIT_REPO="https://pagure.io/forks/<username>/waiverdb.git" \
    -p WAIVERDB_GIT_REF="<your devel branch>" \
@@ -105,14 +105,14 @@ Before running the pipeline, you need to build a container image for Jenkins sla
 This step should be repeated every time you change
 the Dockerfile for the Jenkins slave pods.
 ```bash
- oc start-build waiverdb-dev-pipeline-jenkins-slave
+ oc start-build waiverdb-dev-jenkins-slave
 ```
 
 #### Trigger A Pipeline Build
 To trigger a pipeline build, start the `waiverdb-dev-pipeline` BuildConfig with the Git commit ID or branch that you want to
 test against:
 ```bash
-  oc start-build waiverdb-dev-pipeline -e WAIVERDB_GIT_REF=<branch_name_or_commit_id>
+  oc start-build waiverdb-dev -e WAIVERDB_GIT_REF=<branch_name_or_commit_id>
 ```
 You can go to the OpenShift Web console to check the details of the pipeline build.
 
