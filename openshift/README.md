@@ -20,6 +20,22 @@ Before using the Pipeline, please ensure your Jenkins master has the following p
 Notes:
 [1]: Those plugins are preinstalled if you are using the Jenkins master shipped with OpenShift.
 
+### Batch Updating All Pipeline Jobs
+Running `make install` inside `openshift/pipelines` will perform batch updates on all jobs
+with parameters defined in `openshift/pipelines/jobs`.
+Logging into your OpenShift project is required before using the Makefile.
+Secrets and Images in your OpenShift project are *NOT* touched.
+
+All pipeline job definitions are in `./pipelines/jobs` while templates are in `./pipelines/templates`.
+For each pipeline job, there are 2 files in `openshift/pipelines/jobs`:
+`<job-name>.env` and `<job-name>.tmpl`. `<job-name>.env` gives all the parameters
+passing to the OpenShift template specified in `<job-name>.tmpl`.
+You can also specify an alternate directories for looking up job definitions and templates
+by using `JOBS_DIR` and `TEMPLATES_DIR` Makefile variables.
+For example, if you want to set up a stage version of pipeline jobs
+with experimental modifications to job definitions,
+you can run: `make install JOBS_DIR=stage-jobs`. For more information, run `make help`.
+
 ### Dev Pipeline
 Dev Pipeline is a part of the WaiverDB Pipeline, covers the following steps:
 
