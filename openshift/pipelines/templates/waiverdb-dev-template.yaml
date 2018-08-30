@@ -208,4 +208,6 @@ objects:
           value: "${WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAME}"
         - name: "WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAMESPACE"
           value: "${WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAMESPACE}"
+        - name: BUILD_DISPLAY_RENAME_TO
+          value: ""
         jenkinsfilePath: openshift/pipelines/templates/waiverdb-dev.Jenkinsfile

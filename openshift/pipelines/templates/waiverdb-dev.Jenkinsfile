@@ -80,6 +80,9 @@ pipeline {
     stage('Prepare') {
       steps {
         script {
+          if (params.BUILD_DISPLAY_RENAME_TO) {
+            currentBuild.displayName = params.BUILD_DISPLAY_RENAME_TO
+          }
           def scmVars = checkout([$class: 'GitSCM',
             branches: [[name: params.WAIVERDB_GIT_REF]],
             userRemoteConfigs: [[url: params.WAIVERDB_GIT_REPO]],
