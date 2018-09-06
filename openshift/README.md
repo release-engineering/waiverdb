@@ -15,7 +15,10 @@ Before using the Pipeline, please ensure your Jenkins master has the following p
 - [Openshift Sync plugin][] [1]
 - [Openshift Client plugin][OpenShift Jenkins Pipeline (DSL) Plugin] [1]
 - [Kubernetes plugin][] [1]
-- [SSH Agent plugin][]:
+- [Timestamper plugin][]
+- [SSH Agent plugin][]
+- [Email Extension plugin][]
+- [Ownership plugin][]
 
 Notes:
 [1]: Those plugins are preinstalled if you are using the Jenkins master shipped with OpenShift.
@@ -114,6 +117,17 @@ cat "$HOME/.ssh/id_rsa_pagure.pub"
     --type=kubernetes.io/ssh-auth
   # This label is used by Jenkins OpenShift Sync Plugin for synchonizing OpenShift secrets with Jenkins Credentials.
   oc label secret pagure-doc-secret credential.sync.jenkins.openshift.io=true
+```
+
+#### Configure a Pagure API Key for Updating Pull-Request Status
+This section is not required if updating Pagure PR status is not needed.
+
+- Go to your Pagure repository settings, and locate to the 'API Keys' section.
+- Click on the `Create new key` button to add new API key with the `Flag a pull-request` permission.
+- Add your newly-created API key to OpenShift:
+```bash
+  oc create secret generic pagure-api-key --from-literal=secrettext=<your-api-key>
+  oc label secret pagure-api-key credential.sync.jenkins.openshift.io=true
 ```
 
 #### Build Jenkins slave container image
@@ -269,6 +283,9 @@ You can go to the OpenShift Web console for more details of the pipeline build.
 [OpenShift Jenkins Pipeline (DSL) Plugin]: https://github.com/openshift/jenkins-client-plugin
 [Openshift Sync plugin]: https://github.com/openshift/jenkins-sync-plugin
 [Kubernetes plugin]: https://github.com/jenkinsci/kubernetes-plugin
+[Timestamper plugin]: https://github.com/jenkinsci/timestamper-plugin
 [SSH Agent plugin]: https://github.com/jenkinsci/ssh-agent-plugin
+[Email Extension plugin]: https://github.com/jenkinsci/email-ext-plugin
+[Ownership plugin]: https://github.com/jenkinsci/ownership-plugin
 [OpenShift secret for registries]:https://docs.openshift.com/container-platform/3.9/dev_guide/builds/build_inputs.html#using-docker-credentials-for-private-registries
 [OpenShift secret for SSH key authentication]: https://docs.openshift.com/container-platform/3.9/dev_guide/builds/build_inputs.html#source-secrets-ssh-key-authentication
