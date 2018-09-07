@@ -48,9 +48,8 @@ objects:
   apiVersion: "v1"
   metadata:
     name: "${NAME}"
-    metadata:
-      labels:
-        app: "${NAME}"
+    labels:
+      app: "${NAME}"
   spec:
     runPolicy: "Parallel"
     completionDeadlineSeconds: 1800

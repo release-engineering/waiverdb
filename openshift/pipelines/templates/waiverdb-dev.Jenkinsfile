@@ -213,7 +213,7 @@ pipeline {
             // We have to create a new BuildConfig for each container build.
             // Create a BuildConfig from a seperated Template.
             echo 'Creating a BuildConfig for container build...'
-            def template = readYaml file: 'openshift/waiverdb-container-template.yml'
+            def template = readYaml file: 'openshift/waiverdb-container-template.yaml'
             def processed = openshift.process(template,
               "-p", "NAME=${env.BUILDCONFIG_INSTANCE_ID}",
               '-p', "WAIVERDB_GIT_REPO=${params.WAIVERDB_GIT_REPO}",
