@@ -242,6 +242,8 @@ objects:
               secretKeyRef:
                 name: "waiverdb-test-${TEST_ID}-secret"
                 key: flask-secret-key
+          - name: CA_URL
+            value: https://password.corp.redhat.com/RH-IT-Root-CA.crt
           readinessProbe:
             timeoutSeconds: 1
             initialDelaySeconds: 5

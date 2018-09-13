@@ -24,7 +24,6 @@ RUN dnf -y install python3-gunicorn \
 
 ARG WAIVERDB_GIT_REPO=https://pagure.io/waiverdb.git
 ARG WAIVERDB_GIT_REF=master
-ARG WAIVERDB_CACERT_URL=
 ARG WAIVERDB_VERSION=
 ENV WAIVERDB_VERSION=$WAIVERDB_VERSION
 
@@ -48,9 +47,12 @@ RUN dnf -y install git python3-pip \
   && cp conf/client.conf.example /etc/waiverdb/client.conf \
   && dnf -y history undo last \
   && dnf -y clean all \
+  # Allow a non-root user to install a custom root CA at run-time
+  && cp -r docker/ / \
+  && chmod g+w /etc/pki/tls/certs/ca-bundle.crt \
   && cd / && rm -rf /usr/local/src/waiverdb
 
 USER 1001
 EXPOSE 8080
-
+ENTRYPOINT ["/docker/docker-entrypoint.sh"]
 CMD ["/usr/bin/gunicorn-3", "--bind", "0.0.0.0:8080", "--access-logfile", "-", "--enable-stdio-inheritance", "waiverdb.wsgi:app"]
