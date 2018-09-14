@@ -56,13 +56,6 @@ objects:
     strategy:
       dockerStrategy:
         forcePull: true
-        buildArgs:
-        - name: "WAIVERDB_GIT_REPO"
-          value: "${WAIVERDB_GIT_REPO}"
-        - name: "WAIVERDB_GIT_REF"
-          value: "${WAIVERDB_GIT_REF}"
-        - name: "WAIVERDB_VERSION"
-          value: "${WAIVERDB_VERSION}"
         dockerfilePath: openshift/containers/waiverdb/Dockerfile
     resources:
       requests:
