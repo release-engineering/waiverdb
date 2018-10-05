@@ -10,6 +10,7 @@ except ImportError:
 from flask import Flask, current_app
 from flask_migrate import Migrate
 from sqlalchemy import event
+from sqlalchemy.exc import ProgrammingError
 import requests
 
 from waiverdb.events import publish_new_waiver
@@ -118,9 +119,12 @@ def healthcheck():
 
     Returns a 200 response if the application is alive and able to serve requests.
     """
-    result = db.session.execute('SELECT 1').scalar()
-    if result != 1:
+    try:
+        db.session.execute("SELECT 1 FROM waiver LIMIT 0").fetchall()
+    except ProgrammingError:
+        current_app.logger.exception('Healthcheck failed on DB query.')
         raise RuntimeError('Unable to communicate with database.')
+
     return ('Health check OK', 200, [('Content-Type', 'text/plain')])
 
 
