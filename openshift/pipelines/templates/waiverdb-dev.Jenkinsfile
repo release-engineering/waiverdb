@@ -85,9 +85,8 @@ pipeline {
           }
           def scmVars = checkout([$class: 'GitSCM',
             branches: [[name: params.WAIVERDB_GIT_REF]],
-            userRemoteConfigs: [[url: params.WAIVERDB_GIT_REPO]],
+            userRemoteConfigs: [[url: params.WAIVERDB_GIT_REPO, refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pull/*/head']],
           ])
-          env.WAIVERDB_GIT_COMMIT_ID = scmVars.GIT_COMMIT
           // Generate a version-release number for the target Git commit
           def versions = sh(returnStdout: true, script: 'source ./version.sh && echo -en "$WAIVERDB_VERSION\n$WAIVERDB_CONTAINER_VERSION"').split('\n')
           env.WAIVERDB_VERSION = versions[0]
@@ -166,7 +165,7 @@ pipeline {
                   if [[ "$(git diff --cached --numstat | wc -l)" -eq 0 ]] ; then
                       exit 0 # No changes, nothing to commit
                   fi
-                  git commit -m 'Automatic commit of docs built by Jenkins job ${env.JOB_NAME} #${env.BUILD_NUMBER}'
+                  git commit -m "Automatic commit of docs built by Jenkins job ${JOB_NAME} #${BUILD_NUMBER}"
                   git push origin master
                   '''
                 }
@@ -220,7 +219,7 @@ pipeline {
             def processed = openshift.process(template,
               "-p", "NAME=${env.BUILDCONFIG_INSTANCE_ID}",
               '-p', "WAIVERDB_GIT_REPO=${params.WAIVERDB_GIT_REPO}",
-              '-p', "WAIVERDB_GIT_REF=${env.WAIVERDB_GIT_COMMIT_ID}",
+              '-p', "WAIVERDB_GIT_REF=${params.WAIVERDB_GIT_REF}",
               '-p', "WAIVERDB_IMAGE_TAG=${env.TEMP_TAG}",
               '-p', "WAIVERDB_VERSION=${env.WAIVERDB_VERSION}",
               '-p', "WAIVERDB_IMAGESTREAM_NAME=${params.WAIVERDB_IMAGESTREAM_NAME}",
@@ -291,7 +290,7 @@ pipeline {
               def buildSelector = testBcSelector.startBuild(
                   '-e', "IMAGE=${env.RESULTING_IMAGE_REPO}:${env.RESULTING_TAG}",
                   '-e', "WAIVERDB_GIT_REPO=${params.WAIVERDB_GIT_REPO}",
-                  '-e', "WAIVERDB_GIT_REF=${env.WAIVERDB_GIT_COMMIT_ID}",
+                  '-e', "WAIVERDB_GIT_REF=${params.WAIVERDB_GIT_REF}",
                 )
               timeout(5) { // 5 min
                 buildSelector.watch {

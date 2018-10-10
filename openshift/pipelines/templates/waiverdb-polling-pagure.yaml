@@ -139,31 +139,32 @@ objects:
                 steps {
                   script {
                     // checking out the polled branch
-                    def polledBranch = env.PAGURE_POLLING_FOR_PR == 'true' ? 'origin/pr/*' : "origin/${PAGURE_POLLED_BRANCH}"
+                    def polledBranch = env.PAGURE_POLLING_FOR_PR == 'true' ? 'origin/pull/*/head' : "origin/${PAGURE_POLLED_BRANCH}"
                     def scmVars = checkout([$class: 'GitSCM',
                       branches: [[name: polledBranch]],
                       userRemoteConfigs: [
                         [
                           name: 'origin',
                           url: env.GIT_URL,
-                          refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pr/*',
+                          refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pull/*/head',
                         ],
                       ],
                       extensions: [[$class: 'CleanBeforeCheckout']],
                     ])
-                    echo "Build on branch=${scmVars.GIT_BRANCH}, commit=${scmVars.GIT_COMMIT}"
                     env.GIT_COMMIT = scmVars.GIT_COMMIT
                     env.GIT_AUTHOR_EMAIL = scmVars.GIT_AUTHOR_EMAIL
                     // setting build display name
                     def prefix = 'origin/'
                     def branch = scmVars.GIT_BRANCH.startsWith(prefix) ? scmVars.GIT_BRANCH.substring(prefix.size())
-                      : scmVars.GIT_BRANCH // origin/pr/1234 -> pr/1234, origin/master -> master
+                      : scmVars.GIT_BRANCH // origin/pull/1234/head -> pull/1234/head, origin/master -> master
+                    env.GIT_BRANCH = branch
+                    echo "Build on branch=${env.GIT_BRANCH}, commit=${env.GIT_COMMIT}"
                     if (env.PAGURE_POLLING_FOR_PR == 'false' && branch == "${PAGURE_POLLED_BRANCH}") {
                       echo 'Building master'
                       currentBuild.displayName = "${PAGURE_POLLED_BRANCH}"
                     }
-                    else if (env.PAGURE_POLLING_FOR_PR == 'true' && branch ==~ /^pr\/[0-9]+$/) {
-                      env.PR_NO = branch.split('/')[-1]
+                    else if (env.PAGURE_POLLING_FOR_PR == 'true' && branch ==~ /^pull\/[0-9]+\/head$/) {
+                      env.PR_NO = branch.split('/')[1]
                       env.PR_URL = "${env.PAGURE_REPO_HOME}/pull-request/${env.PR_NO}"
                       // To HTML syntax in build description, go to `Jenkins/Global Security/Markup Formatter` and select 'Safe HTML'.
                       def pagureLink = """<a href="${env.PR_URL}">PR-${env.PR_NO}</a>"""
@@ -196,7 +197,7 @@ objects:
                         def isMaster = env.PAGURE_POLLING_FOR_PR != 'true'
                         def devBuild = bcSelector.startBuild(
                           '-e', "WAIVERDB_GIT_REPO=${env.GIT_URL}",
-                          '-e', "WAIVERDB_GIT_REF=${env.GIT_COMMIT}",
+                          '-e', "WAIVERDB_GIT_REF=${env.GIT_BRANCH}",
                           '-e', "FORCE_PUBLISH_IMAGE=${isMaster}",
                           '-e', "FORCE_PUBLISH_DOCS=${isMaster}",
                           '-e', "WAIVERDB_MAIN_BRANCH=${PAGURE_POLLED_BRANCH}",

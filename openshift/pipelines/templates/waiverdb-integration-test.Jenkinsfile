@@ -44,7 +44,7 @@ pipeline {
       steps {
         checkout([$class: 'GitSCM',
           branches: [[name: params.WAIVERDB_GIT_REF]],
-          userRemoteConfigs: [[url: params.WAIVERDB_GIT_REPO]],
+          userRemoteConfigs: [[url: params.WAIVERDB_GIT_REPO, refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pull/*/head']],
         ])
       }
     }
