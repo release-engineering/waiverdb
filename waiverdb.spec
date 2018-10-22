@@ -49,6 +49,7 @@ BuildRequires:  python-flask-restful
 BuildRequires:  python-flask-sqlalchemy
 BuildRequires:  python-psycopg2
 BuildRequires:  python-gssapi
+BuildRequires:  python-requests-gssapi
 BuildRequires:  pytest
 BuildRequires:  python-mock
 BuildRequires:  python-flask-oidc
@@ -63,6 +64,7 @@ Requires:       python3-flask-restful
 Requires:       python3-flask-sqlalchemy
 Requires:       python3-psycopg2
 Requires:       python3-gssapi
+Requires:       python-requests-gssapi
 Requires:       python3-mock
 Requires:       python3-flask-oidc
 Requires:       python3-click
