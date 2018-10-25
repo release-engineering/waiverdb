@@ -292,18 +292,12 @@ pipeline {
                   '-e', "WAIVERDB_GIT_REPO=${params.WAIVERDB_GIT_REPO}",
                   '-e', "WAIVERDB_GIT_REF=${params.WAIVERDB_GIT_REF}",
                 )
-              timeout(5) { // 5 min
+              echo 'Waiting for the integration test result...'
+              timeout(time: 20) { // 20 min
                 buildSelector.watch {
                   return !(it.object().status.phase in ["New", "Pending", "Unknown"])
                 }
-              }
-              echo 'Following functional test logs...'
-              // This function sometimes hangs infinitely. Not sure it is a problem of OpenShift Jenkins Client plugin or OpenShift.
-              timeout(time: 15) {
                 buildSelector.logs('-f')
-              }
-              echo 'Waiting for the integration test to be fully stopped...'
-              timeout(5) { // 5 min
                 buildSelector.watch {
                   return it.object().status.phase != "Running"
                 }
