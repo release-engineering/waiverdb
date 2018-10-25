@@ -94,6 +94,8 @@ pipeline {
           env.TEMP_TAG = env.WAIVERDB_CONTAINER_VERSION + '-jenkins-' + currentBuild.id
         }
         sh 'cp conf/settings.py.example conf/settings.py'
+        // install build dependencies
+        sh 'dnf -y builddep waiverdb.spec'
       }
     }
     stage('Run checks') {
