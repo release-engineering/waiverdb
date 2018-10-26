@@ -36,6 +36,7 @@ BuildRequires:  python3-flask-restful
 BuildRequires:  python3-flask-sqlalchemy
 BuildRequires:  python3-psycopg2
 BuildRequires:  python3-gssapi
+BuildRequires:  python3-requests-gssapi
 BuildRequires:  python3-pytest
 BuildRequires:  python3-mock
 BuildRequires:  python3-flask-oidc
@@ -64,7 +65,7 @@ Requires:       python3-flask-restful
 Requires:       python3-flask-sqlalchemy
 Requires:       python3-psycopg2
 Requires:       python3-gssapi
-Requires:       python-requests-gssapi
+Requires:       python3-requests-gssapi
 Requires:       python3-mock
 Requires:       python3-flask-oidc
 Requires:       python3-click
@@ -89,10 +90,12 @@ for other WaiverDB subpackages.
 Summary: A CLI tool for interacting with waiverdb
 %if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires:  python3-click
+BuildRequires:  python3-requests-gssapi
 Requires:       python3-click
 Requires:       python3-requests-gssapi
 %else
 BuildRequires:  python-click
+BuildRequires:  python-requests-gssapi
 Requires:       python-click
 Requires:       python-requests-gssapi
 Requires:       python-configparser

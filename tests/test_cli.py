@@ -159,9 +159,9 @@ def test_oidc_auth_is_enabled(tmpdir):
         mock_rv = Mock()
         mock_rv.json.return_value = [{
             "comment": "This is fine",
+            "data": {"item": ["htop-1.0-1.fc22"], "type": ["bodhi_update"]},
             "id": 15,
             "product_version": "Parrot",
-            "subject": {"subject.test": "test", "s": "t"},
             "testcase": "test.testcase",
             "timestamp": "2017-010-16T17:42:04.209638",
             "username": "foo",
@@ -179,16 +179,15 @@ oidc_scopes=
     openid
             """)
         runner = CliRunner()
-        args = ['-C', p.strpath, '-p', 'Parrot', '-s', '{"subject.test": "test", "s": "t"}',
-                '-t', 'test.testcase', '-c', "This is fine"]
+        args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123',
+                '-c', "This is fine"]
         result = runner.invoke(waiverdb_cli, args)
-        exp_json = {
-            "subject": {"subject.test": "test", "s": "t"},
-            "testcase": "test.testcase",
-            'waived': True,
-            'product_version': 'Parrot',
-            'comment': "This is fine"
-        }
+        exp_json = [{
+            "result_id": 123,
+            "waived": True,
+            "product_version": "Parrot",
+            "comment": "This is fine",
+        }]
         mock_oidc_req.assert_called_once_with(
             url='http://localhost:5004/api/v1.0/waivers/',
             data=json.dumps(exp_json),
@@ -196,23 +195,17 @@ oidc_scopes=
             timeout=60,
             headers={'Content-Type': 'application/json'})
         assert result.exit_code == 0
-        assert result.output.startswith('Created waiver 15 for result with subject ')
-        assert result.output.endswith(' and testcase test.testcase\n')
-        assert any(['{"subject.test": "test", "s": "t"}' in result.output,
-                    '{"s": "t", "subject.test": "test"}' in result.output])
+        assert result.output.startswith('Created waiver 15 for result with id 123\n')
 
 
 def test_gssapi_is_enabled(tmpdir):
-    # Skip if waiverdb is rebuilt for an environment where OIDC authentication
-    # is used and python-requests-gssapi is not available.
-    pytest.importorskip('requests_gssapi')
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
         mock_rv.json.return_value = [{
             "comment": "This is fine",
+            "data": {"item": ["htop-1.0-1.fc22"], "type": ["bodhi_update"]},
             "id": 15,
             "product_version": "Parrot",
-            "subject": {"subject.test": "test", "s": "t"},
             "testcase": "test.testcase",
             "timestamp": "2017-010-16T17:42:04.209638",
             "username": "foo",
@@ -226,14 +219,11 @@ auth_method=Kerberos
 api_url=http://localhost:5004/api/v1.0
             """)
         runner = CliRunner()
-        args = ['-C', p.strpath, '-p', 'Parrot', '-s', '{"subject.test": "test", "s": "t"}',
-                '-t', 'test.testcase', '-c', "This is fine"]
+        args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123',
+                '-c', "This is fine"]
         result = runner.invoke(waiverdb_cli, args)
         mock_request.assert_called_once()
-        assert result.output.startswith('Created waiver 15 for result with subject ')
-        assert result.output.endswith(' and testcase test.testcase\n')
-        assert any(['{"subject.test": "test", "s": "t"}' in result.output,
-                    '{"s": "t", "subject.test": "test"}' in result.output])
+        assert result.output.startswith('Created waiver 15 for result with id 123\n')
 
 
 def test_submit_waiver_with_id(tmpdir):
