@@ -10,7 +10,7 @@ USER root
 ARG TINI_VERSION=0.18.0
 
 RUN dnf -y install 'dnf-command(builddep)' dnf-utils git mock-core-configs tar gzip skopeo \
-    sudo wget postgresql make rpmdevtools rpmlint \
+    wget postgresql make rpmdevtools rpmlint \
     python3-flake8 python3-pylint python3-pytest \
     python3-sphinx python3-sphinxcontrib-httpdomain \
     origin-clients \
@@ -23,9 +23,6 @@ RUN dnf -y install 'dnf-command(builddep)' dnf-utils git mock-core-configs tar g
   # clean up
   && dnf clean all
 
-# Allow OpenShift assigned user to use sudo
-RUN echo '%root   ALL=(ALL)       NOPASSWD: ALL' > /etc/sudoers.d/root-group
-
 # install build dependencies for WaiverDB
 COPY waiverdb.spec /usr/local/src/waiverdb/waiverdb.spec
 RUN cd /usr/local/src/waiverdb \
@@ -33,7 +30,5 @@ RUN cd /usr/local/src/waiverdb \
   && dnf clean all \
   && cd / && rm -rf /usr/local/src/waiverdb
 WORKDIR /var/lib/jenkins/
-# Install entrypoint.sh
-COPY openshift/containers/jenkins-slave/entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/tini", "--", "/entrypoint.sh", "jenkins-slave"]
+ENTRYPOINT ["/usr/local/bin/tini", "--", "jenkins-slave"]
 USER 1000
