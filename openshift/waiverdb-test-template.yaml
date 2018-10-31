@@ -13,6 +13,8 @@ apiVersion: v1
 kind: Template
 metadata:
   name: waiverdb-test-template
+labels:
+  template: waiverdb-test
 parameters:
 - name: TEST_ID
   displayName: Test id
