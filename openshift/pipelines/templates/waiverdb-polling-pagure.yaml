@@ -46,6 +46,10 @@ parameters:
   displayName: Name of Secret for updating Pagure pull-requests status
   value: 'pagure-api-key'
   required: false
+- name: PIPELINE_UPDATE_JOBS_DIR
+  displayName: location of pipeline job definitions for auto update
+  value: jobs
+  required: false
 - name: MAIL_ENABLED
   displayName: Whether to send an email
   value: 'true'
@@ -183,6 +187,33 @@ objects:
                       currentBuild.description = pagureLink
                     } else { // This shouldn't happen.
                       error("Build is aborted due to unexpected polling trigger actions.")
+                    }
+                  }
+                }
+              }
+              stage('Update pipeline jobs') {
+                when {
+                  expression {
+                    return "${PIPELINE_UPDATE_JOBS_DIR}" && env.PAGURE_POLLING_FOR_PR == 'false' && env.GIT_BRANCH == "${PAGURE_POLLED_BRANCH}"
+                  }
+                }
+                steps {
+                  checkout([$class: 'GitSCM',
+                    branches: [[name: env.GIT_BRANCH]],
+                    userRemoteConfigs: [
+                      [
+                        name: 'origin',
+                        url: env.GIT_URL,
+                        refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pull/*/head',
+                      ],
+                    ],
+                    extensions: [[$class: 'CleanBeforeCheckout']],
+                  ])
+                  script {
+                    dir('openshift/pipelines') {
+                      sh '''
+                      make install JOBS_DIR="${PIPELINE_UPDATE_JOBS_DIR}"
+                      '''
                     }
                   }
                 }
