@@ -239,6 +239,10 @@ objects:
                         }
                         def devBuildInfo = devBuild.object()
                         env.DEV_BUILD_URL = devBuildInfo.metadata.annotations['openshift.io/jenkins-build-uri'] ?: env.BUILD_URL
+                        if (env.PAGURE_POLLING_FOR_PR == 'true') {
+                          // setting PR status to Pending
+                          setBuildStatusOnPagurePR(null, 'Pending')
+                        } 
                         echo "Waiting for dev build ${devBuildInfo.metadata.name}(${env.DEV_BUILD_URL}) to complete..."
                         devBuild.watch {
                           return it.object().status.phase != "Running"
@@ -311,19 +315,22 @@ objects:
               }
               def payloadItems = []
               if (payload) {
-                payloadItems = payload.collect {
-                  URLEncoder.encode(it.key.toString(), 'utf-8') +
-                  '=' +  URLEncoder.encode(it.value.toString(), 'utf-8')
+                for (it in payload) {
+                  if (it == null || it.value == null) {
+                    continue
+                  }
+                  payloadItems << (URLEncoder.encode(it.key.toString(), 'utf-8') +
+                    '=' +  URLEncoder.encode(it.value.toString(), 'utf-8'))
                 }
               }
               return steps.httpRequest(
-                  httpMode: httpMode,
-                  url: "${pagureApiUrl}/${apiPath}",
-                  acceptType: 'APPLICATION_JSON',
-                  contentType: 'APPLICATION_FORM',
-                  requestBody: payloadItems.join('&'),
-                  customHeaders: headers,
-                )
+                httpMode: httpMode,
+                url: "${pagureApiUrl}/${apiPath}",
+                acceptType: 'APPLICATION_JSON',
+                contentType: 'APPLICATION_FORM',
+                requestBody: payloadItems.join('&'),
+                customHeaders: headers,
+              )
             }
             def getPR(Map args) {
               def apiPath = "${args.fork?'fork/':''}${args.repo}/pull-request/${args.pr}"
@@ -346,7 +353,7 @@ objects:
             def pagureClient = new PagureClient (pagureApiUrl: env.PAGURE_API, steps: steps)
             return pagureClient.getPR(fork: env.PAGURE_REPO_IS_FORK == 'true', repo: "${PAGURE_REPO_NAME}", pr: env.PR_NO)
           }
-          def setBuildStatusOnPagurePR(int percent, String comment) {
+          def setBuildStatusOnPagurePR(percent, String comment) {
             withCredentials([string(credentialsId: "${env.PIPELINE_NAMESPACE}-${PAGURE_API_KEY_SECRET_NAME}", variable: 'TOKEN')]) {
               def pagureClient = new PagureClient (pagureApiUrl: env.PAGURE_API, token: env.TOKEN, steps: steps)
               pagureClient.updatePRStatus(
