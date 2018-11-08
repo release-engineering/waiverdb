@@ -238,6 +238,7 @@ objects:
                           return !(it.object().status.phase in ["New", "Pending"])
                         }
                         def devBuildInfo = devBuild.object()
+                        env.DEV_BUILD_NAME = devBuildInfo.metadata.name
                         env.DEV_BUILD_URL = devBuildInfo.metadata.annotations['openshift.io/jenkins-build-uri'] ?: env.BUILD_URL
                         if (env.PAGURE_POLLING_FOR_PR == 'true') {
                           // setting PR status to Pending
@@ -261,7 +262,7 @@ objects:
             post {
               success {
                 script {
-                  // updating Pagure PR flag
+                  // updating Pagure PR flag and make a comment
                   if (env.PAGURE_POLLING_FOR_PR == 'true' && "${PAGURE_API_KEY_SECRET_NAME}") {
                     try {
                       setBuildStatusOnPagurePR(100, 'Build passed.')
@@ -289,6 +290,17 @@ objects:
                       echo "Updated PR #${env.PR_NO} status to FAILURE."
                     } catch (e) {
                       echo "Error updating PR #${env.PR_NO} status to FAILURE: ${e}"
+                    }
+                    if (env.DEV_BUILD_NAME) {
+                      try {
+                        commentOnPR("""
+                        Build ${env.GIT_COMMIT} [FAILED](${env.DEV_BUILD_URL})!
+                        Rebase or make new commits to rebuild.
+                        """.stripIndent())
+                        echo "Comment made."
+                      } catch (e) {
+                        echo "Error making a comment on PR #${env.PR_NO}: ${e}"
+                      }
                     }
                   }
                   // sending email
@@ -348,6 +360,13 @@ objects:
               ])
               return steps.readJSON(text: response.content)
             }
+            def commentOnPR(Map args) {
+              def apiPath = "${args.fork?'fork/':''}${args.repo}/pull-request/${args.pr}/comment"
+              def response = callApi('POST', apiPath, [
+                'comment': args.comment,
+              ])
+              return steps.readJSON(text: response.content)
+            }
           }
           def getPagurePRInfo() {
             def pagureClient = new PagureClient (pagureApiUrl: env.PAGURE_API, steps: steps)
@@ -357,8 +376,16 @@ objects:
             withCredentials([string(credentialsId: "${env.PIPELINE_NAMESPACE}-${PAGURE_API_KEY_SECRET_NAME}", variable: 'TOKEN')]) {
               def pagureClient = new PagureClient (pagureApiUrl: env.PAGURE_API, token: env.TOKEN, steps: steps)
               pagureClient.updatePRStatus(
-                username: 'c3i-jenkins', uid: 'ci-pre-merge', url: env.DEV_BUILD_URL,
+                username: 'c3i-jenkins', uid: 'ci-pre-merge', url: env.DEV_BUILD_URL?:env.BUILD_URL,
                 percent: percent, comment: comment, pr: env.PR_NO,
+                repo: "${PAGURE_REPO_NAME}", fork: env.PAGURE_REPO_IS_FORK == 'true')
+            }
+          }
+          def commentOnPR(String comment) {
+            withCredentials([string(credentialsId: "${env.PIPELINE_NAMESPACE}-${PAGURE_API_KEY_SECRET_NAME}", variable: 'TOKEN')]) {
+              def pagureClient = new PagureClient (pagureApiUrl: env.PAGURE_API, token: env.TOKEN, steps: steps)
+              pagureClient.commentOnPR(
+                comment: comment, pr: env.PR_NO,
                 repo: "${PAGURE_REPO_NAME}", fork: env.PAGURE_REPO_IS_FORK == 'true')
             }
           }
