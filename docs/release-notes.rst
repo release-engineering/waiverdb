@@ -2,12 +2,21 @@
 Release Notes
 =============
 
-Next Release
-============
+WaiverDB 0.12
+=============
+
+Released 8 November 2018.
+
+* Invalid ``subject`` values are handled during database migration.
 
 * The :program:`waiverdb-cli` utility accepts new options
   :option:`--subject-identifier` and :option:`--subject-type` which deprecate
   :option:`--subject` option.
+
+* python-requests-gssapi is now a ``requires`` and ``buildrequires``
+  dependency.
+
+* Locked DB scenario checked in :http:get:`/healthcheck` API endpoint.
 
 WaiverDB 0.11
 =============
@@ -135,7 +144,7 @@ Released 13 Feb 2018.
 
 * Added logo in the README page.
 
-* You can now waive the absence of a result. Now it is possible to 
+* You can now waive the absence of a result. Now it is possible to
   submit waivers using a subject/testcase.
 
 * Backward compatibility for submitting a waiver using the result_id.
