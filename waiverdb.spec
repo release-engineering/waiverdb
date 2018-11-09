@@ -1,5 +1,5 @@
 
-%global upstream_version 0.11.0
+%global upstream_version 0.12.0
 
 %if 0%{?fedora} || 0%{?rhel} > 7
 %bcond_without server
@@ -10,7 +10,7 @@
 %endif
 
 Name:           waiverdb
-Version:        0.11.0
+Version:        0.12.0
 Release:        1%{?dist}
 Summary:        Service for waiving results in ResultsDB
 License:        GPLv2+
