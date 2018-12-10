@@ -1,4 +1,3 @@
-
 %global upstream_version 0.12.0
 
 %if 0%{?fedora} || 0%{?rhel} > 7
@@ -44,21 +43,6 @@ BuildRequires:  python3-click
 BuildRequires:  python3-flask-migrate
 BuildRequires:  python3-stomppy
 BuildRequires:  python3-fedmsg
-BuildRequires:  python-flask
-BuildRequires:  python-sqlalchemy
-BuildRequires:  python-flask-restful
-BuildRequires:  python-flask-sqlalchemy
-BuildRequires:  python-psycopg2
-BuildRequires:  python-gssapi
-BuildRequires:  python-requests-gssapi
-BuildRequires:  pytest
-BuildRequires:  python-mock
-BuildRequires:  python-flask-oidc
-BuildRequires:  python-click
-BuildRequires:  python-configparser
-BuildRequires:  python-flask-migrate
-BuildRequires:  stomppy
-BuildRequires:  fedmsg
 Requires:       python3-flask
 Requires:       python3-sqlalchemy
 Requires:       python3-flask-restful
