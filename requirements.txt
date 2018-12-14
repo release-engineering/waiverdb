@@ -3,7 +3,7 @@
 
 fedmsg[consumers,commands]
 Flask
-Flask-RESTful
+Flask-RESTful!=0.3.6
 Flask-SQLAlchemy
 SQLAlchemy
 gssapi

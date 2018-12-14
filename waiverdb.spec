@@ -97,6 +97,10 @@ Primarily, submitting new waiverdbs.
 %prep
 %setup -q -n %{name}-%{upstream_version}
 
+# We guard against version flask-restful=0.3.6 in requirements.txt,
+# but the version in Fedora is patched to work.
+sed -i '/Flask-RESTful/d' requirements.txt
+
 # Replace any staging urls with prod ones
 sed -i 's/\.stg\.fedoraproject\.org/.fedoraproject.org/g' conf/client.conf.example
 
