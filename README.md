@@ -95,13 +95,16 @@ or
 
 
 Options:
-  -C, --config-file PATH      Specify a config file to use
-  -r, --result-id INTEGER     Specify one or more results to be waived
-  -s, --subject TEXT          Specify one subject for a result to waive
-  -t, --testcase TEXT         Specify a testcase for the subject
-  -p, --product-version TEXT  Specify one of PDC's product version
-                              identifiers.
-  --waived / --no-waived      Whether or not the result is waived
-  -c, --comment TEXT          A comment explaining why the result is waived
-  -h, --help                  Show this message and exit.
+  -C, --config-file PATH           Specify a config file to use.
+  -r, --result-id INTEGER          Specify one or more results to be waived.
+  -s, --subject TEXT               Deprecated. Use --subject-identifier and
+                                   --subject-type instead. Subject for a result to waive.
+  -i, --subject-identifier TEXT    Subject identifier for a result to waive.
+  -T, --subject-type TEXT          Subject type for a result to waive.
+  -t, --testcase TEXT              Specify a testcase for the subject.
+  -p, --product-version TEXT       Specify one of PDC's product version
+                                   identifiers.
+  --waived / --no-waived           Whether or not the result is waived.
+  -c, --comment TEXT               A comment explaining why the result is waived.
+  -h, --help                       Show this message and exit.
 ```
