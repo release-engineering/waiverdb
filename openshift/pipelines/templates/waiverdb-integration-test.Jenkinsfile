@@ -90,6 +90,7 @@ pipeline {
           openshift.withCluster() {
             def imageTag = (params.IMAGE =~ /(?::(\w[\w.-]{0,127}))?$/)[0][1]
             def imageRepo = imageTag ? params.IMAGE.substring(0, params.IMAGE.length() - imageTag.length() - 1) : params.IMAGE
+            env.IMAGE_TAG = imageTag ?: 'latest'
             def template = readYaml file: 'openshift/waiverdb-test-template.yaml'
             def webPodReplicas = 1 // The current quota in UpShift is agressively limited
             def models = openshift.process(template,
@@ -121,6 +122,8 @@ pipeline {
                 error("Test pod ${pod.metadata.name} is not running. Current phase is ${pod.status.phase}.")
               }
             }
+            def appPod = openshift.selector('pods', ['environment': env.ENVIRONMENT_LABEL, 'service': 'web']).object()
+            env.IMAGE_DIGEST = appPod.status.containerStatuses[0].imageID.split('@')[1]
             // Run functional tests
             def route_hostname = objects.narrow('route').object().spec.host
             echo "Running tests against https://${route_hostname}/"
@@ -134,6 +137,7 @@ pipeline {
         always {
           script {
             junit 'junit-functional-tests.xml'
+            archiveArtifacts artifacts: 'junit-functional-tests.xml'
             openshift.withCluster() {
               /* Extract logs for debugging purposes */
               openshift.selector('deploy,pods', ['environment': env.ENVIRONMENT_LABEL]).logs()
@@ -152,9 +156,57 @@ pipeline {
         }
       }
     }
-    stage('Report to ResultsDB') {
-      steps {
-        echo 'This is a placeholder.'
+  }
+  post {
+    always {
+      script {
+        def sendResult = sendCIMessage \
+          providerName: 'Red Hat UMB', \
+          overrides: [topic: 'VirtualTopic.eng.ci.container-image.test.complete'], \
+          messageType: 'Custom', \
+          messageProperties: '', \
+          messageContent: """
+          {
+            "ci": {
+              "name": "C3I Jenkins",
+              "team": "DevOps",
+              "url": "${env.JENKINS_URL}",
+              "docs": "https://pagure.io/waiverdb/blob/master/f/openshift",
+              "irc": "#pnt-devops-dev",
+              "email": "pnt-factory2-devel@redhat.com",
+              "environment": "development"
+            },
+            "run": {
+              "url": "${env.BUILD_URL}",
+              "log": "${env.BUILD_URL}/console",
+              "debug": "",
+              "rebuild": "${env.BUILD_URL}/rebuild/parametrized"
+            },
+            "artifact": {
+              "type": "container-image",
+              "repository": "factory2/waiverdb",
+              "digest": "${env.IMAGE_DIGEST}",
+              "nvr": "waiverdb:${env.IMAGE_TAG}",
+              "issuer": "c3i-jenkins",
+              "scratch": true
+            },
+            "system":
+               [{
+                  "os": "${params.JENKINS_AGENT_IMAGE}",
+                  "provider": "openshift",
+                  "architecture": "x86_64"
+               }],
+            "type": "tier1",
+            "category": "integration",
+            "status": "${currentBuild.result == 'SUCCESS' ? 'passed':'failed'}",
+            "xunit": "${env.BUILD_URL}/artifacts/junit-functional-tests.xml",
+            "namespace": "waiverdb-test",
+            "version": "0.1.0"
+          }
+          """
+        // echo sent message id and content
+        echo sendResult.getMessageId()
+        echo sendResult.getMessageContent()
       }
     }
   }

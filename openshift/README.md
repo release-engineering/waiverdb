@@ -19,6 +19,7 @@ Before using the Pipeline, please ensure your Jenkins master has the following p
 - [SSH Agent plugin][]
 - [Email Extension plugin][]
 - [Ownership plugin][]
+- [JMS Messaging plugin][]
 
 Notes:
 [1]: Those plugins are preinstalled if you are using the Jenkins master shipped with OpenShift.
@@ -287,5 +288,6 @@ You can go to the OpenShift Web console for more details of the pipeline build.
 [SSH Agent plugin]: https://github.com/jenkinsci/ssh-agent-plugin
 [Email Extension plugin]: https://github.com/jenkinsci/email-ext-plugin
 [Ownership plugin]: https://github.com/jenkinsci/ownership-plugin
+[JMS Messaging plugin]: https://github.com/jenkinsci/jms-messaging-plugin
 [OpenShift secret for registries]:https://docs.openshift.com/container-platform/3.9/dev_guide/builds/build_inputs.html#using-docker-credentials-for-private-registries
 [OpenShift secret for SSH key authentication]: https://docs.openshift.com/container-platform/3.9/dev_guide/builds/build_inputs.html#source-secrets-ssh-key-authentication
