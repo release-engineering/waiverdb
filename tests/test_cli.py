@@ -456,20 +456,36 @@ koji_base_url=https://koji.fedoraproject.org/kojihub
             '-t', 'test.testcase', '-c', "This is fine"]
     result = runner.invoke(waiverdb_cli, args)
     assert result.exit_code != 0
-    assert 'Error: Please specify correct subject type' in result.output
+    assert 'Error: Please specify subject_type' in result.output
 
 
-def test_create_waiver_invalid_subject_type(tmpdir):
-    p = tmpdir.join('client.conf')
-    p.write("""
+def test_submit_waiver_with_arbitrary_subject_type(tmpdir):
+    with patch('requests.request') as mock_request:
+        mock_rv = Mock()
+        mock_rv.json.return_value = [{
+            "comment": "This is fine",
+            "id": 15,
+            "product_version": "Parrot",
+            "subject_type": "some-kind-of-magic",
+            "subject_identifier": "setup-2.8.71-7.el7_4",
+            "testcase": "test.testcase",
+            "timestamp": "2017-010-16T17:42:04.209638",
+            "username": "foo",
+            "waived": True
+        }]
+        mock_request.return_value = mock_rv
+        p = tmpdir.join('client.conf')
+        p.write("""
 [waiverdb]
 auth_method=dummy
 api_url=http://localhost:5004/api/v1.0
-koji_base_url=https://koji.fedoraproject.org/kojihub
-    """)
-    runner = CliRunner()
-    args = ['-C', p.strpath, '-T', 'brew-build', '-i', 'setup-2.8.71-7.el7_4',
-            '-t', 'test.testcase', '-c', "This is fine"]
-    result = runner.invoke(waiverdb_cli, args)
-    assert result.exit_code != 0
-    assert 'invalid choice: brew-build' in result.output
+            """)
+        runner = CliRunner()
+        args = ['-C', p.strpath, '-p', 'Parrot',
+                '-s', '{"type": "some-kind-of-magic", "item": "setup-2.8.71-7.el7_4"}',
+                '-t', 'test.testcase', '-c', "This is fine"]
+        result = runner.invoke(waiverdb_cli, args)
+        mock_request.assert_called()
+        assert result.output == ('Created waiver 15 for result with subject type '
+                                 'some-kind-of-magic, identifier setup-2.8.71-7.el7_4 and '
+                                 'testcase test.testcase\n')

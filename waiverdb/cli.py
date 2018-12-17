@@ -11,8 +11,6 @@ from xmlrpc import client
 
 requests_session = requests.Session()
 
-SUBJECT_TYPES = ("koji_build", "bodhi_update", "compose")
-
 
 class OldJSONSubject(click.ParamType):
     """
@@ -128,7 +126,7 @@ def guess_product_version(toparse, koji_build=False):
                     'Subject for a result to waive.'))
 @click.option('--subject-identifier', '-i',
               help='Subject identifier for a result to waive.')
-@click.option('--subject-type', '-T', type=click.Choice(SUBJECT_TYPES),
+@click.option('--subject-type', '-T',
               help='Subject type for a result to waive.')
 @click.option('--testcase', '-t',
               help='Specify a testcase for the subject')
@@ -182,9 +180,8 @@ def cli(comment, waived, product_version, testcase, subject, subject_identifier,
         raise click.ClickException('Please specify subject-identifier')
     if not result_ids and not testcase:
         raise click.ClickException('Please specify testcase')
-    if not result_ids and subject_type not in SUBJECT_TYPES:
-        raise click.ClickException(
-            'Please specify correct subject type {!r}.'.format(SUBJECT_TYPES))
+    if not result_ids and not subject_type:
+        raise click.ClickException('Please specify subject_type')
 
     if not product_version and not result_ids:
         # trying to guess the product_version

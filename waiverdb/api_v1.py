@@ -289,8 +289,7 @@ class WaiversResource(Resource):
                "proxied_by": null
            }
 
-        :json string subject_type: The type of thing which this waiver is for
-            ("koji_build", "bodhi_update", "compose").
+        :json string subject_type: The type of thing which this waiver is for.
         :json string subject_identifier: The identifier of the thing this
             waiver is for. The semantics of this identifier depend on the
             "subject_type". For example, Koji builds are identified by their NVR.
@@ -351,8 +350,8 @@ class WaiversResource(Resource):
             elif 'type' in result_data and result_data['type'][0] in ['koji_build', 'brew-build']:
                 args['subject_type'] = 'koji_build'
                 args['subject_identifier'] = result_data['item'][0]
-            elif 'type' in result_data and result_data['type'][0] == 'bodhi_update':
-                args['subject_type'] = 'bodhi_update'
+            elif 'type' in result_data:
+                args['subject_type'] = result_data['type'][0]
                 args['subject_identifier'] = result_data['item'][0]
             else:
                 raise BadRequest('It is not possible to submit a waiver by '

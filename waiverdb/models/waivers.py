@@ -11,11 +11,8 @@ def subject_dict_to_type_identifier(subject):
     Now we expect a specific type and identifier.
     This maps from the old style to the new, for backwards compatibility.
     """
-    if (subject.get('type') == 'bodhi_update' and
-            'item' in subject and
-            isinstance(subject['item'], str)):
-        return ('bodhi_update', subject['item'])
-    elif (subject.get('type') in ['koji_build', 'brew-build'] and
+    # handling the special cases...
+    if (subject.get('type') in ['koji_build', 'brew-build'] and
             'item' in subject and
             isinstance(subject['item'], str)):
         return ('koji_build', subject['item'])
@@ -23,8 +20,11 @@ def subject_dict_to_type_identifier(subject):
         return ('koji_build', subject['original_spec_nvr'])
     elif 'productmd.compose.id' in subject and isinstance(subject['productmd.compose.id'], str):
         return ('compose', subject['productmd.compose.id'])
+    # then handling the general case...
+    elif 'item' in subject and isinstance(subject['item'], str):
+        return (subject.get('type'), subject['item'])
     else:
-        raise ValueError('Unrecognised subject type: %r' % subject)
+        raise ValueError('Subject type should be non empty string, actual value is: %r' % subject)
 
 
 def subject_type_identifier_to_dict(subject_type, subject_identifier):
@@ -32,14 +32,13 @@ def subject_type_identifier_to_dict(subject_type, subject_identifier):
     Inverse of the above function.
     This is for backwards compatibility in *responses*.
     """
-    if subject_type == 'bodhi_update':
-        return {'type': 'bodhi_update', 'item': subject_identifier}
-    elif subject_type == 'koji_build':
-        return {'type': 'koji_build', 'item': subject_identifier}
-    elif subject_type == 'compose':
+    if subject_type == 'compose':
         return {'productmd.compose.id': subject_identifier}
+    elif subject_type and isinstance(subject_type, str):
+        return {'type': subject_type, 'item': subject_identifier}
     else:
-        raise ValueError('Unrecognised subject type: %s' % subject_type)
+        raise ValueError(('Subject type should be non empty string, '
+                          'actual value is: %r') % subject_type)
 
 
 class Waiver(db.Model):

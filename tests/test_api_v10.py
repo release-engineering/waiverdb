@@ -757,3 +757,27 @@ def test_create_multiple_waivers_rollback_on_error(mocked_get_user, client, sess
 
     # Transaction was rolled back.
     assert session.query(Waiver).count() == 0
+
+
+@patch('waiverdb.auth.get_user', return_value=('foo', {}))
+def test_create_waiver_with_arbitrary_subject_type(mocked_get_user, client, session):
+    data = {
+        'subject_type': 'kind-of-magic',
+        'subject_identifier': 'glibc-2.26-27.fc27',
+        'testcase': 'testcase1',
+        'product_version': 'fool-1',
+        'waived': True,
+        'comment': 'it broke',
+    }
+    r = client.post('/api/v1.0/waivers/', data=json.dumps(data),
+                    content_type='application/json')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 201
+    assert res_data['username'] == 'foo'
+    assert res_data['subject'] == {'type': 'kind-of-magic', 'item': 'glibc-2.26-27.fc27'}
+    assert res_data['subject_type'] == 'kind-of-magic'
+    assert res_data['subject_identifier'] == 'glibc-2.26-27.fc27'
+    assert res_data['testcase'] == 'testcase1'
+    assert res_data['product_version'] == 'fool-1'
+    assert res_data['waived'] is True
+    assert res_data['comment'] == 'it broke'
