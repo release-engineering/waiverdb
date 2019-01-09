@@ -28,10 +28,10 @@ pipeline {
                 key: '.dockerconfigjson'
           resources:
             requests:
-              memory: 384Mi
+              memory: 512Mi
               cpu: 200m
             limits:
-              memory: 512Mi
+              memory: 768Mi
               cpu: 300m
       """
     }
@@ -160,6 +160,9 @@ pipeline {
   post {
     always {
       script {
+        // currentBuild.result == null || currentBuild.result == 'SUCCESS' indicates a successful build,
+        // because it's possible that the pipeline engine hasn't set the value nor seen an error when reaching to this line.
+        // See example code in https://jenkins.io/doc/book/pipeline/jenkinsfile/#deploy
         def sendResult = sendCIMessage \
           providerName: 'Red Hat UMB', \
           overrides: [topic: 'VirtualTopic.eng.ci.container-image.test.complete'], \
@@ -198,7 +201,7 @@ pipeline {
                }],
             "type": "tier1",
             "category": "integration",
-            "status": "${currentBuild.result == 'SUCCESS' ? 'passed':'failed'}",
+            "status": "${currentBuild.result == null || currentBuild.result == 'SUCCESS' ? 'passed':'failed'}",
             "xunit": "${env.BUILD_URL}/artifacts/junit-functional-tests.xml",
             "namespace": "waiverdb-test",
             "version": "0.1.0"
