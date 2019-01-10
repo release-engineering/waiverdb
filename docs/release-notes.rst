@@ -2,6 +2,15 @@
 Release Notes
 =============
 
+WaiverDB 0.13
+=============
+
+Release 11 January 2019.
+
+* Stop validating subject types against a hard-coded list. Since Greenwave
+  now supports arbitrary subject types, this list of valid subject types
+  no longer needs to be maintained.
+
 WaiverDB 0.12
 =============
 
