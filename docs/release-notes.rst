@@ -2,8 +2,8 @@
 Release Notes
 =============
 
-WaiverDB 0.13
-=============
+WaiverDB 0.13.0
+===============
 
 Release 11 January 2019.
 
@@ -11,8 +11,8 @@ Release 11 January 2019.
   now supports arbitrary subject types, this list of valid subject types
   no longer needs to be maintained.
 
-WaiverDB 0.12
-=============
+WaiverDB 0.12.0
+===============
 
 Released 8 November 2018.
 
@@ -27,8 +27,8 @@ Released 8 November 2018.
 
 * Locked DB scenario checked in :http:get:`/healthcheck` API endpoint.
 
-WaiverDB 0.11
-=============
+WaiverDB 0.11.0
+===============
 
 Released 3 July 2018.
 
@@ -74,8 +74,8 @@ Released 3 July 2018.
 
 * New man page available for ``waiverdb-client.conf(5)`` (see :ref:`client-conf`).
 
-WaiverDB 0.10
-=============
+WaiverDB 0.10.0
+===============
 
 Released 10 May 2018.
 
@@ -114,8 +114,8 @@ Released 10 May 2018.
 
 * Containers on Quay (`<https://quay.io/repository/factory2/waiverdb>`__).
 
-WaiverDB 0.9
-============
+WaiverDB 0.9.0
+==============
 
 Released 1 Mar 2018.
 
@@ -123,8 +123,8 @@ Released 1 Mar 2018.
    type, in order to maintain compatibility with PostgreSQL 9.2 on RHEL7
    (#134).
 
-WaiverDB 0.8
-============
+WaiverDB 0.8.0
+==============
 
 Released 16 Feb 2018.
 
@@ -135,8 +135,8 @@ Released 16 Feb 2018.
 
 * Added information on the README file on how to configure the db.
 
-WaiverDB 0.7
-============
+WaiverDB 0.7.0
+==============
 
 Released 16 Feb 2018.
 
@@ -144,8 +144,8 @@ Released 16 Feb 2018.
   The migration step is now run in a pre-deployment hook. Previously it ran in
   a post-start pod hook which did not work correctly in some situations.
 
-WaiverDB 0.6
-============
+WaiverDB 0.6.0
+==============
 
 Released 13 Feb 2018.
 
@@ -159,8 +159,8 @@ Released 13 Feb 2018.
 * Backward compatibility for submitting a waiver using the result_id.
   This feature will be removed in the near future.
 
-WaiverDB 0.5
-============
+WaiverDB 0.5.0
+==============
 
 Released 17 Jan 2018.
 
@@ -178,8 +178,8 @@ Released 17 Jan 2018.
 * The API now supports a proxyuser argument.  A limited set of superusers,
   configured server-side, are able to submit waivers on behalf of other users.
 
-WaiverDB 0.4
-============
+WaiverDB 0.4.0
+==============
 
 Released 08 Nov 2017.
 
@@ -193,8 +193,8 @@ A number of issues have been resolved in this release:
 * Improved the process of building docs by using sphinxcontrib.issuetracker
   extension.
 
-WaiverDB 0.3
-============
+WaiverDB 0.3.0
+==============
 
 Released 26 Sep 2017.
 
@@ -212,8 +212,8 @@ Other updates:
 * Supports a new HTTP API `/api/v1.0/waivers/+by-result-ids`.
 * Package dependencies are switched to python2-* packages in Fedora.
 
-WaiverDB 0.2
-============
+WaiverDB 0.2.0
+==============
 
 Released 16 June 2017.
 
@@ -231,7 +231,7 @@ Released 16 June 2017.
 
 * Numerous improvements to the test and build process for WaiverDB.
 
-WaiverDB 0.1
-============
+WaiverDB 0.1.0
+==============
 
 Initial release, 12 April 2017.
