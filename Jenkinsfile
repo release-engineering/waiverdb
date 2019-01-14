@@ -42,7 +42,7 @@ node('master'){
 
 timestamps {
 
-node('fedora') {
+node('fedora-28') {
     checkout scm
     stage('Prepare') {
         sh 'sudo dnf -y builddep waiverdb.spec'
@@ -169,7 +169,7 @@ node('docker') {
         archiveArtifacts artifacts: 'appversion'
     }
 }
-node('fedora') {
+node('fedora-28') {
     sh 'sudo dnf -y install /usr/bin/py.test-3'
     checkout scm
     stage('Perform functional tests') {
