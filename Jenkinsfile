@@ -104,6 +104,14 @@ node('fedora-28') {
                 """
                 archiveArtifacts artifacts: 'mock-result/f28/**'
             },
+            'F29': {
+                sh """
+                mkdir -p mock-result/f29
+                flock /etc/mock/fedora-29-x86_64.cfg \
+                /usr/bin/mock -v --resultdir=mock-result/f29 -r fedora-29-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
+                """
+                archiveArtifacts artifacts: 'mock-result/f29/**'
+            },
         )
     }
     stage('Invoke Rpmlint') {
@@ -113,6 +121,9 @@ node('fedora-28') {
             },
             'F28': {
                 sh 'rpmlint -f rpmlint-config.py mock-result/f28/*.rpm'
+            },
+            'F29': {
+                sh 'rpmlint -f rpmlint-config.py mock-result/f29/*.rpm'
             },
         )
     }
