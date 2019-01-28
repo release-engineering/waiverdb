@@ -10,7 +10,7 @@
 
 Name:           waiverdb
 Version:        0.13.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Service for waiving results in ResultsDB
 License:        GPLv2+
 URL:            https://pagure.io/waiverdb
@@ -152,7 +152,10 @@ install -D -m0644 \
 %if %{with server}
 %files
 %{python3_sitelib}/%{name}
-%{python3_sitelib}/%{name}*.egg-info
+%exclude %{python3_sitelib}/%{name}/__init__.py
+%exclude %{python3_sitelib}/%{name}/__pycache__/__init__.*pyc
+%exclude %{python3_sitelib}/%{name}/cli.py
+%exclude %{python3_sitelib}/%{name}/__pycache__/cli.*.pyc
 %attr(755,root,root) %{_bindir}/waiverdb
 %endif
 
@@ -161,9 +164,13 @@ install -D -m0644 \
 %doc README.md conf
 %if 0%{?fedora} || 0%{?rhel} > 7
 %doc docs/_build/html docs/_build/text
-%{python3_sitelib}/%{name}/__init__.py*
+%dir %{python3_sitelib}/%{name}
+%dir %{python3_sitelib}/%{name}/__pycache__
+%{python3_sitelib}/%{name}/__init__.py
+%{python3_sitelib}/%{name}/__pycache__/__init__.*pyc
 %{python3_sitelib}/%{name}*.egg-info
 %else
+%dir %{python2_sitelib}/%{name}
 %{python2_sitelib}/%{name}/__init__.py*
 %{python2_sitelib}/%{name}*.egg-info
 %endif
@@ -171,7 +178,8 @@ install -D -m0644 \
 %files cli
 %license COPYING
 %if 0%{?fedora} || 0%{?rhel} > 7
-%{python3_sitelib}/%{name}/cli.py*
+%{python3_sitelib}/%{name}/cli.py
+%{python3_sitelib}/%{name}/__pycache__/cli.*.pyc
 %else
 %{python2_sitelib}/%{name}/cli.py*
 %endif
