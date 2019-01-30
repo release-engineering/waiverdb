@@ -13,6 +13,7 @@ pytest >= 2.4.2
 mock
 stomp.py
 Flask-Migrate
+six
 
 # Documentation requirements
 sphinx
@@ -26,3 +27,6 @@ requests-gssapi
 
 # Database
 psycopg2-binary
+
+# Monitoring
+prometheus_client

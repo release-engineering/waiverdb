@@ -5,6 +5,7 @@ from copy import copy
 import pytest
 from sqlalchemy import create_engine
 from waiverdb.app import create_app
+from waiverdb.monitor import db_hook_event_listeners
 
 
 @pytest.fixture(scope='session')
@@ -36,6 +37,7 @@ def db(app):
         connection.execute('DROP DATABASE IF EXISTS {}'.format(dbname))
         connection.execute('CREATE DATABASE {}'.format(dbname))
     db.create_all()
+    db_hook_event_listeners()
     return db
 
 
