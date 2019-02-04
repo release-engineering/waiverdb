@@ -1,4 +1,4 @@
-%global upstream_version 0.13.0
+%global upstream_version 0.14.0
 
 %if 0%{?fedora} || 0%{?rhel} > 7
 %bcond_without server
@@ -9,7 +9,7 @@
 %endif
 
 Name:           waiverdb
-Version:        0.13.0
+Version:        0.14.0
 Release:        2%{?dist}
 Summary:        Service for waiving results in ResultsDB
 License:        GPLv2+
@@ -43,6 +43,8 @@ BuildRequires:  python3-click
 BuildRequires:  python3-flask-migrate
 BuildRequires:  python3-stomppy
 BuildRequires:  python3-fedmsg
+BuildRequires:  python3-prometheus_client
+BuildRequires:  python3-six
 Requires:       python3-flask
 Requires:       python3-sqlalchemy
 Requires:       python3-flask-restful
@@ -56,6 +58,7 @@ Requires:       python3-click
 Requires:       python3-flask-migrate
 Requires:       python3-stomppy
 Requires:       python3-fedmsg
+Requires:       python3-prometheus_client
 Requires:       waiverdb-common = %{version}-%{release}
 %endif
 
