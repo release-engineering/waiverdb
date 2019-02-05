@@ -279,7 +279,10 @@ def cli(comment, waived, product_version, testcase, subject, subject_identifier,
             'POST', url, auth=auth, **common_request_arguments)
         if resp.status_code == 401:
             raise click.ClickException('WaiverDB authentication using GSSAPI failed. '
-                                       'Make sure you have a valid Kerberos ticket.')
+                                       'Make sure you have a valid Kerberos ticket or '
+                                       'that you correctly configured your Kerberos '
+                                       'configuration file. Please check the doc for '
+                                       'troubleshooting information.')
         check_response(resp, result_ids)
     elif auth_method == 'dummy':
         resp = requests.request(
