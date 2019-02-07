@@ -15,10 +15,12 @@ from flask_restful import marshal
 import fedmsg
 import stomp
 import json
+import waiverdb.monitor as monitor
+
+from flask import current_app
 from waiverdb.fields import waiver_fields
 from waiverdb.models import Waiver
 from waiverdb.utils import stomp_connection
-from flask import current_app
 
 _log = logging.getLogger(__name__)
 
@@ -61,23 +63,45 @@ def publish_new_waiver(session):
     """
     _log.debug('The publish_new_waiver SQLAlchemy event has been activated (%r)',
                current_app.config['MESSAGE_PUBLISHER'])
+
     if current_app.config['MESSAGE_PUBLISHER'] == 'stomp':
         with stomp_connection() as conn:
             stomp_configs = current_app.config.get('STOMP_CONFIGS')
             for row in session.identity_map.values():
-                if isinstance(row, Waiver):
-                    _log.debug('Publishing a message for %r', row)
-                    msg = json.dumps(marshal(row, waiver_fields))
-                    kwargs = dict(body=msg, headers={}, destination=stomp_configs['destination'])
-                    if stomp.__version__[0] < 4:
-                        kwargs['message'] = kwargs.pop('body')  # On EL7, different sig.
+                monitor.messaging_tx_to_send_counter.inc()
+                if not isinstance(row, Waiver):
+                    continue
+                _log.debug('Publishing a message for %r', row)
+                msg = json.dumps(marshal(row, waiver_fields))
+                kwargs = dict(body=msg, headers={}, destination=stomp_configs['destination'])
+                if stomp.__version__[0] < 4:
+                    kwargs['message'] = kwargs.pop('body')  # On EL7, different sig.
+                try:
                     conn.send(**kwargs)
+                    monitor.messaging_tx_sent_ok_counter.inc()
+                except Exception:
+                    _log.exception('Couldn\'t publish message via stomp')
+                    monitor.messaging_tx_failed_counter.inc()
+                    raise
+
     elif current_app.config['MESSAGE_PUBLISHER'] == 'fedmsg':
         for row in session.identity_map.values():
-            if isinstance(row, Waiver):
-                _log.debug('Publishing a message for %r', row)
+            monitor.messaging_tx_to_send_counter.inc()
+            if not isinstance(row, Waiver):
+                continue
+            _log.debug('Publishing a message for %r', row)
+            try:
                 fedmsg.publish(topic='waiver.new', msg=marshal(row, waiver_fields))
+                monitor.messaging_tx_sent_ok_counter.inc()
+            except Exception:
+                _log.exception('Couldn\'t publish message via fedmsg')
+                monitor.messaging_tx_failed_counter.inc()
+                raise
+
     elif current_app.config['MESSAGE_PUBLISHER'] is None:
         _log.info('No message published.  MESSAGE_PUBLISHER disabled.')
+        monitor.messaging_tx_stopped_counter.inc()
+
     else:
         _log.warning('Unhandled MESSAGE_PUBLISHER %r', current_app.config['MESSAGE_PUBLISHER'])
+        monitor.messaging_tx_failed_counter.inc()

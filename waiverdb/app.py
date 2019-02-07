@@ -20,6 +20,7 @@ from waiverdb.models import db
 from waiverdb.utils import json_error
 from flask_oidc import OpenIDConnect
 from werkzeug.exceptions import default_exceptions
+from waiverdb.monitor import db_hook_event_listeners
 
 
 def load_config(app):
@@ -107,6 +108,9 @@ def create_app(config_obj=None):
     register_event_handlers(app)
 
     app.after_request(insert_headers)
+
+    # initialize DB event listeners from the monitor module
+    app.before_first_request(db_hook_event_listeners)
 
     return app
 

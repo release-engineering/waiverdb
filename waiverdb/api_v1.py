@@ -607,9 +607,16 @@ class AboutResource(Resource):
         return {'version': __version__, 'auth_method': current_app.config['AUTH_METHOD']}
 
 
+class MonitorResource(Resource):
+    def get(self):
+        from waiverdb.monitor import MonitorAPI
+        return MonitorAPI().get()
+
+
 # set up the Api resource routing here
 api.add_resource(WaiversResource, '/waivers/')
 api.add_resource(WaiverResource, '/waivers/<int:waiver_id>')
 api.add_resource(FilteredWaiversResource, '/waivers/+filtered')
 api.add_resource(GetWaiversBySubjectsAndTestcases, '/waivers/+by-subjects-and-testcases')
 api.add_resource(AboutResource, '/about')
+api.add_resource(MonitorResource, '/metrics')
