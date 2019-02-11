@@ -10,7 +10,7 @@
 
 Name:           waiverdb
 Version:        0.14.0
-Release:        2%{?dist}
+Release:        1%{?dist}
 Summary:        Service for waiving results in ResultsDB
 License:        GPLv2+
 URL:            https://pagure.io/waiverdb
