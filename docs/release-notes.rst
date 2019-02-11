@@ -2,6 +2,25 @@
 Release Notes
 =============
 
+WaiverDB 0.14.0
+===============
+
+* Fix incorrect splitting of Python files into subpackages: Since the -common
+  subpackage installs files in %{python3_sitelib}/%{name}, it should also own
+  that directory instead of the main package.
+  Also, exclude files that are in subpackages from the main package. Finally,
+  byte-compiled files were not specified correctly for Python 3. This was
+  hidden in the main package glob, instead of being in the subpackages.
+
+* Improve authentication error response: when using Kerberos authentication it
+  is necessary to configure "dns_canonicalize_hostname" inside the Kerberos
+  configuration file otherwise the user will get an error response that is a bit
+  ambiguous. There's no way to detect if that was the problem or it is just a
+  generic authentication error. But we can provide an hint to the user, and 
+  also advise to check the doc.
+
+* Introduce a /metrics endpoint to the API for monitoring reasons.
+
 WaiverDB 0.13.0
 ===============
 
