@@ -136,7 +136,7 @@ node('docker') {
         /* XXX: remove this once we divorce waiverdb-cli from waiverdb. */
         def waiverdb_common = findFiles(glob: 'mock-result/f28/**/waiverdb-common-*.noarch.rpm')[0]
         def appversion = sh(returnStdout: true, script: """
-            rpm2cpio ${f28_rpm} | \
+            rpm2cpio ${waiverdb_common } | \
             cpio --quiet --extract --to-stdout ./usr/lib/python\\*/site-packages/waiverdb\\*.egg-info/PKG-INFO | \
             awk '/^Version: / {print \$2}'
         """).trim()
