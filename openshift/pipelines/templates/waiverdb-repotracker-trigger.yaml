@@ -1,0 +1,79 @@
+# Template to produce a new OpenShift pipeline job for triggering a build on repotracker messages
+#
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: waiverdb-repotracker-trigger
+labels:
+  template: waiverdb-repotracker-trigger
+parameters:
+- name: NAME
+  displayName: Short unique identifier for the templated instances
+  description: This field is used to deploy multiple pipelines to one OpenShift project from this template.
+  value: waiverdb-repotracker-trigger
+- name: WAIVERDB_GIT_REPO
+  displayName: WaiverDB Git repo URL
+  description: Default WaiverDB Git repo URL in which to run dev tests against
+  value: "https://pagure.io/waiverdb.git"
+- name: WAIVERDB_GIT_REF
+  displayName: WaiverDB Git repo ref
+  description: Default WaiverDB Git repo ref in which to run dev tests against
+  value: master
+- name: TRACKED_CONTAINER_REPO
+  displayName: Container repo to be tracked
+  value: "quay.io/factory2/waiverdb"
+- name: JENKINS_AGENT_IMAGE
+  displayName: Container image for Jenkins slave pods
+  value: docker-registry.engineering.redhat.com/factory2/waiverdb-jenkins-slave:latest
+- name: OPENSHIFT_CLOUD_NAME
+  displayName: Name of OpenShift cloud in Jenkins master configuration
+  value: openshift
+objects:
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: "${NAME}-jenkins-slave"
+    labels:
+      app: "${NAME}"
+- kind: RoleBinding
+  apiVersion: v1
+  metadata:
+    name: "${NAME}-jenkins-slave_edit"
+    labels:
+      app: "${NAME}"
+  subjects:
+  - kind: ServiceAccount
+    name: "${NAME}-jenkins-slave"
+  roleRef:
+    name: edit
+- kind: "BuildConfig"
+  apiVersion: "v1"
+  metadata:
+    name: "${NAME}"
+    labels:
+      app: "${NAME}"
+  spec:
+    runPolicy: "Serial"
+    completionDeadlineSeconds: 1800
+    source:
+      git:
+        uri: "${WAIVERDB_GIT_REPO}"
+        ref: "${WAIVERDB_GIT_REF}"
+    strategy:
+      type: JenkinsPipeline
+      jenkinsPipelineStrategy:
+        env:
+        - name: "WAIVERDB_GIT_REPO"
+          value: "${WAIVERDB_GIT_REPO}"
+        - name: "WAIVERDB_GIT_REF"
+          value: "${WAIVERDB_GIT_REF}"
+        - name: "OPENSHIFT_CLOUD_NAME"
+          value: "${OPENSHIFT_CLOUD_NAME}"
+        - name: "JENKINS_AGENT_IMAGE"
+          value:  "${JENKINS_AGENT_IMAGE}"
+        - name: "JENKINS_AGENT_SERVICE_ACCOUNT"
+          value: "${NAME}-jenkins-slave"
+        - name: "TRACKED_CONTAINER_REPO"
+          value: "${TRACKED_CONTAINER_REPO}"
+        jenkinsfilePath: openshift/pipelines/templates/waiverdb-repotracker-trigger.Jenkinsfile
