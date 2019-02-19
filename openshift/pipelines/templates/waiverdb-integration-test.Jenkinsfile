@@ -191,7 +191,8 @@ pipeline {
               "digest": "${env.IMAGE_DIGEST}",
               "nvr": "waiverdb:${env.IMAGE_TAG}",
               "issuer": "c3i-jenkins",
-              "scratch": ${params.IMAGE_IS_SCRATCH}
+              "scratch": ${params.IMAGE_IS_SCRATCH},
+              "id": "waiverdb@${env.IMAGE_DIGEST}"
             },
             "system":
                [{
@@ -199,12 +200,12 @@ pipeline {
                   "provider": "openshift",
                   "architecture": "x86_64"
                }],
-            "type": "tier1",
+            "type": "${params.ENVIRONMENT}",
             "category": "integration",
             "status": "${currentBuild.result == null || currentBuild.result == 'SUCCESS' ? 'passed':'failed'}",
             "xunit": "${env.BUILD_URL}/artifacts/junit-functional-tests.xml",
             "generated_at": "${new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC'))}",
-            "namespace": "waiverdb-test",
+            "namespace": "c3i",
             "version": "0.1.0"
           }
           """

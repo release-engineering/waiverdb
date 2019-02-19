@@ -39,6 +39,10 @@ parameters:
   displayName: Name of OpenShift cloud in Jenkins master configuration
   required: true
   value: openshift
+- name: ENVIRONMENT
+  displayName: environment name (dev/stage/prod)
+  required: true
+  value: dev
 objects:
 - kind: ServiceAccount
   apiVersion: v1
@@ -92,4 +96,6 @@ objects:
           value: "${JENKINS_AGENT_CLOUD_NAME}"
         - name: JENKINS_AGENT_SERVICE_ACCOUNT
           value: "${NAME}-jenkins-slave"
+        - name: ENVIRONMENT
+          value: "${ENVIRONMENT}"
         jenkinsfilePath: openshift/pipelines/templates/waiverdb-integration-test.Jenkinsfile
