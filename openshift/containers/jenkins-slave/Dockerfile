@@ -1,5 +1,5 @@
 #FIXME: The Pipeline is currently using this Dockerfile to produce images. The one located at the project root is not changed in case of breaking anything.
-FROM docker-registry.engineering.redhat.com/devops-automation/rad-slave-fedora-28:latest
+FROM docker-registry.engineering.redhat.com/devops-automation/rad-slave-fedora-29:latest
 LABEL name="waiverdb-jenkins-slave" \
       description="Jenkins slave for WaiverDB dev tests" \
       vendor="WaiverDB Developers" \
