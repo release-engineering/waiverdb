@@ -80,6 +80,8 @@ objects:
           value: "${WAIVERDB_GIT_REF}"
         - name: "IMAGE"
           value: "${IMAGE}"
+        - name: IMAGE_IS_SCRATCH
+          value: "false"
         - name: "CONTAINER_REGISTRY_CREDENTIALS"
           value: "${CONTAINER_REGISTRY_CREDENTIALS}"
         - name: "TEST_ID"

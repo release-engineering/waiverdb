@@ -191,7 +191,7 @@ pipeline {
               "digest": "${env.IMAGE_DIGEST}",
               "nvr": "waiverdb:${env.IMAGE_TAG}",
               "issuer": "c3i-jenkins",
-              "scratch": true
+              "scratch": ${params.IMAGE_IS_SCRATCH}
             },
             "system":
                [{

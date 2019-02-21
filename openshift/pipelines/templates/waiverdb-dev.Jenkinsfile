@@ -291,6 +291,7 @@ pipeline {
                   '-e', "IMAGE=${env.RESULTING_IMAGE_REPO}:${env.RESULTING_TAG}",
                   '-e', "WAIVERDB_GIT_REPO=${params.WAIVERDB_GIT_REPO}",
                   '-e', "WAIVERDB_GIT_REF=${params.WAIVERDB_GIT_REF}",
+                  '-e', "IMAGE_IS_SCRATCH=${params.WAIVERDB_GIT_REF != params.WAIVERDB_MAIN_BRANCH}",
                 )
               echo 'Waiting for the integration test result...'
               timeout(time: 20) { // 20 min
