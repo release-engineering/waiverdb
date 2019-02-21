@@ -20,10 +20,10 @@ parameters:
   description: This field must be in repo:tag or repo@sha256 format
   value: quay.io/factory2/waiverdb:latest
 - name: PROMOTING_DESTINATIONS
-  displayName: Comma seperated list of container repository:tag to which the image will be promoted
+  displayName: Comma seperated list of container repositories (without tags) to which the image will be promoted
   description: OpenShift registries must be prefixed with 'atomic:'
   required: false
-  value: "atomic:docker-registry.engineering.redhat.com/factory2/waiverdb:stage,quay.io/factory2/waiverdb:stage"
+  value: "quay.io/factory2/waiverdb,atomic:docker-registry.engineering.redhat.com/factory2/waiverdb"
 - name: CONTAINER_REGISTRY_CREDENTIALS
   displayName: Secret name of container registries used for pulling and pushing images
   value: factory2-pipeline-registry-credentials
@@ -41,8 +41,8 @@ parameters:
   description: Leaving blank means using the same namespace as the pipeline build
   required: false
   value: waiverdb-stage
-- name: DEST_IMAGESTREAM_TAG
-  displayName: Tag name of the ImageStream to be tagged
+- name: DEST_TAG
+  displayName: Name of the new tag
   value: "stage"
   required: true
 - name: WAIVERDB_GIT_REPO
@@ -112,8 +112,8 @@ objects:
           value: "${DEST_IMAGESTREAM_NAME}"
         - name: "DEST_IMAGESTREAM_NAMESPACE"
           value: "${DEST_IMAGESTREAM_NAMESPACE}"
-        - name: "DEST_IMAGESTREAM_TAG"
-          value: "${DEST_IMAGESTREAM_TAG}"
+        - name: "DEST_TAG"
+          value: "${DEST_TAG}"
         - name: JENKINS_AGENT_IMAGE
           value: "${JENKINS_AGENT_IMAGE}"
         - name: JENKINS_AGENT_CLOUD_NAME

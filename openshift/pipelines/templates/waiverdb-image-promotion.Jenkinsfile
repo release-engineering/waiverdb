@@ -91,6 +91,7 @@ pipeline {
                 if (!it.startsWith('atomic:') && !it.startsWith('docker://')) {
                   dest = 'docker://' + it
                 }
+                dest += ':' + params.DEST_TAG
                 echo "Pushing container to ${dest}..."
                 withEnv(["DEST_IMAGE_REF=${dest}"]) {
                   /* Pushes to the internal registry can sometimes randomly fail
@@ -115,7 +116,7 @@ pipeline {
       }
       steps {
         script {
-          def destRef = "${params.DEST_IMAGESTREAM_NAMESPACE ?: env.PIPELINE_NAMESPACE }/${params.DEST_IMAGESTREAM_NAME}:${params.DEST_IMAGESTREAM_TAG}"
+          def destRef = "${params.DEST_IMAGESTREAM_NAMESPACE ?: env.PIPELINE_NAMESPACE }/${params.DEST_IMAGESTREAM_NAME}:${params.DEST_TAG}"
           openshift.withCluster() {
             echo "Tagging ${params.IMAGE} into ${destRef}..."
             openshift.tag('--source=docker', params.IMAGE, destRef)
