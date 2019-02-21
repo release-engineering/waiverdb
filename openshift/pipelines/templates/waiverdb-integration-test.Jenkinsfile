@@ -177,7 +177,7 @@ pipeline {
               "docs": "https://pagure.io/waiverdb/blob/master/f/openshift",
               "irc": "#pnt-devops-dev",
               "email": "pnt-factory2-devel@redhat.com",
-              "environment": "development"
+              "environment": "stage"
             },
             "run": {
               "url": "${env.BUILD_URL}",
@@ -203,6 +203,7 @@ pipeline {
             "category": "integration",
             "status": "${currentBuild.result == null || currentBuild.result == 'SUCCESS' ? 'passed':'failed'}",
             "xunit": "${env.BUILD_URL}/artifacts/junit-functional-tests.xml",
+            "generated_at": "${new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC'))}",
             "namespace": "waiverdb-test",
             "version": "0.1.0"
           }
