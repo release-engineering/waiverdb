@@ -375,6 +375,10 @@ class WaiversResource(Resource):
         if not args['testcase']:
             raise BadRequest({'testcase': 'Missing required parameter in the JSON body'})
 
+        # brew-build is an alias for koji_build
+        if args['subject_type'] == 'brew-build':
+            args['subject_type'] = 'koji_build'
+
         return Waiver(
             args['subject_type'],
             args['subject_identifier'],
