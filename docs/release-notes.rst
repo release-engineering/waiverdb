@@ -2,6 +2,13 @@
 Release Notes
 =============
 
+
+WaiverDB 0.14.1
+===============
+
+* Treat "brew-build" subject type as an alias for "koji_build": Greenwave expects
+  only values of "koji_build" since that's what the policies apply to.
+
 WaiverDB 0.14.0
 ===============
 
