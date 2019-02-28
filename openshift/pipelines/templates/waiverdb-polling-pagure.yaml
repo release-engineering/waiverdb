@@ -225,12 +225,9 @@ objects:
                       openshift.withProject("${DEV_PIPELINE_BC_NAMESPACE}") {
                         def bcSelector = openshift.selector('bc', "${DEV_PIPELINE_BC_NAME}")
                         echo 'Starting a dev pipeline build...'
-                        def isMaster = env.PAGURE_POLLING_FOR_PR != 'true'
                         def devBuild = bcSelector.startBuild(
                           '-e', "WAIVERDB_GIT_REPO=${env.GIT_URL}",
-                          '-e', "WAIVERDB_GIT_REF=${isMaster? env.GIT_COMMIT : env.GIT_BRANCH}",
-                          '-e', "FORCE_PUBLISH_IMAGE=${isMaster}",
-                          '-e', "FORCE_PUBLISH_DOCS=${isMaster}",
+                          '-e', "WAIVERDB_GIT_REF=${env.GIT_BRANCH}",
                           '-e', "WAIVERDB_MAIN_BRANCH=${PAGURE_POLLED_BRANCH}",
                           '-e', "BUILD_DISPLAY_RENAME_TO=${currentBuild.displayName}",
                         )
