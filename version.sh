@@ -10,7 +10,7 @@ if [ "$(git tag | wc -l)" -eq 0 ] ; then
     lastversion="0.0"
     revbase=""
 else
-    lasttag="$(git describe --abbrev=0 HEAD)"
+    lasttag="$(git describe --tags --abbrev=0 HEAD)"
     lastversion="${lasttag##${name}-}"
     revbase="^$lasttag"
 fi
@@ -36,4 +36,3 @@ export WAIVERDB_VERSION=$version
 export WAIVERDB_RPM_VERSION=$rpmver
 export WAIVERDB_RPM_RELEASE=$rpmrel
 export WAIVERDB_CONTAINER_VERSION=${version/+/-}
-
