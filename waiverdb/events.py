@@ -12,11 +12,12 @@ using the :func:`sqlalchemy.event.listen` function.
 import logging
 
 from flask_restful import marshal
-import fedmsg
 import stomp
 import json
 import waiverdb.monitor as monitor
 
+from fedora_messaging.api import Message, publish
+from fedora_messaging.exceptions import PublishReturned, ConnectionException
 from flask import current_app
 from waiverdb.fields import waiver_fields
 from waiverdb.models import Waiver
@@ -28,7 +29,7 @@ _log = logging.getLogger(__name__)
 def publish_new_waiver(session):
     """
     A post-commit event hook that emits messages to a message bus. The messages
-    can be published by either fedmsg-hub with zmq or stomp.
+    can be published by either fedora-messaging or stomp.
 
     This event is designed to be registered with a session factory::
 
@@ -91,10 +92,17 @@ def publish_new_waiver(session):
                 continue
             _log.debug('Publishing a message for %r', row)
             try:
-                fedmsg.publish(topic='waiver.new', msg=marshal(row, waiver_fields))
+                msg = Message(
+                    topic='waiverdb.waiver.new',
+                    body=marshal(row, waiver_fields)
+                )
+                publish(msg)
                 monitor.messaging_tx_sent_ok_counter.inc()
-            except Exception:
-                _log.exception('Couldn\'t publish message via fedmsg')
+            except PublishReturned as e:
+                _log.exception('Fedora Messaging broker rejected message %s: %s', msg.id, e)
+                monitor.messaging_tx_failed_counter.inc()
+            except ConnectionException as e:
+                _log.exception('Error sending message %s: %s', msg.id, e)
                 monitor.messaging_tx_failed_counter.inc()
                 raise
 

@@ -2,6 +2,7 @@
 
 import os
 from copy import copy
+from mock import patch
 import pytest
 from sqlalchemy import create_engine
 from waiverdb.app import create_app
@@ -63,7 +64,8 @@ def client(app):
     by default.
     """
     with app.test_client() as client:
-        yield client
+        with patch('fedora_messaging.api._session_cache'):
+            yield client
 
 
 @pytest.fixture()

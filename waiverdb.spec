@@ -42,7 +42,7 @@ BuildRequires:  python3-flask-oidc
 BuildRequires:  python3-click
 BuildRequires:  python3-flask-migrate
 BuildRequires:  python3-stomppy
-BuildRequires:  python3-fedmsg
+BuildRequires:  python3-fedora-messaging
 BuildRequires:  python3-prometheus_client
 BuildRequires:  python3-six
 Requires:       python3-flask
@@ -57,7 +57,7 @@ Requires:       python3-flask-oidc
 Requires:       python3-click
 Requires:       python3-flask-migrate
 Requires:       python3-stomppy
-Requires:       python3-fedmsg
+Requires:       python3-fedora-messaging
 Requires:       python3-prometheus_client
 Requires:       waiverdb-common = %{version}-%{release}
 %endif

@@ -2,12 +2,13 @@
 
 """This module contains tests for :mod:`waiverdb.events`."""
 from __future__ import unicode_literals
-import mock
+from fedora_messaging import api, testing
+from flask_restful import marshal
 from waiverdb.models import Waiver
+from waiverdb.fields import waiver_fields
 
 
-@mock.patch('waiverdb.events.fedmsg')
-def test_publish_new_waiver_with_fedmsg(mock_fedmsg, session):
+def test_publish_new_waiver_with_fedmsg(session):
     waiver = Waiver(
         subject_type='koji_build',
         subject_identifier='glibc-2.26-27.fc27',
@@ -17,29 +18,21 @@ def test_publish_new_waiver_with_fedmsg(mock_fedmsg, session):
         waived=True,
         comment='This is a comment',
     )
+
     sesh = session()
     sesh.add(waiver)
-    sesh.commit()
-    mock_fedmsg.publish.assert_called_once_with(
-        topic='waiver.new',
-        msg={
-            'id': waiver.id,
-            'subject_type': 'koji_build',
-            'subject_identifier': 'glibc-2.26-27.fc27',
-            'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
-            'testcase': 'testcase1',
-            'username': 'jcline',
-            'proxied_by': None,
-            'product_version': 'something',
-            'waived': True,
-            'comment': 'This is a comment',
-            'timestamp': waiver.timestamp.isoformat(),
-        }
+    sesh.flush()
+
+    expected_msg = api.Message(
+        topic='waiverdb.waiver.new',
+        body=marshal(waiver, waiver_fields)
     )
 
+    with testing.mock_sends(expected_msg):
+        sesh.commit()
 
-@mock.patch('waiverdb.events.fedmsg')
-def test_publish_new_waiver_with_fedmsg_for_proxy_user(mock_fedmsg, session):
+
+def test_publish_new_waiver_with_fedmsg_for_proxy_user(session):
     waiver = Waiver(
         subject_type='koji_build',
         subject_identifier='glibc-2.26-27.fc27',
@@ -52,20 +45,11 @@ def test_publish_new_waiver_with_fedmsg_for_proxy_user(mock_fedmsg, session):
     )
     sesh = session()
     sesh.add(waiver)
-    sesh.commit()
-    mock_fedmsg.publish.assert_called_once_with(
-        topic='waiver.new',
-        msg={
-            'id': waiver.id,
-            'subject_type': 'koji_build',
-            'subject_identifier': 'glibc-2.26-27.fc27',
-            'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
-            'testcase': 'testcase1',
-            'username': 'jcline',
-            'proxied_by': 'bodhi',
-            'product_version': 'something',
-            'waived': True,
-            'comment': 'This is a comment',
-            'timestamp': waiver.timestamp.isoformat(),
-        }
+    sesh.flush()
+
+    expected_msg = api.Message(
+        topic='waiverdb.waiver.new',
+        body=marshal(waiver, waiver_fields)
     )
+    with testing.mock_sends(expected_msg):
+        sesh.commit()

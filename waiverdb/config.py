@@ -6,10 +6,6 @@ import os
 class Config(object):
     """
     A WaiverDB Flask configuration.
-
-    Attributes:
-        ZEROMQ_PUBLISH (bool): When true, ZeroMQ messages will be emitted via
-            fedmsg when new waivers are created.
     """
     DEBUG = True
     DATABASE_URI = 'postgresql+psycopg2:///waiverdb'
