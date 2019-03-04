@@ -94,6 +94,7 @@ pipeline {
           env.TEMP_TAG = env.WAIVERDB_CONTAINER_VERSION + '-jenkins-' + currentBuild.id
         }
         sh 'cp conf/settings.py.example conf/settings.py'
+        sh 'pip3 install --user -r ./requirements.txt'
       }
     }
     stage('Run checks') {
