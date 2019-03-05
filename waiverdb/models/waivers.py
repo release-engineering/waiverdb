@@ -12,9 +12,9 @@ def subject_dict_to_type_identifier(subject):
     This maps from the old style to the new, for backwards compatibility.
     """
     # handling the special cases...
-    if (subject.get('type') in ['koji_build', 'brew-build'] and
-            'item' in subject and
-            isinstance(subject['item'], str)):
+    if (subject.get('type') in ['koji_build', 'brew-build']
+            and 'item' in subject
+            and isinstance(subject['item'], str)):
         return ('koji_build', subject['item'])
     elif 'original_spec_nvr' in subject and isinstance(subject['original_spec_nvr'], str):
         return ('koji_build', subject['original_spec_nvr'])
