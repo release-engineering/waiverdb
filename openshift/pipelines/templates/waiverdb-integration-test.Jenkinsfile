@@ -160,11 +160,15 @@ pipeline {
   post {
     always {
       script {
+        if (!env.IMAGE_DIGEST) {
+          // Don't send a message if the job fails before getting the image digest.
+          return;
+        }
         // currentBuild.result == null || currentBuild.result == 'SUCCESS' indicates a successful build,
         // because it's possible that the pipeline engine hasn't set the value nor seen an error when reaching to this line.
         // See example code in https://jenkins.io/doc/book/pipeline/jenkinsfile/#deploy
         def sendResult = sendCIMessage \
-          providerName: 'Red Hat UMB', \
+          providerName: params.MESSAGING_PROVIDER, \
           overrides: [topic: 'VirtualTopic.eng.ci.container-image.test.complete'], \
           messageType: 'Custom', \
           messageProperties: '', \
@@ -209,9 +213,14 @@ pipeline {
             "version": "0.1.0"
           }
           """
-        // echo sent message id and content
-        echo sendResult.getMessageId()
-        echo sendResult.getMessageContent()
+        if (sendResult.getMessageId()) {
+          // echo sent message id and content
+          echo 'Successfully sent the test result to ResultsDB.'
+          echo "Message ID: ${sendResult.getMessageId()}"
+          echo "Message content: ${sendResult.getMessageContent()}"
+        } else {
+          echo 'Failed to sent the test result to ResultsDB.'
+        }
       }
     }
   }
