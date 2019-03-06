@@ -23,12 +23,24 @@ parameters:
 - name: TRACKED_CONTAINER_REPO
   displayName: Container repo to be tracked
   value: "quay.io/factory2/waiverdb"
+- name: TRACKED_TAG
+  displayName: Name of tag to be tracked
+  required: true
 - name: JENKINS_AGENT_IMAGE
   displayName: Container image for Jenkins slave pods
   value: docker-registry.engineering.redhat.com/factory2/waiverdb-jenkins-slave:latest
 - name: OPENSHIFT_CLOUD_NAME
   displayName: Name of OpenShift cloud in Jenkins master configuration
   value: openshift
+- name: MESSAGING_PROVIDER
+  displayName: Name of the JMS messaging provider
+  value: Red Hat UMB
+- name: MESSAGING_TOPIC
+  displayName: Name of the topic that the trigger subscribes to
+  value: "Consumer.rh-jenkins-ci-plugin.c3i-waiverdb-repotracker-trigger.VirtualTopic.eng.repotracker.container.tag.>"
+- name: TEST_JOB_NAME
+  displayName: Name of integration test job to trigger
+  required: true
 objects:
 - kind: ServiceAccount
   apiVersion: v1
@@ -64,10 +76,6 @@ objects:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
         env:
-        - name: "WAIVERDB_GIT_REPO"
-          value: "${WAIVERDB_GIT_REPO}"
-        - name: "WAIVERDB_GIT_REF"
-          value: "${WAIVERDB_GIT_REF}"
         - name: "OPENSHIFT_CLOUD_NAME"
           value: "${OPENSHIFT_CLOUD_NAME}"
         - name: "JENKINS_AGENT_IMAGE"
@@ -76,4 +84,17 @@ objects:
           value: "${NAME}-jenkins-slave"
         - name: "TRACKED_CONTAINER_REPO"
           value: "${TRACKED_CONTAINER_REPO}"
+        - name: "TRACKED_TAG"
+          value: "${TRACKED_TAG}"
+        - name: "TEST_JOB_NAME"
+          value: "${TEST_JOB_NAME}"
+        - name: MESSAGING_PROVIDER
+          value: "${MESSAGING_PROVIDER}"
+        - name: MESSAGING_TOPIC
+          value: "${MESSAGING_TOPIC}"
+        # CI_MESSAGE and MESSAGE_HEADERS are used internally by JMS messaging plugin
+        - name: CI_MESSAGE
+          value:
+        - name: MESSAGE_HEADERS
+          value:
         jenkinsfilePath: openshift/pipelines/templates/waiverdb-repotracker-trigger.Jenkinsfile

@@ -5,27 +5,12 @@ properties([
     // example: https://github.com/jenkinsci/jms-messaging-plugin/blob/9b9387c3a52f037ba0d019c2ebcf2a2796fc6397/src/test/java/com/redhat/jenkins/plugins/ci/integration/AmqMessagingPluginIntegrationTest.java
     [$class: 'CIBuildTrigger',
       providerData: [$class: 'ActiveMQSubscriberProviderData',
-        name: 'Red Hat UMB',
-        overrides: [topic: "Consumer.rh-jenkins-ci-plugin.c3i-${env.JOB_BASE_NAME}.VirtualTopic.eng.repotracker.container.tag.>"],
-        selector: "repo='${TRACKED_CONTAINER_REPO}'",
-        checks: [
-          [field: '$.action', expectedValue: 'added|updated'],
-        ],
+        name: params.MESSAGING_PROVIDER,
+        overrides: [topic: params.MESSAGING_TOPIC],
+        selector: "repo = '${params.TRACKED_CONTAINER_REPO}' AND action IN ('added', 'updated') AND tag = '${params.TRACKED_TAG}'",
       ],
     ],
   ]),
-  parameters([
-    stringParam(
-     defaultValue: '',
-     description: '(Used by CIBuildTrigger internally)',
-     name: 'CI_MESSAGE'
-    ),
-    stringParam(
-     defaultValue: '',
-     description: '(Used by CIBuildTrigger internally)',
-     name: 'MESSAGE_HEADERS'
-    ),
- ]),
 ])
 
 if (!params.CI_MESSAGE) {
@@ -64,22 +49,13 @@ podTemplate(
 ) {
   node(label) {
     stage('trigger test') {
-      def promotionMap = [
-        'latest': 'stage',
-        'stage': 'prod',
-      ]
       def message = readJSON text: params.CI_MESSAGE
-      def changedTag = message.tag
-      echo "Tag :$changedTag is ${message.action} in ${message.repo}. New digest: ${message.digest}"
-      def promoteTo = promotionMap[changedTag]
-      if (!promoteTo) {
-        error("I don't know where to promote :$changedTag. Aborting...")
-      }
+      echo "Tag :${message.tag} is ${message.action} in ${message.repo}. New digest: ${message.digest}"
       def image = "${message.repo}@${message.digest}"
-      echo "Triggering a job to test if $image meets all criteria of desired tag :${promoteTo}"
+      echo "Triggering a job to test if $image meets all criteria of desired tag :${message.tag}"
       def buildInfo = null
       openshift.withCluster() {
-        def testBcSelector = openshift.selector('bc', "waiverdb-${promoteTo}-integration-test")
+        def testBcSelector = openshift.selector('bc', params.TEST_JOB_NAME)
         def buildSelector = testBcSelector.startBuild(
             '-e', "IMAGE=${image}",
           )
