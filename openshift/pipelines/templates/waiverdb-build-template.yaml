@@ -1,6 +1,6 @@
-# Template to produce a new WaiverDB dev CI/CD pipeline in OpenShift.
+# Template to produce a new WaiverDB build job in OpenShift.
 #
-# Dev pipeline is a part of the WaiverDB Pipeline, covers the following steps:
+# WaiverDB build job is a part of the WaiverDB C3I Pipeline, covering the following steps:
 #
 # - Run Flake8 and Pylint checks
 # - Run unit tests
@@ -24,13 +24,13 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: waiverdb-dev-pipeline
+  name: waiverdb-build-pipeline
 parameters:
 - name: NAME
   displayName: Short unique identifier for the templated instances
   description: This field is used to deploy multiple pipelines to one OpenShift project from this template.
   required: true
-  value: waiverdb-dev
+  value: waiverdb-build
 - name: WAIVERDB_GIT_REPO
   displayName: WaiverDB Git repo URL
   description: Default WaiverDB Git repo URL in which to run dev tests against
@@ -43,7 +43,7 @@ parameters:
   value: master
 - name: WAIVERDB_MAIN_BRANCH
   displayName: Name of the main branch.
-  description: If WAIVERDB_MAIN_BRANCH equals WAIVERDB_GIT_REF, publishing steps will be automatically performed.
+  description: If WAIVERDB_MAIN_BRANCH equals WAIVERDB_GIT_REF, this is a post-merge build, otherwise it's a pre-merge build.
   value: master
   required: true
 - name: JENKINS_AGENT_CLOUD_NAME
@@ -56,7 +56,7 @@ parameters:
   value: docker-registry.engineering.redhat.com/factory2/waiverdb-jenkins-slave:latest
 - name: PAGURE_DOC_REPO_NAME
   displayName: namespace/project of Pagure doc repo for publishing docs
-  description: If not emptry and WAIVERDB_GIT_REF is master, docs will be published to the specified Pagure doc repo
+  description: If not emptry, docs will be published to the specified Pagure doc repo when this is a post-merge build
   required: false
   value: waiverdb
 - name: PAGURE_DOC_SECRET
@@ -64,10 +64,10 @@ parameters:
   required: false
   value: pagure-doc-secret
 - name: WAIVERDB_DEV_IMAGE_DESTINATIONS
-  displayName: Comma seperated list of container repository/tag to which the built WaiverDB dev image will be pushed
+  displayName: Comma seperated list of container repositories (without tag) to which the built WaiverDB dev image will be pushed
   description: OpenShift registries must be prefixed with 'atomic:'
   required: false
-  value: "atomic:docker-registry.engineering.redhat.com/factory2/waiverdb:latest,quay.io/factory2/waiverdb:latest"
+  value: "quay.io/factory2/waiverdb,atomic:docker-registry.engineering.redhat.com/factory2/waiverdb"
 - name: CONTAINER_REGISTRY_CREDENTIALS
   displayName: Secret name of container registries used for pulling and pushing images
   value: factory2-pipeline-registry-credentials
@@ -102,8 +102,20 @@ parameters:
   displayName: Whether to tag the pushed image as dev
   value: "true"
   required: true
+- name: PAGURE_URL
+  displayName: Pagure URL
+  value: https://pagure.io
+- name: PAGURE_REPO_NAME
+  value: waiverdb
+- name: PAGURE_REPO_IS_FORK
+  value: 'false'
+- name: PAGURE_API_KEY_SECRET_NAME
+  displayName: Name of Pagure API key secret for updating Pagure pull-request statuses
+  value: 'pagure-api-key'
+- name: MAIL_ADDRESS
+  displayName: If set, build failure messages to this mail address.
 labels:
-  template: waiverdb-dev
+  template: waiverdb-build
 objects:
 - kind: "BuildConfig"
   apiVersion: "v1"
@@ -167,7 +179,7 @@ objects:
     source:
       git:
         uri: "${WAIVERDB_GIT_REPO}"
-        ref: "${WAIVERDB_GIT_REF}"
+        ref: "${WAIVERDB_MAIN_BRANCH}"
     strategy:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
@@ -208,6 +220,14 @@ objects:
           value: "${WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAME}"
         - name: "WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAMESPACE"
           value: "${WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAMESPACE}"
-        - name: BUILD_DISPLAY_RENAME_TO
-          value: ""
-        jenkinsfilePath: openshift/pipelines/templates/waiverdb-dev.Jenkinsfile
+        - name: PAGURE_REPO_NAME
+          value: "${PAGURE_REPO_NAME}"
+        - name: PAGURE_REPO_IS_FORK
+          value: "${PAGURE_REPO_IS_FORK}"
+        - name: PAGURE_URL
+          value: "${PAGURE_URL}"
+        - name: PAGURE_API_KEY_SECRET_NAME
+          value: "${PAGURE_API_KEY_SECRET_NAME}"
+        - name: MAIL_ADDRESS
+          value: "${MAIL_ADDRESS}"
+        jenkinsfilePath: openshift/pipelines/templates/waiverdb-build.Jenkinsfile
