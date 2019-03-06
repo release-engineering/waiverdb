@@ -43,6 +43,9 @@ parameters:
   displayName: environment name (dev/stage/prod)
   required: true
   value: dev
+- name: MESSAGING_PROVIDER
+  displayName: Name of the JMS messaging provider
+  value: Red Hat UMB
 objects:
 - kind: ServiceAccount
   apiVersion: v1
@@ -98,4 +101,6 @@ objects:
           value: "${NAME}-jenkins-slave"
         - name: ENVIRONMENT
           value: "${ENVIRONMENT}"
+        - name: MESSAGING_PROVIDER
+          value: "${MESSAGING_PROVIDER}"
         jenkinsfilePath: openshift/pipelines/templates/waiverdb-integration-test.Jenkinsfile
