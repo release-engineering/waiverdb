@@ -4,7 +4,7 @@
 # for Postgres data.
 #
 # To create an environment from the template, process and apply it:
-#   oc process -f openshift/waiverdb-test-template.yaml -p TEST_ID=123 -p WAIVERDB_APP_VERSION=0.1.2.dev24-git.94c0119 | oc apply -f -
+#   oc process -f openshift/waiverdb-test-template.yaml -p TEST_ID=123 -p WAIVERDB_APP_IMAGE=quay.io/factory2/waiverdb:0.1.2.dev24-git.94c0119 | oc apply -f -
 # To clean up the environment, use a selector on the environment label:
 #   oc delete dc,deploy,pod,configmap,secret,svc,route -l environment=test-123
 
@@ -20,14 +20,10 @@ parameters:
   displayName: Test id
   description: Short unique identifier for this test run (e.g. Jenkins job number)
   required: true
-- name: WAIVERDB_APP_VERSION
-  displayName: WaiverDB application version
-  description: Python version of the WaiverDB application being tested
+- name: WAIVERDB_APP_IMAGE
+  displayName: The image of WaiverDB application being tested
   required: true
-- name: WAIVERDB_APP_IMAGE_REPO
-  displayName: The registry/repo of WaiverDB application being tested
-  required: true
-  value: docker-registry.engineering.redhat.com/factory2/waiverdb
+  value: quay.io/factory2/waiverdb:latest
 - name: FLASK_SECRET_KEY
   displayName: Flask secret key
   generate: expression
@@ -223,7 +219,7 @@ objects:
       spec:
         containers:
         - name: web
-          image: "${WAIVERDB_APP_IMAGE_REPO}:${WAIVERDB_APP_VERSION}"
+          image: "${WAIVERDB_APP_IMAGE}"
           ports:
           - containerPort: 8080
           volumeMounts:

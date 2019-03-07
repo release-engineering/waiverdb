@@ -84,6 +84,7 @@ objects:
       app: "${NAME}"
   spec:
     runPolicy: "Serial"
+    completionDeadlineSeconds: 1800
     strategy:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:

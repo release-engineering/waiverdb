@@ -71,8 +71,12 @@ pipeline {
               if (now.getTime() - creationTime.getTime() < 1000 * 60 * 60)
                 continue
               echo "Deleting ${objName}..."
-              obj.delete()
-              echo "Deleted ${objName}"
+              try {
+                obj.delete()
+                echo "Deleted ${objName}"
+              } catch (e) {
+                echo "Error deleting ${objName}: ${e.message}"
+              }
             }
           }
         }
@@ -81,22 +85,20 @@ pipeline {
     stage('Run functional tests') {
       environment {
         // Jenkins BUILD_TAG could be too long (> 63 characters) for OpenShift to consume
-        TEST_ID = "${params.TEST_ID ?: 'jenkins-' + currentBuild.id}"
-        ENVIRONMENT_LABEL = "test-${env.TEST_ID}"
+        TEST_ID = "${params.TEST_ID ?: 'jenkins-' + currentBuild.id + '-' + UUID.randomUUID().toString().substring(0,7)}"
       }
       steps {
         echo "Container image ${params.IMAGE} will be tested."
         script {
           openshift.withCluster() {
-            def imageTag = (params.IMAGE =~ /(?::(\w[\w.-]{0,127}))?$/)[0][1]
-            def imageRepo = imageTag ? params.IMAGE.substring(0, params.IMAGE.length() - imageTag.length() - 1) : params.IMAGE
-            env.IMAGE_TAG = imageTag ?: 'latest'
+            // Don't set ENVIRONMENT_LABEL in the environment block! Otherwise you will get 2 different UUIDs.
+            env.ENVIRONMENT_LABEL = "test-${env.TEST_ID}"
             def template = readYaml file: 'openshift/waiverdb-test-template.yaml'
             def webPodReplicas = 1 // The current quota in UpShift is agressively limited
+            echo "Creating testing environment with TEST_ID=${env.TEST_ID}..."
             def models = openshift.process(template,
               '-p', "TEST_ID=${env.TEST_ID}",
-              '-p', "WAIVERDB_APP_IMAGE_REPO=${imageRepo}",
-              '-p', "WAIVERDB_APP_VERSION=${imageTag ?: 'latest'}",
+              '-p', "WAIVERDB_APP_IMAGE=${params.IMAGE}",
               '-p', "WAIVERDB_REPLICAS=${webPodReplicas}",
             )
             def objects = openshift.apply(models)
@@ -193,7 +195,7 @@ pipeline {
               "type": "container-image",
               "repository": "factory2/waiverdb",
               "digest": "${env.IMAGE_DIGEST}",
-              "nvr": "waiverdb:${env.IMAGE_TAG}",
+              "nvr": "${params.IMAGE}",
               "issuer": "c3i-jenkins",
               "scratch": ${params.IMAGE_IS_SCRATCH},
               "id": "waiverdb@${env.IMAGE_DIGEST}"
@@ -204,8 +206,8 @@ pipeline {
                   "provider": "openshift",
                   "architecture": "x86_64"
                }],
-            "type": "${params.ENVIRONMENT}",
-            "category": "integration",
+            "type": "integration",
+            "category": "${params.ENVIRONMENT}",
             "status": "${currentBuild.result == null || currentBuild.result == 'SUCCESS' ? 'passed':'failed'}",
             "xunit": "${env.BUILD_URL}/artifacts/junit-functional-tests.xml",
             "generated_at": "${new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC'))}",

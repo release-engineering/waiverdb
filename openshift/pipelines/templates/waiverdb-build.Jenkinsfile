@@ -107,6 +107,10 @@ pipeline {
           env.WAIVERDB_VERSION = versions[0]
           env.WAIVERDB_CONTAINER_VERSION = versions[1]
           env.TEMP_TAG = env.WAIVERDB_CONTAINER_VERSION + '-jenkins-' + currentBuild.id
+
+          if (sh(returnStatus: true, script: 'pip3 install --user -r ./requirements.txt' != 0) {
+            echo 'WARNING: Failed to install dependencies from requirements.txt.'
+          }
         }
       }
     }
@@ -144,8 +148,6 @@ pipeline {
             currentBuild.description = """<a href="${env.PAGURE_REPO_HOME}/c/${env.WAIVERDB_GIT_COMMIT}">${currentBuild.displayName}</a>"""
           }
         }
-        sh 'cp conf/settings.py.example conf/settings.py'
-        sh 'pip3 install --user -r ./requirements.txt'
       }
     }
     stage('Run checks') {
@@ -165,6 +167,7 @@ pipeline {
     }
     stage('Run unit tests') {
       steps {
+        sh 'cp conf/settings.py.example conf/settings.py'
         // wait for the test datebase to come up
         sh 'wait-for-it -s -t 300 127.0.0.1:5432'
         // create a database role

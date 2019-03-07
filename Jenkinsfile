@@ -181,7 +181,7 @@ node('fedora-28') {
                     def template = readYaml file: 'openshift/waiverdb-test-template.yaml'
                     def models = openshift.process(template,
                             '-p', "TEST_ID=${env.BUILD_TAG}",
-                            '-p', "WAIVERDB_APP_VERSION=internal-${appversion}")
+                            '-p', "WAIVERDB_APP_IMAGE=quay.io/factory2/waiverdb:internal-${appversion}")
                     def environment_label = "test-${env.BUILD_TAG}"
                     try {
                         def objects = openshift.create(models)

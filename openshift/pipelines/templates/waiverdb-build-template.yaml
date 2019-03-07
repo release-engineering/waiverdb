@@ -67,7 +67,7 @@ parameters:
   displayName: Comma seperated list of container repositories (without tag) to which the built WaiverDB dev image will be pushed
   description: OpenShift registries must be prefixed with 'atomic:'
   required: false
-  value: "quay.io/factory2/waiverdb,atomic:docker-registry.engineering.redhat.com/factory2/waiverdb"
+  value: "quay.io/factory2/waiverdb"
 - name: CONTAINER_REGISTRY_CREDENTIALS
   displayName: Secret name of container registries used for pulling and pushing images
   value: factory2-pipeline-registry-credentials
