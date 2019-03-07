@@ -2,6 +2,14 @@
 Release Notes
 =============
 
+WaiverDB 1.1.1
+==============
+
+Released 20 May 2019
+
+* Use flask-cors library to support CORS headers: moves the CORS header support
+  to the library.
+
 WaiverDB 1.1.0
 ==============
 
