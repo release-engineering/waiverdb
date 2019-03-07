@@ -108,7 +108,7 @@ pipeline {
           env.WAIVERDB_CONTAINER_VERSION = versions[1]
           env.TEMP_TAG = env.WAIVERDB_CONTAINER_VERSION + '-jenkins-' + currentBuild.id
 
-          if (sh(returnStatus: true, script: 'pip3 install --user -r ./requirements.txt' != 0) {
+          if (sh(returnStatus: true, script: 'pip3 install --user -r ./requirements.txt') != 0) {
             echo 'WARNING: Failed to install dependencies from requirements.txt.'
           }
         }
