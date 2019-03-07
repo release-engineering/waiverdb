@@ -42,7 +42,7 @@ node('master'){
 
 timestamps {
 
-node('fedora-28') {
+node('fedora-29') {
     checkout scm
     stage('Prepare') {
         sh 'sudo dnf -y builddep waiverdb.spec'
@@ -96,14 +96,6 @@ node('fedora-28') {
                 """
                 archiveArtifacts artifacts: 'mock-result/el7/**'
             },
-            'F28': {
-                sh """
-                mkdir -p mock-result/f28
-                flock /etc/mock/fedora-28-x86_64.cfg \
-                /usr/bin/mock -v --resultdir=mock-result/f28 -r fedora-28-x86_64 --clean --rebuild rpmbuild-output/*.src.rpm
-                """
-                archiveArtifacts artifacts: 'mock-result/f28/**'
-            },
             'F29': {
                 sh """
                 mkdir -p mock-result/f29
@@ -118,9 +110,6 @@ node('fedora-28') {
         parallel (
             'EPEL7': {
                 sh 'rpmlint -f rpmlint-config.py mock-result/el7/*.rpm'
-            },
-            'F28': {
-                sh 'rpmlint -f rpmlint-config.py mock-result/f28/*.rpm'
             },
             'F29': {
                 sh 'rpmlint -f rpmlint-config.py mock-result/f29/*.rpm'
@@ -169,7 +158,7 @@ node('docker') {
         archiveArtifacts artifacts: 'appversion'
     }
 }
-node('fedora-28') {
+node('fedora-29') {
     sh 'sudo dnf -y install /usr/bin/py.test-3'
     checkout scm
     stage('Perform functional tests') {
