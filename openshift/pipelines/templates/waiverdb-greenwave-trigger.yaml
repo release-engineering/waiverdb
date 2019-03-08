@@ -34,6 +34,7 @@ parameters:
   required: true
 - name: IMAGE_PROMOTION_JOB
   displayName: Downstream image promotion job to trigger
+  required: true
 - name: MESSAGING_PROVIDER
   displayName: Name of the JMS messaging provider
   value: Red Hat UMB
