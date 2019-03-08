@@ -58,6 +58,7 @@ podTemplate(
         def testBcSelector = openshift.selector('bc', params.TEST_JOB_NAME)
         def buildSelector = testBcSelector.startBuild(
             '-e', "IMAGE=${image}",
+            '-e', 'IMAGE_IS_SCRATCH=false',
           )
           buildSelector.watch {
             return !(it.object().status.phase in ["New", "Pending"])
