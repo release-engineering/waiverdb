@@ -8,10 +8,10 @@ properties([
         name: params.MESSAGING_PROVIDER,
         overrides: [topic: params.MESSAGING_TOPIC],
         checks: [
-          [field: '$.subject_type', expectedValue: 'container-image'],
-          [field: '$.subject_identifier', expectedValue: params.SUBJECT_IDENTIFIER_REGEX],
-          [field: '$.decision_context', expectedValue: params.DECISION_CONTEXT_REGEX],
-          [field: '$.policies_satisfied', expectedValue: 'true'],
+          [field: '$.msg.subject_type', expectedValue: 'container-image'],
+          [field: '$.msg.subject_identifier', expectedValue: params.SUBJECT_IDENTIFIER_REGEX],
+          [field: '$.msg.decision_context', expectedValue: params.DECISION_CONTEXT_REGEX],
+          [field: '$.msg.policies_satisfied', expectedValue: 'true'],
         ],
       ],
     ],
@@ -58,7 +58,7 @@ podTemplate(
       // Extract the digest of the image to be promoted.
       // e.g. factory2/waiverdb@sha256:35201c572fc8a137862b7a256476add8d7465fa5043d53d117f4132402f8ef6b
       //   -> sha256:35201c572fc8a137862b7a256476add8d7465fa5043d53d117f4132402f8ef6b
-      def digest = (message.subject_identifier =~ /@(sha256:\w+)$/)[0][1]
+      def digest = (message.msg.subject_identifier =~ /@(sha256:\w+)$/)[0][1]
       // Generate the pull spec of the image
       // e.g. quay.io/factory2/waiverdb@sha256:35201c572fc8a137862b7a256476add8d7465fa5043d53d117f4132402f8ef6b
       def image = params.SOURCE_CONTAINER_REPO + '@' + digest
