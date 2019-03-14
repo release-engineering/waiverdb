@@ -151,8 +151,12 @@ pipeline {
             openshift.withCluster() {
               /* Tear down everything we just created */
               echo "Tearing down test resources..."
-              openshift.selector('dc,deploy,configmap,secret,svc,route',
+              try {
+                openshift.selector('dc,deploy,rc,configmap,secret,svc,route',
                       ['environment': env.ENVIRONMENT_LABEL]).delete()
+              } catch (e) {
+                echo "Failed to tear down test resources: ${e.message}"
+              }
             }
           }
         }
