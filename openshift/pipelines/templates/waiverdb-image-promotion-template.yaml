@@ -23,7 +23,7 @@ parameters:
   displayName: Comma seperated list of container repositories (without tags) to which the image will be promoted
   description: OpenShift registries must be prefixed with 'atomic:'
   required: false
-  value: "quay.io/factory2/waiverdb,atomic:docker-registry.engineering.redhat.com/factory2/waiverdb"
+  value: "quay.io/factory2/waiverdb"
 - name: CONTAINER_REGISTRY_CREDENTIALS
   displayName: Secret name of container registries used for pulling and pushing images
   value: factory2-pipeline-registry-credentials
