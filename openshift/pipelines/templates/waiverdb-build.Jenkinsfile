@@ -138,14 +138,23 @@ pipeline {
               }
               pagureLink = """<a href="${env.PR_URL}">PR#${env.PR_NO}: ${escapeHtml(prInfo.title)}</a>"""
               // set PR status to Pending
-              setBuildStatusOnPagurePR(null, 'Pending')
+              if (params.PAGURE_API_KEY_SECRET_NAME)
+                setBuildStatusOnPagurePR(null, 'Building...')
             } catch (Exception e) {
               echo "Error using pagure API: ${e}"
             }
             currentBuild.description = pagureLink
-          } else {
+          } else { // is a branch
             currentBuild.displayName = "${env.WAIVERDB_GIT_REF}: ${env.WAIVERDB_GIT_COMMIT.substring(0, 7)}"
             currentBuild.description = """<a href="${env.PAGURE_REPO_HOME}/c/${env.WAIVERDB_GIT_COMMIT}">${currentBuild.displayName}</a>"""
+            if (params.PAGURE_API_KEY_SECRET_NAME) {
+              try {
+                flagCommit('pending', null, 'Building...')
+                echo "Updated commit ${env.WAIVERDB_GIT_COMMIT} status to PENDING."
+              } catch (e) {
+                echo "Error updating commit ${env.WAIVERDB_GIT_COMMIT} status to PENDING: ${e}"
+              }
+            }
           }
         }
       }
@@ -430,8 +439,8 @@ pipeline {
     }
     success {
       script {
-        // updating Pagure PR flag and make a comment
-        if (env.PR_NO && params.PAGURE_API_KEY_SECRET_NAME) {
+        // on pre-merge workflow success
+        if (params.PAGURE_API_KEY_SECRET_NAME && env.PR_NO) {
           try {
             setBuildStatusOnPagurePR(100, 'Build passed.')
             echo "Updated PR #${env.PR_NO} status to PASS."
@@ -439,18 +448,29 @@ pipeline {
             echo "Error updating PR #${env.PR_NO} status to PASS: ${e}"
           }
         }
+        // on post-merge workflow success
+        if (params.PAGURE_API_KEY_SECRET_NAME && !env.PR_NO) {
+          try {
+            flagCommit('success', 100, 'Build passed.')
+            echo "Updated commit ${env.WAIVERDB_GIT_COMMIT} status to PASS."
+          } catch (e) {
+            echo "Error updating commit ${env.WAIVERDB_GIT_COMMIT} status to PASS: ${e}"
+          }
+        }
       }
     }
     failure {
       script {
-        // updating Pagure PR flag
-        if (env.PR_NO && params.PAGURE_API_KEY_SECRET_NAME) {
+        // on pre-merge workflow failure
+        if (params.PAGURE_API_KEY_SECRET_NAME && env.PR_NO) {
+          // updating Pagure PR flag
           try {
             setBuildStatusOnPagurePR(0, 'Build failed.')
             echo "Updated PR #${env.PR_NO} status to FAILURE."
           } catch (e) {
             echo "Error updating PR #${env.PR_NO} status to FAILURE: ${e}"
           }
+          // making a comment
           try {
             commentOnPR("""
             Build ${env.WAIVERDB_GIT_COMMIT} [FAILED](${env.BUILD_URL})!
@@ -461,12 +481,24 @@ pipeline {
             echo "Error making a comment on PR #${env.PR_NO}: ${e}"
           }
         }
-        // sending email
-        if (params.MAIL_ADDRESS){
-          try {
-            sendBuildStatusEmail('failed')
-          } catch (e) {
-            echo "Error sending email: ${e}"
+        // on post-merge workflow failure
+        if (!env.PR_NO) {
+          // updating Pagure commit flag
+          if (params.PAGURE_API_KEY_SECRET_NAME) {
+            try {
+              flagCommit('failure', 0, 'Build failed.')
+              echo "Updated commit ${env.WAIVERDB_GIT_COMMIT} status to FAILURE."
+            } catch (e) {
+              echo "Error updating commit ${env.WAIVERDB_GIT_COMMIT} status to FAILURE: ${e}"
+            }
+          }
+          // sending email
+          if (params.MAIL_ADDRESS){
+            try {
+              sendBuildStatusEmail('failed')
+            } catch (e) {
+              echo "Error sending email: ${e}"
+            }
           }
         }
       }
@@ -497,6 +529,12 @@ def setBuildStatusOnPagurePR(percent, String comment) {
   withPagureCreds {
     it.updatePRStatus(username: 'c3i-jenkins', uid: 'ci-pre-merge',
       url: env.BUILD_URL, percent: percent, comment: comment, pr: env.PR_NO)
+  }
+}
+def flagCommit(status, percent, comment) {
+  withPagureCreds {
+    it.flagCommit(username: 'c3i-jenkins', uid: 'ci-post-merge', status: status,
+      url: env.BUILD_URL, percent: percent, comment: comment, commit: env.WAIVERDB_GIT_COMMIT)
   }
 }
 def commentOnPR(String comment) {
