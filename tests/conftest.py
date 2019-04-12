@@ -81,3 +81,23 @@ def enable_ssl(app, monkeypatch):
 @pytest.fixture()
 def enable_cors(app, monkeypatch):
     monkeypatch.setitem(app.config, 'CORS_URL', 'https://bodhi.fedoraproject.org')
+
+
+@pytest.fixture()
+def enable_permission_mapping(app, monkeypatch):
+    monkeypatch.setitem(app.config, 'PERMISSION_MAPPING',
+                        {
+                            "^testcase1.*": {"groups": ["factory-2-0"], "users": []}, # noqa
+                            "^testcase2.*": {"groups": [], "users": ["foo"]}, # noqa
+                            "^testcase4.*": {"groups": [], "users": []} # noqa
+                        })
+
+
+@pytest.fixture()
+def enable_ldap_host(app, monkeypatch):
+    monkeypatch.setitem(app.config, 'LDAP_HOST', 'ldap://ldap.something.com')
+
+
+@pytest.fixture()
+def enable_ldap_base(app, monkeypatch):
+    monkeypatch.setitem(app.config, 'LDAP_BASE', 'ou=Users,dc=something,dc=com')

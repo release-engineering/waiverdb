@@ -27,6 +27,7 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     # A list of users are allowed to create waivers on behalf of other users.
     SUPERUSERS = []
+    PERMISSION_MAPPING = {}
 
 
 class ProductionConfig(Config):
