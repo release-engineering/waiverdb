@@ -117,3 +117,40 @@ class TestAccessControl(object):
         assert r.status_code == 401
         assert res_data['message'] == ("You are not authorized to submit a waiver "
                                        "for the test case testcase3")
+
+    @pytest.mark.usefixtures('enable_ldap_host')
+    @pytest.mark.usefixtures('enable_ldap_base')
+    @mock.patch('waiverdb.auth.get_user', return_value=('bodhi', {}))
+    @mock.patch('waiverdb.api_v1.WaiversResource.get_group_membership',
+                return_value=(['factory-2-0', 'something-else']))
+    def test_proxied_by_with_no_permission(self, mocked_conn, mock_get_user, client, session):
+        self.data['testcase'] = 'testcase3'
+        self.data['username'] = 'foo'
+        r = client.post('/api/v1.0/waivers/', data=json.dumps(self.data),
+                        content_type='application/json', headers=self.headers)
+        res_data = json.loads(r.get_data(as_text=True))
+        assert r.status_code == 401
+        assert res_data['message'] == ("You are not authorized to submit a waiver "
+                                       "for the test case testcase3")
+
+    @pytest.mark.usefixtures('enable_ldap_host')
+    @pytest.mark.usefixtures('enable_ldap_base')
+    @mock.patch('waiverdb.auth.get_user', return_value=('bodhi', {}))
+    @mock.patch('waiverdb.api_v1.WaiversResource.get_group_membership',
+                return_value=(['factory-2-0', 'something-else']))
+    def test_proxied_by_has_permission(self, mocked_conn, mock_get_user, client, session):
+        self.data['testcase'] = 'testcase2'
+        self.data['username'] = 'foo'
+        r = client.post('/api/v1.0/waivers/', data=json.dumps(self.data),
+                        content_type='application/json', headers=self.headers)
+        res_data = json.loads(r.get_data(as_text=True))
+        assert r.status_code == 201
+        assert res_data['username'] == 'foo'
+        assert res_data['subject'] == {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}
+        assert res_data['subject_type'] == 'koji_build'
+        assert res_data['subject_identifier'] == 'glibc-2.26-27.fc27'
+        assert res_data['testcase'] == 'testcase2'
+        assert res_data['product_version'] == 'fool-1'
+        assert res_data['waived'] is True
+        assert res_data['comment'] == 'it broke'
+        assert res_data['proxied_by'] == 'bodhi'
