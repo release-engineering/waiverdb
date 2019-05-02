@@ -179,7 +179,7 @@ objects:
     source:
       git:
         uri: "${WAIVERDB_GIT_REPO}"
-        ref: "${WAIVERDB_MAIN_BRANCH}"
+        ref: "${WAIVERDB_GIT_REF}"
     strategy:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
