@@ -13,6 +13,7 @@ RUN dnf -y install 'dnf-command(builddep)' dnf-utils git mock-core-configs tar g
     wget postgresql make rpmdevtools rpmlint \
     python3-flake8 python3-pylint python3-pytest \
     python3-sphinx python3-sphinxcontrib-httpdomain \
+    python3-ldap \
     origin-clients \
   # install tini, a tiny but valid init for containers
   && wget -O /usr/local/bin/tini "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini" \
