@@ -55,6 +55,10 @@ Options
 
     A comment explaining why the result is waived.
 
+.. option:: -u, --username TEXT
+
+    Username on whose behalf the caller is proxying.
+
 .. option:: -h, --help
 
     Print usage help and exit.
