@@ -136,8 +136,10 @@ def guess_product_version(toparse, koji_build=False):
               help='Whether or not the result is waived')
 @click.option('--comment', '-c',
               help='A comment explaining why the result is waived')
-def cli(comment, waived, product_version, testcase, subject, subject_identifier, subject_type,
-        result_id, config_file):
+@click.option('--username', '-u', default=None,
+              help='Username on whose behalf the caller is proxying.')
+def cli(username, comment, waived, product_version, testcase, subject, subject_identifier,
+        subject_type, result_id, config_file):
     """
     Creates new waiver against test results.
 
@@ -221,7 +223,8 @@ def cli(comment, waived, product_version, testcase, subject, subject_identifier,
             'testcase': testcase,
             'waived': waived,
             'product_version': product_version,
-            'comment': comment
+            'comment': comment,
+            'username': username
         })
 
     # XXX - TODO - remove this in a future release.  (for backwards compat)
@@ -230,7 +233,8 @@ def cli(comment, waived, product_version, testcase, subject, subject_identifier,
             'result_id': result_id,
             'waived': waived,
             'product_version': product_version,
-            'comment': comment
+            'comment': comment,
+            'username': username
         })
 
     api_url = config.get('waiverdb', 'api_url')
