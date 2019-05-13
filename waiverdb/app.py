@@ -37,9 +37,17 @@ def load_config(app):
         default_config_obj = 'waiverdb.config.ProductionConfig'
         default_config_file = '/etc/waiverdb/settings.py'
         silent = False
+
     app.config.from_object(default_config_obj)
     config_file = os.environ.get('WAIVERDB_CONFIG', default_config_file)
     app.config.from_pyfile(config_file, silent=silent)
+
+    # Allow overriding only DATABASE_URI for tests.
+    if os.getenv('TEST') == 'true':
+        db_uri = app.config['DATABASE_URI']
+        app.config.from_object(default_config_obj)
+        app.config['DATABASE_URI'] = db_uri
+
     if os.environ.get('SECRET_KEY'):
         app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
 
