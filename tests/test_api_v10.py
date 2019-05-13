@@ -628,10 +628,12 @@ def test_waivers_by_subjects_and_testcases_with_malformed_since(client, session)
         "time data 'asdf' does not match format '%Y-%m-%dT%H:%M:%S.%f'"
 
 
-def test_about_endpoint(client):
-    r = client.get('/api/v1.0/about')
-    output = json.loads(r.get_data(as_text=True))
+@pytest.mark.parametrize('trailing_slash', ('', '/'))
+def test_about_endpoint(client, trailing_slash):
+    r = client.get('/api/v1.0/about' + trailing_slash)
     assert r.status_code == 200
+
+    output = json.loads(r.get_data(as_text=True))
     assert output['version'] == __version__
     assert output['auth_method'] == client.application.config['AUTH_METHOD']
 
