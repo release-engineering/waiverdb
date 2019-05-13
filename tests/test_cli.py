@@ -187,6 +187,7 @@ oidc_scopes=
             "waived": True,
             "product_version": "Parrot",
             "comment": "This is fine",
+            "username": None
         }]
         mock_oidc_req.assert_called_once_with(
             url='http://localhost:5004/api/v1.0/waivers/',
