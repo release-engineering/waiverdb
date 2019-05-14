@@ -5,6 +5,7 @@ fedora_messaging
 Flask
 Flask-RESTful!=0.3.6
 Flask-SQLAlchemy
+flask-cors
 SQLAlchemy
 gssapi
 flask-oidc

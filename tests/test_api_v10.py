@@ -638,68 +638,38 @@ def test_about_endpoint(client, trailing_slash):
     assert output['auth_method'] == client.application.config['AUTH_METHOD']
 
 
-@pytest.mark.usefixtures('enable_cors')
-def test_cors_about(client, session):
-    r = client.get('/api/v1.0/about')
+def test_cors_good(client, session):
+    headers = {
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'Content-Type',
+        'Origin': 'https://bodhi.fedoraproject.org',
+    }
+    r = client.options(
+        '/api/v1.0/waivers/',
+        content_type='Content-Type',
+        headers=headers
+    )
 
-    assert 'Access-Control-Allow-Origin' in list(r.headers.keys())
-    assert 'Access-Control-Allow-Headers' in list(r.headers.keys())
-    assert 'Access-Control-Allow-Method' in list(r.headers.keys())
-    assert r.headers['Access-Control-Allow-Origin'] == 'https://bodhi.fedoraproject.org'
-    assert r.headers['Access-Control-Allow-Headers'] == 'Content-Type'
-    assert r.headers['Access-Control-Allow-Method'] == 'POST, OPTIONS'
-
-    output = json.loads(r.get_data(as_text=True))
     assert r.status_code == 200
-    assert output['version'] == __version__
+    assert r.headers.get('Access-Control-Allow-Origin') == 'https://bodhi.fedoraproject.org'
+    assert 'POST' in r.headers.get('Access-Control-Allow-Methods', '').split(', ')
 
 
-def test_no_cors_about(client, session):
-    r = client.get('/api/v1.0/about')
+def test_cors_bad(client, session):
+    headers = {
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'Content-Type',
+        'Origin': 'localhost',
+    }
+    r = client.options(
+        '/api/v1.0/waivers/',
+        content_type='Content-Type',
+        headers=headers
+    )
 
-    assert 'Access-Control-Allow-Origin' not in list(r.headers.keys())
-    assert 'Access-Control-Allow-Headers' not in list(r.headers.keys())
-    assert 'Access-Control-Allow-Method' not in list(r.headers.keys())
-
-    output = json.loads(r.get_data(as_text=True))
     assert r.status_code == 200
-    assert output['version'] == __version__
-
-
-@pytest.mark.usefixtures('enable_cors')
-def test_cors_waivers(client, session):
-    for i in range(0, 3):
-        create_waiver(session, subject_type='koji_build', subject_identifier="%d" % i,
-                      testcase="case %d" % i, username='foo %d' % i,
-                      product_version='foo-%d' % i, comment='bla bla bla')
-    r = client.get('/api/v1.0/waivers/')
-
-    assert 'Access-Control-Allow-Origin' in list(r.headers.keys())
-    assert 'Access-Control-Allow-Headers' in list(r.headers.keys())
-    assert 'Access-Control-Allow-Method' in list(r.headers.keys())
-    assert r.headers['Access-Control-Allow-Origin'] == 'https://bodhi.fedoraproject.org'
-    assert r.headers['Access-Control-Allow-Headers'] == 'Content-Type'
-    assert r.headers['Access-Control-Allow-Method'] == 'POST, OPTIONS'
-
-    res_data = json.loads(r.get_data(as_text=True))
-    assert r.status_code == 200
-    assert len(res_data['data']) == 3
-
-
-def test_no_cors_waivers(client, session):
-    for i in range(0, 3):
-        create_waiver(session, subject_type='koji_build', subject_identifier="%d" % i,
-                      testcase="case %d" % i, username='foo %d' % i,
-                      product_version='foo-%d' % i, comment='bla bla bla')
-    r = client.get('/api/v1.0/waivers/')
-
-    assert 'Access-Control-Allow-Origin' not in list(r.headers.keys())
-    assert 'Access-Control-Allow-Headers' not in list(r.headers.keys())
-    assert 'Access-Control-Allow-Method' not in list(r.headers.keys())
-
-    res_data = json.loads(r.get_data(as_text=True))
-    assert r.status_code == 200
-    assert len(res_data['data']) == 3
+    assert 'Access-Control-Allow-Origin' not in r.headers
+    assert 'Access-Control-Allow-Methods' not in r.headers
 
 
 @patch('waiverdb.auth.get_user', return_value=('foo', {}))

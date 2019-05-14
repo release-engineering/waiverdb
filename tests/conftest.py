@@ -79,11 +79,6 @@ def enable_ssl(app, monkeypatch):
 
 
 @pytest.fixture()
-def enable_cors(app, monkeypatch):
-    monkeypatch.setitem(app.config, 'CORS_URL', 'https://bodhi.fedoraproject.org')
-
-
-@pytest.fixture()
 def enable_permission_mapping(app, monkeypatch):
     monkeypatch.setitem(app.config, 'PERMISSION_MAPPING',
                         {
