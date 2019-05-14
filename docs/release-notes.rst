@@ -2,6 +2,31 @@
 Release Notes
 =============
 
+WaiverDB 1.1.0
+==============
+
+Released 15 May 2019
+
+* Restrict waiver creation based on users/groups and testcase: introduce access
+  control based on the users/groups and the testcase.
+  Groups need to be defined in LDAP.
+  New configuration is required to enable this feature:
+
+  * ``PERMISSION_MAPPING``: dictionary with keys as regex applied to test cases
+    and values as dictionaries with "users" and "groups" allowed to submit waivers
+    for that matching test case.
+    If not specified, the feature is not enabled.
+  * ``LDAP_HOST`` and ``LDAP_BASE``: required to query the LDAP system.
+    Required if ``PERMISSION_MAPPING`` is defined.
+
+* Add ``proxied_by`` in the CLI: in the API is possible to define a username on
+  whose behalf the caller is proxying the submittion of a waiver.
+  This change provides this possibility also in the CLI. This is updated also to
+  reflect the recent changes regarding the access control.
+
+* Allow optional trailing slash for about endpoint: accessing "api/v1.0/about/"
+  won't give 404 anymore.
+
 WaiverDB 1.0.0
 ==============
 
