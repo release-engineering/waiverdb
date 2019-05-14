@@ -533,7 +533,7 @@ def setBuildStatusOnPagurePR(percent, String comment) {
 }
 def flagCommit(status, percent, comment) {
   withPagureCreds {
-    it.flagCommit(username: 'c3i-jenkins', uid: 'ci-post-merge', status: status,
+    it.flagCommit(username: 'c3i-jenkins', uid: "ci-post-merge-${env.WAIVERDB_GIT_COMMIT.substring(0, 7)}", status: status,
       url: env.BUILD_URL, percent: percent, comment: comment, commit: env.WAIVERDB_GIT_COMMIT)
   }
 }
