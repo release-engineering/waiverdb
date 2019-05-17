@@ -62,3 +62,5 @@ class TestingConfig(Config):
     OIDC_REQUIRED_SCOPE = 'waiverdb_scope'
     OIDC_RESOURCE_SERVER_ONLY = True
     SUPERUSERS = ['bodhi']
+
+    CORS_ORIGINS = 'https://bodhi.fedoraproject.org'

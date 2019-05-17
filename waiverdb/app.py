@@ -8,6 +8,7 @@ except ImportError:
     from urlparse import urlparse, urlunsplit
 
 from flask import Flask, current_app
+from flask_cors import CORS
 from flask_migrate import Migrate
 from sqlalchemy import event
 from sqlalchemy.exc import ProgrammingError
@@ -21,6 +22,18 @@ from waiverdb.utils import json_error
 from flask_oidc import OpenIDConnect
 from werkzeug.exceptions import default_exceptions
 from waiverdb.monitor import db_hook_event_listeners
+
+
+def enable_cors(app):
+    """
+    Enables CORS headers.
+    """
+    # backward compatibility with old CORS_URL option
+    cors_url = app.config.get('CORS_URL')
+    if cors_url:
+        app.config['CORS_ORIGINS'] = cors_url
+
+    CORS(app)
 
 
 def load_config(app):
@@ -63,18 +76,6 @@ def populate_db_config(app):
     app.config['SQLALCHEMY_DATABASE_URI'] = dburi
 
 
-def insert_headers(response):
-    """ Insert the CORS headers for the give response if there are any
-    configured for the application.
-    """
-    cors_url = current_app.config.get('CORS_URL')
-    if cors_url:
-        response.headers['Access-Control-Allow-Origin'] = cors_url
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        response.headers['Access-Control-Allow-Method'] = 'POST, OPTIONS'
-    return response
-
-
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
 def create_app(config_obj=None):
     app = Flask(__name__)
@@ -107,10 +108,10 @@ def create_app(config_obj=None):
     app.add_url_rule('/healthcheck', view_func=healthcheck)
     register_event_handlers(app)
 
-    app.after_request(insert_headers)
-
     # initialize DB event listeners from the monitor module
     app.before_first_request(db_hook_event_listeners)
+
+    enable_cors(app)
 
     return app
 

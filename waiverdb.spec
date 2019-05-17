@@ -31,6 +31,7 @@ BuildRequires:  python3-sphinxcontrib-httpdomain
 BuildRequires:  python3-sphinxcontrib-issuetracker
 BuildRequires:  python3-flask
 BuildRequires:  python3-sqlalchemy
+BuildRequires:  python3-flask-cors
 BuildRequires:  python3-flask-restful
 BuildRequires:  python3-flask-sqlalchemy
 BuildRequires:  python3-psycopg2
@@ -47,6 +48,7 @@ BuildRequires:  python3-prometheus_client
 BuildRequires:  python3-six
 Requires:       python3-flask
 Requires:       python3-sqlalchemy
+Requires:       python3-flask-cors
 Requires:       python3-flask-restful
 Requires:       python3-flask-sqlalchemy
 Requires:       python3-psycopg2
