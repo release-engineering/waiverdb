@@ -545,7 +545,7 @@ def commentOnPR(String comment) {
 def sendBuildStatusEmail(String status) {
   def recipient = params.MAIL_ADDRESS
   def subject = "Jenkins job ${env.JOB_NAME} #${env.BUILD_NUMBER} ${status}."
-  def body = "Build URL: ${env.DEV_BUILD_URL}"
+  def body = "Build URL: ${env.BUILD_URL}"
   if (env.PR_NO) {
     subject = "Jenkins job ${env.JOB_NAME}, PR #${env.PR_NO} ${status}."
     body += "\nPull Request: ${env.PR_URL}"
