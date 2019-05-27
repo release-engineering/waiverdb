@@ -13,7 +13,12 @@ RUN cp -r /usr/local/src/waiverdb/docker/ / \
   && chmod g+w /etc/pki/tls/certs/ca-bundle.crt
 
 # Installing WaiverDB
-RUN dnf -y install python3-gunicorn python3-pip findutils rpm-build \
+RUN dnf -y install \
+    python3-gunicorn \
+    python3-ldap \
+    python3-pip \
+    findutils \
+    rpm-build \
   && cd /usr/local/src/waiverdb \
   # install dependencies defined in RPM spec file
   && rpm --query --requires --specfile ./waiverdb.spec | grep --invert-match waiverdb | xargs -d '\n' dnf -y install \
