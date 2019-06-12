@@ -28,7 +28,6 @@ BuildRequires:  python-setuptools
 %if %{with server}
 BuildRequires:  python3-sphinx
 BuildRequires:  python3-sphinxcontrib-httpdomain
-BuildRequires:  python3-sphinxcontrib-issuetracker
 BuildRequires:  python3-flask
 BuildRequires:  python3-sqlalchemy
 BuildRequires:  python3-flask-cors
@@ -112,7 +111,7 @@ sed -i 's/\.stg\.fedoraproject\.org/.fedoraproject.org/g' conf/client.conf.examp
 %build
 %if 0%{?fedora} || 0%{?rhel} > 7
 %py3_build
-make -C docs SPHINXOPTS="-D issuetracker_plaintext_issues=0" html man text
+make -C docs html man text
 %else
 %py2_build
 %endif
