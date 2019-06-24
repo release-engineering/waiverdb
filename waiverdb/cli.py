@@ -11,8 +11,6 @@ from xmlrpc import client
 
 from waiverdb import __version__
 
-requests_session = requests.Session()
-
 
 class OldJSONSubject(click.ParamType):
     """
