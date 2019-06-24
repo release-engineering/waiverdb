@@ -125,7 +125,10 @@ cat "$HOME/.ssh/id_rsa_pagure.pub"
 This section is not required if updating Pagure PR status is not needed.
 
 - Go to your Pagure repository settings, and locate to the 'API Keys' section.
-- Click on the `Create new key` button to add new API key with the `Flag a pull-request` permission.
+- Click on the `Create new key` button to add new API key with the following permissions:
+    - Flag a commit
+    - Comment on a pull-request
+    - Flag a pull-request
 - Add your newly-created API key to OpenShift:
 ```bash
   oc create secret generic pagure-api-key --from-literal=secrettext=<your-api-key>
