@@ -124,7 +124,8 @@ cat "$HOME/.ssh/id_rsa_pagure.pub"
 #### Configure a Pagure API Key
 This section is not required if updating Pagure PR status is not needed.
 
-- Go to your Pagure repository settings, and locate to the 'API Keys' section.
+- Login as `factory2jenkins` to Pagure.io (gnaponie and lholecek knows the password).
+- Go to the repository settings, and locate to the 'API Keys' section.
 - Click on the `Create new key` button to add new API key with the following permissions:
     - Flag a commit
     - Comment on a pull-request
