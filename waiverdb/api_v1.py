@@ -1,17 +1,20 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import datetime
-import re
 import logging
 
 import requests
 from flask import Blueprint, request, current_app
 from flask_restful import Resource, Api, reqparse, marshal_with, marshal
-from werkzeug.exceptions import (BadRequest, Forbidden, ServiceUnavailable,
-                                 InternalServerError, Unauthorized, BadGateway)
+from werkzeug.exceptions import (
+    BadRequest,
+    Forbidden,
+    ServiceUnavailable,
+)
 from sqlalchemy.sql.expression import func, and_, or_
 
 from waiverdb import __version__
+from waiverdb.authorization import verify_authorization
 from waiverdb.models import db
 from waiverdb.models.waivers import Waiver, subject_dict_to_type_identifier
 from waiverdb.utils import json_collection, jsonp
@@ -325,45 +328,14 @@ class WaiversResource(Resource):
 
         return result, 201, headers
 
-    def get_group_membership(self, user):
-        try:
-            import ldap
-        except ImportError:
-            raise InternalServerError(('If PERMISSION_MAPPING is defined, '
-                                       'python-ldap needs to be installed.'))
-        try:
-            con = ldap.initialize(current_app.config['LDAP_HOST'])
-            results = con.search_s(current_app.config['LDAP_BASE'], ldap.SCOPE_SUBTREE,
-                                   f'(memberUid={user})', ['cn'])
-            return [group[1]['cn'][0].decode('utf-8') for group in results]
-        except ldap.LDAPError:
-            log.exception('Some error occured initializing the LDAP connection.')
-            raise Unauthorized('Some error occured initializing the LDAP connection.')
-        except ldap.SERVER_DOWN:
-            log.exception('The LDAP server is not reachable.')
-            raise BadGateway('The LDAP server is not reachable.')
+    def _verify_authorization(self, user, testcase):
+        permission_mapping = current_app.config.get('PERMISSION_MAPPING')
+        if not permission_mapping:
+            return True
 
-    def verify_authorization(self, user, testcase):
-        if not current_app.config['PERMISSION_MAPPING']:
-            return True
-        if not (current_app.config.get('LDAP_HOST') and current_app.config.get('LDAP_BASE')):
-            raise InternalServerError(('LDAP_HOST and LDAP_BASE also need to be defined '
-                                       'if PERMISSION_MAPPING is defined.'))
-        allowed_groups = []
-        for testcase_pattern, permission in current_app.config['PERMISSION_MAPPING'].items():
-            testcase_match = re.search(testcase_pattern, testcase)
-            if testcase_match:
-                # checking if the user is allowed
-                if user in permission['users']:
-                    return True
-                allowed_groups += permission['groups']
-        group_membership = self.get_group_membership(user)
-        if not group_membership:
-            raise Unauthorized(f'Couldn\'t find user {user} in LDAP')
-        if set(group_membership) & set(allowed_groups):
-            return True
-        raise Unauthorized(('You are not authorized to submit a waiver '
-                            f'for the test case {testcase}'))
+        ldap_host = current_app.config.get('LDAP_HOST')
+        ldap_base = current_app.config.get('LDAP_BASE')
+        return verify_authorization(user, testcase, permission_mapping, ldap_host, ldap_base)
 
     def _create_waiver(self, args, user):
         proxied_by = None
@@ -419,7 +391,7 @@ class WaiversResource(Resource):
         if not args['testcase']:
             raise BadRequest({'testcase': 'Missing required parameter in the JSON body'})
 
-        self.verify_authorization(user, args['testcase'])
+        self._verify_authorization(user, args['testcase'])
 
         # brew-build is an alias for koji_build
         if args['subject_type'] == 'brew-build':

@@ -58,11 +58,11 @@ class TestAccessControl(object):
                         content_type='application/json', headers=self.headers)
         res_data = json.loads(r.get_data(as_text=True))
         assert r.status_code == 401
-        assert res_data['message'] == "Some error occured initializing the LDAP connection."
+        assert res_data['message'] == "Some error occurred initializing the LDAP connection."
 
     @pytest.mark.usefixtures('enable_ldap_host')
     @pytest.mark.usefixtures('enable_ldap_base')
-    @mock.patch('waiverdb.api_v1.WaiversResource.get_group_membership', return_value=([]))
+    @mock.patch('waiverdb.authorization.get_group_membership', return_value=([]))
     def test_user_not_found_in_ldap(self, mocked_conn, client, session, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
         r = client.post('/api/v1.0/waivers/', data=json.dumps(self.data),
@@ -73,7 +73,7 @@ class TestAccessControl(object):
 
     @pytest.mark.usefixtures('enable_ldap_host')
     @pytest.mark.usefixtures('enable_ldap_base')
-    @mock.patch('waiverdb.api_v1.WaiversResource.get_group_membership',
+    @mock.patch('waiverdb.authorization.get_group_membership',
                 return_value=(['factory-2-0', 'something-else']))
     def test_group_has_permission(self, mocked_conn, client, session, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
@@ -110,7 +110,7 @@ class TestAccessControl(object):
 
     @pytest.mark.usefixtures('enable_ldap_host')
     @pytest.mark.usefixtures('enable_ldap_base')
-    @mock.patch('waiverdb.api_v1.WaiversResource.get_group_membership',
+    @mock.patch('waiverdb.authorization.get_group_membership',
                 return_value=(['factory-2-0', 'something-else']))
     def test_both_user_group_no_permission(self, mocked_conn, client, session, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
@@ -125,7 +125,7 @@ class TestAccessControl(object):
     @pytest.mark.usefixtures('enable_ldap_host')
     @pytest.mark.usefixtures('enable_ldap_base')
     @mock.patch('waiverdb.auth.get_user', return_value=('bodhi', {}))
-    @mock.patch('waiverdb.api_v1.WaiversResource.get_group_membership',
+    @mock.patch('waiverdb.authorization.get_group_membership',
                 return_value=(['factory-2-0', 'something-else']))
     def test_proxied_by_with_no_permission(self, mocked_conn, mock_get_user, client, session):
         self.data['testcase'] = 'testcase3'
@@ -140,7 +140,7 @@ class TestAccessControl(object):
     @pytest.mark.usefixtures('enable_ldap_host')
     @pytest.mark.usefixtures('enable_ldap_base')
     @mock.patch('waiverdb.auth.get_user', return_value=('bodhi', {}))
-    @mock.patch('waiverdb.api_v1.WaiversResource.get_group_membership',
+    @mock.patch('waiverdb.authorization.get_group_membership',
                 return_value=(['factory-2-0', 'something-else']))
     def test_proxied_by_has_permission(self, mocked_conn, mock_get_user, client, session):
         self.data['testcase'] = 'testcase2'
