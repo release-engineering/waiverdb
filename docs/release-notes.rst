@@ -2,6 +2,15 @@
 Release Notes
 =============
 
+WaiverDB 1.1.2
+==============
+
+Released 2 July 2019
+
+* Disable sphinxcontrib-issuetracker integration: this extension appears to no
+  longer be maintained. The following issue prevents adopting a newer version
+  of Sphinx: https://github.com/ignatenkobrain/sphinxcontrib-issuetracker/issues/23
+
 WaiverDB 1.1.1
 ==============
 
