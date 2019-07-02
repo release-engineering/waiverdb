@@ -24,8 +24,8 @@ def get_group_membership(user, ldap_host, ldap_base):
         results = con.search_s(ldap_base, ldap.SCOPE_SUBTREE, f'(memberUid={user})', ['cn'])
         return [group[1]['cn'][0].decode('utf-8') for group in results]
     except ldap.LDAPError:
-        log.exception('Some error occured initializing the LDAP connection.')
-        raise Unauthorized('Some error occured initializing the LDAP connection.')
+        log.exception('Some error occurred initializing the LDAP connection.')
+        raise Unauthorized('Some error occurred initializing the LDAP connection.')
     except ldap.SERVER_DOWN:
         log.exception('The LDAP server is not reachable.')
         raise BadGateway('The LDAP server is not reachable.')

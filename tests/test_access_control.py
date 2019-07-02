@@ -58,7 +58,7 @@ class TestAccessControl(object):
                         content_type='application/json', headers=self.headers)
         res_data = json.loads(r.get_data(as_text=True))
         assert r.status_code == 401
-        assert res_data['message'] == "Some error occured initializing the LDAP connection."
+        assert res_data['message'] == "Some error occurred initializing the LDAP connection."
 
     @pytest.mark.usefixtures('enable_ldap_host')
     @pytest.mark.usefixtures('enable_ldap_base')
