@@ -190,12 +190,16 @@ oidc_scopes=
             "comment": "This is fine",
             "username": None
         }]
+        headers = {
+            'Content-Type': 'application/json',
+            'User-Agent': f'waiverdb-cli {__version__}',
+        }
         mock_oidc_req.assert_called_once_with(
             url='http://localhost:5004/api/v1.0/waivers/',
             data=json.dumps(exp_json),
             scopes=['openid'],
             timeout=60,
-            headers={'Content-Type': 'application/json'})
+            headers=headers)
         assert result.exit_code == 0
         assert result.output.startswith('Created waiver 15 for result with id 123\n')
 

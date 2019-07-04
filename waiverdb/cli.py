@@ -243,7 +243,10 @@ def cli(username, comment, waived, product_version, testcase, subject, subject_i
     data = json.dumps(data_list)
     common_request_arguments = {
         'data': data,
-        'headers': {'Content-Type': 'application/json'},
+        'headers': {
+            'Content-Type': 'application/json',
+            'User-Agent': f'waiverdb-cli {__version__}',
+        },
         'timeout': 60,
     }
     if auth_method == 'OIDC':
