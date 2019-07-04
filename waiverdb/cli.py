@@ -9,6 +9,8 @@ import configparser
 import re
 from xmlrpc import client
 
+from waiverdb import __version__
+
 requests_session = requests.Session()
 
 
@@ -116,6 +118,7 @@ def guess_product_version(toparse, koji_build=False):
 
 
 @click.command(context_settings={'help_option_names': ['-h', '--help']})
+@click.version_option(version=__version__)
 @click.option('--config-file', '-C', default='/etc/waiverdb/client.conf',
               type=click.Path(exists=True),
               help='Specify a config file to use')

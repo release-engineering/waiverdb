@@ -3,6 +3,7 @@ import pytest
 import json
 from mock import Mock, patch
 from click.testing import CliRunner
+from waiverdb import __version__
 from waiverdb.cli import cli as waiverdb_cli
 from waiverdb.cli import guess_product_version
 
@@ -490,3 +491,11 @@ api_url=http://localhost:5004/api/v1.0
         assert result.output == ('Created waiver 15 for result with subject type '
                                  'some-kind-of-magic, identifier setup-2.8.71-7.el7_4 and '
                                  'testcase test.testcase\n')
+
+
+def test_waiver_cli_version():
+    runner = CliRunner()
+    args = ['--version']
+    result = runner.invoke(waiverdb_cli, args)
+    assert result.output == f'cli, version {__version__}\n'
+    assert result.exit_code == 0
