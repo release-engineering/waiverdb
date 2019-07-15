@@ -34,6 +34,37 @@ class OldJSONSubject(click.ParamType):
         return subject
 
 
+def _krb_auth(url, config, request_arguments):
+    # Try to import this now so the user gets immediate feedback if
+    # it isn't installed
+    try:
+        import gssapi  # noqa: F401
+        import requests_gssapi  # noqa: F401
+    except ImportError:
+        raise click.ClickException(
+            'python-requests-gssapi needs to be installed')
+
+    auth_kwargs = {}
+    krb_principal = config.get('waiverdb', 'krb_principal', fallback=None)
+    if krb_principal:
+        auth_kwargs['target_name'] = gssapi.Name(
+            krb_principal, gssapi.NameType.kerberos_principal)
+    auth = requests_gssapi.HTTPSPNEGOAuth(
+        mutual_authentication=requests_gssapi.OPTIONAL, **auth_kwargs)
+
+    resp = requests.request(
+        'POST', url, auth=auth, **request_arguments)
+    if resp.status_code == 401:
+        msg = resp.json().get(
+            'message', ('WaiverDB authentication using GSSAPI failed. Make sure you have a '
+                        'valid Kerberos ticket or that you correctly configured your Kerberos '
+                        'configuration file. Please check the doc for troubleshooting '
+                        'information.'))
+        raise click.ClickException(msg)
+
+    return resp
+
+
 def validate_config(config):
     """
     Validates the configuration needed for WaiverDB
@@ -274,24 +305,7 @@ def cli(username, comment, waived, product_version, testcase, subject, subject_i
             **common_request_arguments)
         check_response(resp, result_ids)
     elif auth_method == 'Kerberos':
-        # Try to import this now so the user gets immediate feedback if
-        # it isn't installed
-        try:
-            import requests_gssapi  # noqa: F401
-        except ImportError:
-            raise click.ClickException(
-                'python-requests-gssapi needs to be installed')
-        auth = requests_gssapi.HTTPKerberosAuth(
-            mutual_authentication=requests_gssapi.OPTIONAL)
-        resp = requests.request(
-            'POST', url, auth=auth, **common_request_arguments)
-        if resp.status_code == 401:
-            msg = resp.json().get(
-                'message', ('WaiverDB authentication using GSSAPI failed. Make sure you have a '
-                            'valid Kerberos ticket or that you correctly configured your Kerberos '
-                            'configuration file. Please check the doc for troubleshooting '
-                            'information.'))
-            raise click.ClickException(msg)
+        resp = _krb_auth(url, config, common_request_arguments)
         check_response(resp, result_ids)
     elif auth_method == 'dummy':
         resp = requests.request(

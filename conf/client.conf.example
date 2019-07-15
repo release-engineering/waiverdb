@@ -2,6 +2,8 @@
 # Specify OIDC or Kerberos for authentication
 auth_method=OIDC
 api_url=https://waiverdb-web-waiverdb.app.os.fedoraproject.org/api/v1.0
+# Try overriding Kerberos principal if authentication fails
+#krb_principal=HTTP/waiverdb.example.com@EXAMPLE.COM
 oidc_id_provider=https://id.fedoraproject.org/openidc/
 oidc_client_id=waiverdb-authorizer
 oidc_client_secret=notsecret
