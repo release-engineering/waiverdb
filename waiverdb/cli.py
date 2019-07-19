@@ -153,7 +153,7 @@ def cli(username, comment, waived, product_version, testcase, subject, subject_i
         waiverdb-cli -t dist.rpmdeplint -i qclib-1.3.1-3.fc28 -T koji_build \\
             -p "fedora-28" -c "This is expected for non-x86 packages"
     """
-    config = configparser.SafeConfigParser()
+    config = configparser.ConfigParser()
 
     config.read(config_file)
     validate_config(config)
