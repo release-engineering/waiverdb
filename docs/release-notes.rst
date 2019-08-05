@@ -2,6 +2,14 @@
 Release Notes
 =============
 
+WaiverDB 1.1.3
+==============
+
+Released 5 August 2019
+
+* Allow overriding krb_principal option for waiverdb-cli
+* Code optimizations and improvements
+
 WaiverDB 1.1.2
 ==============
 
