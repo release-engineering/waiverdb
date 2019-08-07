@@ -1,0 +1,7 @@
+# packages for the unit tests
+pytest >= 2.4.2
+mock
+stomp.py
+Flask-Migrate
+six
+python-ldap
