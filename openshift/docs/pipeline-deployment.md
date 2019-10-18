@@ -235,7 +235,7 @@ Examples:
 oc process --local -f pipelines/templates/waiverdb-image-promotion-template.yaml \
     -p NAME=waiverdb-promoting-to-stage \
     -p IMAGE="quay.io/factory2/waiverdb:latest" \
-    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:stage,docker-registry.engineering.redhat.com/factory2/waiverdb:stage" \
+    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:stage" \
   | oc apply -f -
 ```
 
@@ -244,7 +244,7 @@ oc process --local -f pipelines/templates/waiverdb-image-promotion-template.yaml
 oc process --local -f pipelines/templates/waiverdb-image-promotion-template.yaml \
     -p NAME=waiverdb-promoting-to-prod \
     -p IMAGE="quay.io/factory2/waiverdb:stage" \
-    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:prod,docker-registry.engineering.redhat.com/factory2/waiverdb:prod" \
+    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:prod" \
   | oc apply -f -
 ```
 
@@ -254,7 +254,7 @@ that automatically tags the image into image stream `waiverdb-stage/waiverdb:sta
 oc process --local -f pipelines/templates/waiverdb-image-promotion-template.yaml \
     -p NAME=waiverdb-promoting-to-stage \
     -p IMAGE="quay.io/factory2/waiverdb:latest" \
-    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:stage,docker-registry.engineering.redhat.com/factory2/waiverdb:stage" \
+    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:stage" \
     -p TAG_INTO_IMAGESTREAM=true \
     -p DEST_IMAGESTREAM_NAME=waiverdb \
     -p DEST_IMAGESTREAM_TAG=stage \
@@ -268,7 +268,7 @@ that automatically tags the image into image stream `waiverdb-prod/waiverdb:prod
 oc process --local -f ./waiverdb-image-promotion-pipeline-template.yml \
     -p NAME=waiverdb-promoting-to-prod \
     -p IMAGE="quay.io/factory2/waiverdb:stage" \
-    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:prod,docker-registry.engineering.redhat.com/factory2/waiverdb:prod" \
+    -p PROMOTING_DESTINATIONS="quay.io/factory2/waiverdb:prod" \
     -p TAG_INTO_IMAGESTREAM=true \
     -p DEST_IMAGESTREAM_NAME=waiverdb \
     -p DEST_IMAGESTREAM_TAG=prod \
