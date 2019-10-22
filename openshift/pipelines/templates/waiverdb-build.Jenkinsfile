@@ -291,16 +291,12 @@ pipeline {
               '-p', "WAIVERDB_IMAGESTREAM_NAME=${params.WAIVERDB_IMAGESTREAM_NAME}",
               '-p', "WAIVERDB_IMAGESTREAM_NAMESPACE=${params.WAIVERDB_IMAGESTREAM_NAMESPACE}",
             )
-            def created = openshift.apply(processed)
-            def bc = created.narrow('bc')
-            echo 'Starting a container build from the created BuildConfig...'
-            buildSelector = bc.startBuild()
-            c3i.wait(buildSelector.name())
+            def build = c3i.buildAndWait(script: this, objs: processed)
             echo 'Container build succeeds.'
-            def ocpBuild = buildSelector.object()
+            def ocpBuild = build.object()
             env.RESULTING_IMAGE_REF = ocpBuild.status.outputDockerImageReference
             env.RESULTING_IMAGE_DIGEST = ocpBuild.status.output.to.imageDigest
-            def imagestream= created.narrow('is').object()
+            def imagestream = openshift.selector('is', ['app': env.BUILDCONFIG_INSTANCE_ID]).object()
             env.RESULTING_IMAGE_REPO = imagestream.status.dockerImageRepository
             env.RESULTING_TAG = env.TEMP_TAG
           }
@@ -328,15 +324,13 @@ pipeline {
         script {
           openshift.withCluster() {
             openshift.withProject(params.WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAMESPACE) {
-              def testBcSelector = openshift.selector('bc', params.WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAME)
               echo 'Starting a functional test for the built container image...'
-              def buildSelector = testBcSelector.startBuild(
-                  '-e', "WAIVERDB_GIT_REPO=${params.WAIVERDB_GIT_REPO}",
-                  '-e', "IMAGE=${env.RESULTING_IMAGE_REPO}:${env.RESULTING_TAG}",
-                  '-e', "WAIVERDB_GIT_REF=${env.PR_NO ? env.WAIVERDB_GIT_REF : env.WAIVERDB_GIT_COMMIT}",
-                  '-e', "IMAGE_IS_SCRATCH=${params.WAIVERDB_GIT_REF != params.WAIVERDB_MAIN_BRANCH}",
-                )
-              c3i.wait(buildSelector.name())
+              c3i.buildAndWait(script: this, objs: "bc/${params.WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAME}",
+                '-e', "WAIVERDB_GIT_REPO=${params.WAIVERDB_GIT_REPO}",
+                '-e', "IMAGE=${env.RESULTING_IMAGE_REPO}:${env.RESULTING_TAG}",
+                '-e', "WAIVERDB_GIT_REF=${env.PR_NO ? env.WAIVERDB_GIT_REF : env.WAIVERDB_GIT_COMMIT}",
+                '-e', "IMAGE_IS_SCRATCH=${params.WAIVERDB_GIT_REF != params.WAIVERDB_MAIN_BRANCH}"
+              )
               echo "Functional test passed."
             }
           }

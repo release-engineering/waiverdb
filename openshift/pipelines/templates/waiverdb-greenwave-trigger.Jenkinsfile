@@ -1,4 +1,7 @@
 // Use scripted syntax because CIBuildTrigger currently doesn't support the declarative syntax
+library identifier: 'c3i@master', changelog: false,
+  retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://pagure.io/c3i-library.git'])
+
 properties([
   disableConcurrentBuilds(),
   pipelineTriggers([
@@ -66,19 +69,15 @@ podTemplate(
       // e.g. If decision_context == 'c3i_promote_dev_to_stage', the image will be promoted to 'stage'.
       def targetTag = params.TARGET_TAG
       def promotionJob = params.IMAGE_PROMOTION_JOB ?: "waiverdb-promoting-to-${targetTag}"
-
       echo "Starting a new build to promote image ${image} to :${targetTag}..."
       openshift.withCluster() {
-        def bcSelector = openshift.selector('bc', promotionJob)
-        def buildSelector = bcSelector.startBuild(
-            '-e', "IMAGE=${image}",
-            '-e', "DEST_TAG=${targetTag}",
-          )
-          bcSelector.watch {
-            return !(it.object().status.phase in ["New", "Pending"])
-          }
-          buildInfo = buildSelector.object()
-          echo "Build ${buildInfo.metadata.annotations['openshift.io/jenkins-build-uri'] ?: buildInfo.metadata.name} started."
+        def build = c3i.build(script: this, objs: "bc/${promotionJob}",
+          '-e', "IMAGE=${image}",
+          '-e', "DEST_TAG=${targetTag}",
+        )
+        c3i.waitForBuildStart(script: this, build: build)
+        buildInfo = build.object()
+        echo "Build ${buildInfo.metadata.annotations['openshift.io/jenkins-build-uri'] ?: buildInfo.metadata.name} started."
       }
     }
   }

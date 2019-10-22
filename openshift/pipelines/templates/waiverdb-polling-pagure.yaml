@@ -90,6 +90,8 @@ objects:
       jenkinsPipelineStrategy:
         jenkinsfile: |-
           // Don't use external Jenkinsfile here, or Jenkins will also poll on that repo and branch
+          library identifier: 'c3i@master', changelog: false,
+          retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://pagure.io/c3i-library.git'])
           pipeline {
             agent {
               kubernetes {
@@ -209,16 +211,12 @@ objects:
                 steps {
                   script {
                     openshift.withCluster() {
-                      def bcSelector = openshift.selector('bc',
-                        env.PAGURE_POLLING_FOR_PR == 'true' ? env.PREMERGE_JOB_NAME : env.POSTMERGE_JOB_NAME)
-                      echo 'Starting a WaiverDB build run...'
-                      def devBuild = bcSelector.startBuild(
+                      def bc = env.PAGURE_POLLING_FOR_PR == 'true' ? env.PREMERGE_JOB_NAME : env.POSTMERGE_JOB_NAME
+                      def build = c3i.build(script: this, objs: "bc/${bc}",
                         '-e', "WAIVERDB_GIT_REF=${env.WAIVERDB_GIT_BRANCH}",
                       )
-                      devBuild.watch {
-                        return !(it.object().status.phase in ["New", "Pending"])
-                      }
-                      def devBuildInfo = devBuild.object()
+                      c3i.waitForBuildStart(script: this, build: build)
+                      def devBuildInfo = build.object()
                       def downstreamBuildName = devBuildInfo.metadata.name
                       def downstreamBuildUrl = devBuildInfo.metadata.annotations['openshift.io/jenkins-build-uri']
                       echo "Downstream build ${downstreamBuildName}(${downstreamBuildUrl}) started."

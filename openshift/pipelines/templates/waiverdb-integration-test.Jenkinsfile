@@ -1,4 +1,7 @@
 import java.text.*
+
+library identifier: 'c3i@master', changelog: false,
+  retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://pagure.io/c3i-library.git'])
 pipeline {
   agent {
     kubernetes {
@@ -101,33 +104,11 @@ pipeline {
               '-p', "WAIVERDB_APP_IMAGE=${params.IMAGE}",
               '-p', "WAIVERDB_REPLICAS=${webPodReplicas}",
             )
-            def objects = openshift.apply(models)
-            echo "Waiting for test pods with label environment=${env.ENVIRONMENT_LABEL} to become Ready"
-            //def rm = dcSelector.rollout()
-            def dcs = openshift.selector('dc', ['environment': env.ENVIRONMENT_LABEL])
-            def rm = dcs.rollout()
-            def pods = openshift.selector('pods', ['environment': env.ENVIRONMENT_LABEL])
-            timeout(15) {
-              pods.untilEach(webPodReplicas + 1) {
-                def pod = it.object()
-                if (pod.status.phase in ["New", "Pending", "Unknown"]) {
-                  return false
-                }
-                if (pod.status.phase == "Running") {
-                  for (cond in pod.status.conditions) {
-                      if (cond.type == 'Ready' && cond.status == 'True') {
-                          return true
-                      }
-                  }
-                  return false
-                }
-                error("Test pod ${pod.metadata.name} is not running. Current phase is ${pod.status.phase}.")
-              }
-            }
+            c3i.deployAndWait(script: this, objs: models, timeout: 15)
             def appPod = openshift.selector('pods', ['environment': env.ENVIRONMENT_LABEL, 'service': 'web']).object()
             env.IMAGE_DIGEST = appPod.status.containerStatuses[0].imageID.split('@')[1]
             // Run functional tests
-            def route_hostname = objects.narrow('route').object().spec.host
+            def route_hostname = openshift.selector('routes', ['environment': env.ENVIRONMENT_LABEL]).object().spec.host
             echo "Running tests against https://${route_hostname}/"
             withEnv(["WAIVERDB_TEST_URL=https://${route_hostname}/"]) {
               sh 'py.test-3 -v --junitxml=junit-functional-tests.xml functional-tests/'

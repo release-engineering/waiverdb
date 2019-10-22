@@ -1,3 +1,5 @@
+library identifier: 'c3i@master', changelog: false,
+  retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://pagure.io/c3i-library.git'])
 pipeline {
   agent {
     kubernetes {
@@ -56,8 +58,7 @@ pipeline {
           // but trigger the integration test job in the c3i project.
           openshift.withCluster() {
             openshift.withProject(params.BACKEND_INTEGRATION_TEST_JOB_NAMESPACE) {
-              def testBcSelector = openshift.selector('bc', params.BACKEND_INTEGRATION_TEST_JOB)
-              def buildSelector = testBcSelector.startBuild(
+              c3i.buildAndWait(script: this, objs: "bc/${params.BACKEND_INTEGRATION_TEST_JOB}",
                 '-e', "WAIVERDB_IMAGE=${env.IMAGE}",
                 '-e', "TARGET_IMAGE_REPO=factory2/waiverdb",
                 '-e', "TARGET_IMAGE_DIGEST=${env.IMAGE_DIGEST}",
@@ -65,7 +66,6 @@ pipeline {
                 '-e', "TARGET_IMAGE_VERREL=${env.BUILD_TAG}",
                 '-e', "TESTCASE_CATEGORY=${env.ENVIRONMENT}",
                 )
-              waitForBuild(buildSelector)
               echo "Integration test passed."
             }
           }
@@ -82,41 +82,4 @@ pipeline {
 def getImageDigest(String image) {
   def matcher = (env.IMAGE =~ /@(sha256:\w+)$/)
   return matcher ? matcher[0][1] : ''
-}
-
-// Wait for a build to complete.
-// Taken from https://pagure.io/c3i-library/blob/master/f/src/com/redhat/c3i/util/Builder.groovy
-// Note: We can't use `c3i.wait()` here because that function switches to the default project.
-//  Filed a PR for this issue: https://pagure.io/c3i-library/pull-request/19
-def waitForBuild(build) {
-  echo "Waiting for ${build.name()} to start..."
-  timeout(5) {
-    build.watch {
-      return !(it.object().status.phase in ["New", "Pending", "Unknown"])
-    }
-  }
-  def buildobj = build.object()
-  def buildurl = buildobj.metadata.annotations['openshift.io/jenkins-build-uri']
-  if (buildurl) {
-    echo "Details: ${buildurl}"
-  }
-  if (buildobj.spec.strategy.type == "JenkinsPipeline") {
-    echo "Waiting for ${build.name()} to complete..."
-    build.logs("--tail=1")
-    timeout(60) {
-      build.watch {
-        it.object().status.phase != "Running"
-      }
-    }
-  } else {
-    echo "Following build logs..."
-    while (build.object().status.phase == "Running") {
-      build.logs("--tail=1", "--timestamps=true", "-f")
-    }
-  }
-  buildobj = build.object()
-  if (buildobj.status.phase != "Complete") {
-    error "Build ${buildobj.metadata.name} ${buildobj.status.phase}"
-  }
-  return build.name()
 }

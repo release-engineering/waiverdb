@@ -1,4 +1,7 @@
 // Use scripted syntax because CIBuildTrigger currently doesn't support the declarative syntax
+library identifier: 'c3i@master', changelog: false,
+  retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://pagure.io/c3i-library.git'])
+
 properties([
   disableConcurrentBuilds(),
   pipelineTriggers([
@@ -55,15 +58,12 @@ podTemplate(
       echo "Triggering a job to test if $image meets all criteria of desired tag :${message.tag}"
       def buildInfo = null
       openshift.withCluster() {
-        def testBcSelector = openshift.selector('bc', params.TEST_JOB_NAME)
-        def buildSelector = testBcSelector.startBuild(
-            '-e', "IMAGE=${image}",
-            '-e', 'IMAGE_IS_SCRATCH=false',
-          )
-          buildSelector.watch {
-            return !(it.object().status.phase in ["New", "Pending"])
-          }
-          buildInfo = buildSelector.object()
+        def build = c3i.build(script: this, objs: "bc/${params.TEST_JOB_NAME}",
+          '-e', "IMAGE=${image}",
+          '-e', 'IMAGE_IS_SCRATCH=false',
+        )
+        c3i.waitForBuildStart(script: this, build: build)
+        buildInfo = build.object()
       }
       echo "Build ${buildInfo.metadata.annotations['openshift.io/jenkins-build-uri'] ?: buildInfo.metadata.name} started."
     }
