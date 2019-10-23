@@ -43,7 +43,7 @@ parameters:
   value: "Consumer.rh-jenkins-ci-plugin.c3i-greenwave-trigger.VirtualTopic.eng.greenwave.decision.update"
 - name: JENKINS_AGENT_IMAGE
   displayName: Container image for Jenkins slave pods
-  value: docker-registry.engineering.redhat.com/factory2/waiverdb-jenkins-slave:latest
+  value: docker-registry.upshift.redhat.com/factory2/waiverdb-jenkins-slave:latest
 - name: OPENSHIFT_CLOUD_NAME
   displayName: Name of OpenShift cloud in Jenkins master configuration
   value: openshift

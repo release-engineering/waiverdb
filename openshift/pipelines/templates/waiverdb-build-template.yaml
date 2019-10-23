@@ -53,7 +53,7 @@ parameters:
 - name: JENKINS_AGENT_IMAGE
   displayName: Container image for Jenkins slave pods
   required: true
-  value: docker-registry.engineering.redhat.com/factory2/waiverdb-jenkins-slave:latest
+  value: docker-registry.upshift.redhat.com/factory2/waiverdb-jenkins-slave:latest
 - name: PAGURE_DOC_REPO_NAME
   displayName: namespace/project of Pagure doc repo for publishing docs
   description: If not emptry, docs will be published to the specified Pagure doc repo when this is a post-merge build
@@ -70,7 +70,7 @@ parameters:
   value: "quay.io/factory2/waiverdb"
 - name: CONTAINER_REGISTRY_CREDENTIALS
   displayName: Secret name of container registries used for pulling and pushing images
-  value: factory2-pipeline-registry-credentials
+  value: factory2-psi-registry-credentials
   required: false
 - name: WAIVERDB_DEV_IMAGE_TAG
   displayName: Tag name of the resulting container image for development environment

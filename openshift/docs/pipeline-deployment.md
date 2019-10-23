@@ -95,9 +95,9 @@ To publish the container built by the pipeline, you need to set up a secret for 
 - Please go to your registry dashboard and create a robot account.
 - Backup your docker-config-json file (`$HOME/.docker/config.json`) if present.
 - Run `docker login` with the robot account you just created to produce a new docker-config-json file.
-- Create a new [OpenShift secret for registries][] named `factory2-pipeline-registry-credentials` from your docker-config-json file:
+- Create a new [OpenShift secret for registries][] named `factory2-psi-registry-credentials` from your docker-config-json file:
 ```bash
-  oc create secret generic factory2-pipeline-registry-credentials \
+  oc create secret generic factory2-psi-registry-credentials \
     --from-file=.dockerconfigjson="$HOME/.docker/config.json" \
     --type=kubernetes.io/dockerconfigjson
 ```

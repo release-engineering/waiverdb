@@ -26,7 +26,7 @@ parameters:
   value: "quay.io/factory2/waiverdb"
 - name: CONTAINER_REGISTRY_CREDENTIALS
   displayName: Secret name of container registries used for pulling and pushing images
-  value: factory2-pipeline-registry-credentials
+  value: factory2-psi-registry-credentials
   required: false
 - name: TAG_INTO_IMAGESTREAM
   displayName: Whether to tag the image into an ImageStream
@@ -58,7 +58,7 @@ parameters:
 - name: JENKINS_AGENT_IMAGE
   displayName: Container image for Jenkins slave pods
   required: true
-  value: docker-registry.engineering.redhat.com/factory2/waiverdb-jenkins-slave:latest
+  value: docker-registry.upshift.redhat.com/factory2/waiverdb-jenkins-slave:latest
 - name: JENKINS_AGENT_CLOUD_NAME
   displayName: Name of OpenShift cloud in Jenkins master configuration
   required: true
