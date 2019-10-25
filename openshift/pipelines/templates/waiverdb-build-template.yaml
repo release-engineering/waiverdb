@@ -70,7 +70,7 @@ parameters:
   value: "quay.io/factory2/waiverdb"
 - name: CONTAINER_REGISTRY_CREDENTIALS
   displayName: Secret name of container registries used for pulling and pushing images
-  value: factory2-psi-registry-credentials
+  value: factory2-pipeline-registry-credentials
   required: false
 - name: WAIVERDB_DEV_IMAGE_TAG
   displayName: Tag name of the resulting container image for development environment
