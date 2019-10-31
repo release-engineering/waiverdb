@@ -6,14 +6,38 @@ import json
 import pytest
 from requests import ConnectionError, HTTPError
 from mock import patch, Mock
+from stomp.exception import StompException
 
 from .utils import create_waiver
 from waiverdb import __version__
 from waiverdb.models import Waiver
 
 
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver(mocked_get_user, client, session):
+@pytest.fixture
+def mocked_get_user(username):
+    with patch('waiverdb.auth.get_user', return_value=(username, {})):
+        yield username
+
+
+@pytest.fixture
+def mocked_user():
+    with patch('waiverdb.auth.get_user', return_value=('foo', {})):
+        yield 'foo'
+
+
+@pytest.fixture
+def mocked_bodhi_user():
+    with patch('waiverdb.auth.get_user', return_value=('bodhi', {})):
+        yield 'bodhi'
+
+
+@pytest.fixture
+def mocked_resultsdb():
+    with patch('waiverdb.api_v1.get_resultsdb_result') as mocked_resultsdb:
+        yield mocked_resultsdb
+
+
+def test_create_waiver(mocked_user, client, session):
     data = {
         'subject_type': 'koji_build',
         'subject_identifier': 'glibc-2.26-27.fc27',
@@ -36,8 +60,7 @@ def test_create_waiver(mocked_get_user, client, session):
     assert res_data['comment'] == 'it broke'
 
 
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver_with_subject(mocked_get_user, client, session):
+def test_create_waiver_with_subject(mocked_user, client, session):
     # 'subject' key was the API in Waiverdb < 0.11
     data = {
         'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
@@ -61,9 +84,7 @@ def test_create_waiver_with_subject(mocked_get_user, client, session):
     assert res_data['comment'] == 'it really broke'
 
 
-@patch('waiverdb.api_v1.get_resultsdb_result')
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver_with_result_id(mocked_get_user, mocked_resultsdb, client, session):
+def test_create_waiver_with_result_id(mocked_user, mocked_resultsdb, client, session):
     mocked_resultsdb.return_value = {
         'data': {
             'type': ['koji_build'],
@@ -93,10 +114,8 @@ def test_create_waiver_with_result_id(mocked_get_user, mocked_resultsdb, client,
     assert res_data['comment'] == 'it broke'
 
 
-@patch('waiverdb.api_v1.get_resultsdb_result')
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
 def test_create_waiver_with_result_for_original_spec_nvr(
-        mocked_get_user, mocked_resultsdb, client, session):
+        mocked_user, mocked_resultsdb, client, session):
     mocked_resultsdb.return_value = {
         'data': {
             'original_spec_nvr': ['somedata'],
@@ -124,8 +143,7 @@ def test_create_waiver_with_result_for_original_spec_nvr(
     assert res_data['comment'] == 'it broke'
 
 
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver_without_comment(mocked_get_user, client, session):
+def test_create_waiver_without_comment(mocked_user, client, session):
     data = {
         'subject_type': 'koji_build',
         'subject_identifier': 'glibc-2.26-27.fc27',
@@ -140,9 +158,8 @@ def test_create_waiver_without_comment(mocked_get_user, client, session):
     assert res_data['message']['comment'] == 'Missing required parameter in the JSON body'
 
 
-@patch('waiverdb.api_v1.get_resultsdb_result', side_effect=HTTPError(response=Mock(status=404)))
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver_with_unknown_result_id(mocked_get_user, mocked_resultsdb, client, session):
+def test_create_waiver_with_unknown_result_id(mocked_user, mocked_resultsdb, client, session):
+    mocked_resultsdb.side_effect = HTTPError(response=Mock(status=404))
     data = {
         'result_id': 123,
         'product_version': 'fool-1',
@@ -156,8 +173,7 @@ def test_create_waiver_with_unknown_result_id(mocked_get_user, mocked_resultsdb,
     assert res_data['message'].startswith('Failed looking up result in Resultsdb:')
 
 
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver_with_no_testcase(mocked_get_user, client):
+def test_create_waiver_with_no_testcase(mocked_user, client):
     data = {
         'subject_type': 'koji_build',
         'subject_identifier': 'glibc-2.26-27.fc27',
@@ -172,8 +188,7 @@ def test_create_waiver_with_no_testcase(mocked_get_user, client):
     assert 'Missing required parameter in the JSON body' in res_data['message']['testcase']
 
 
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver_with_malformed_subject(mocked_get_user, client):
+def test_create_waiver_with_malformed_subject(mocked_user, client):
     data = {
         'subject': 'asd',
         'testcase': 'qqq',
@@ -185,8 +200,7 @@ def test_create_waiver_with_malformed_subject(mocked_get_user, client):
     assert 'Must be a valid dict' in res_data['message']['subject']
 
 
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_non_superuser_cannot_create_waiver_for_other_users(mocked_get_user, client):
+def test_non_superuser_cannot_create_waiver_for_other_users(mocked_user, client):
     data = {
         'subject_type': 'koji_build',
         'subject_identifier': 'glibc-2.26-27.fc27',
@@ -203,8 +217,7 @@ def test_non_superuser_cannot_create_waiver_for_other_users(mocked_get_user, cli
     assert 'user foo does not have the proxyuser ability' == res_data['message']
 
 
-@patch('waiverdb.auth.get_user', return_value=('bodhi', {}))
-def test_superuser_can_create_waiver_for_other_users(mocked_get_user, client, session):
+def test_superuser_can_create_waiver_for_other_users(mocked_bodhi_user, client, session):
     data = {
         'subject_type': 'koji_build',
         'subject_identifier': 'glibc-2.26-27.fc27',
@@ -220,7 +233,7 @@ def test_superuser_can_create_waiver_for_other_users(mocked_get_user, client, se
     assert r.status_code == 201
     # a waiver should be created for bar by bodhi
     assert res_data['username'] == 'bar'
-    assert res_data['proxied_by'] == 'bodhi'
+    assert res_data['proxied_by'] == mocked_bodhi_user
 
 
 def test_get_waiver(client, session):
@@ -672,8 +685,7 @@ def test_cors_bad(client, session):
     assert 'Access-Control-Allow-Methods' not in r.headers
 
 
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_multiple_waivers(mocked_get_user, client, session):
+def test_create_multiple_waivers(mocked_user, client, session):
     item1 = {
         'subject_type': 'koji_build',
         'subject_identifier': 'glibc-2.26-27.fc27',
@@ -709,8 +721,7 @@ def test_create_multiple_waivers(mocked_get_user, client, session):
     assert session.query(Waiver).count() == 2
 
 
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_multiple_waivers_rollback_on_error(mocked_get_user, client, session):
+def test_create_multiple_waivers_rollback_on_error(mocked_user, client, session):
     item1 = {
         'subject_type': 'koji_build',
         'subject_identifier': 'glibc-2.26-27.fc27',
@@ -731,8 +742,7 @@ def test_create_multiple_waivers_rollback_on_error(mocked_get_user, client, sess
     assert session.query(Waiver).count() == 0
 
 
-@patch('waiverdb.auth.get_user', return_value=('foo', {}))
-def test_create_waiver_with_arbitrary_subject_type(mocked_get_user, client, session):
+def test_create_waiver_with_arbitrary_subject_type(mocked_user, client, session):
     data = {
         'subject_type': 'kind-of-magic',
         'subject_identifier': 'glibc-2.26-27.fc27',

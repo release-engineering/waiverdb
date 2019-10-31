@@ -10,18 +10,11 @@ from waiverdb.monitor import db_hook_event_listeners
 
 
 @pytest.fixture(scope='session')
-def app(request):
+def app():
     os.environ['TEST'] = 'true'
     app = create_app()
-    # Establish an application context before running the tests.
-    ctx = app.app_context()
-    ctx.push()
-
-    def teardown():
-        ctx.pop()
-
-    request.addfinalizer(teardown)
-    return app
+    with app.app_context():
+        yield app
 
 
 @pytest.fixture(scope='session')
