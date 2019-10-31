@@ -10,6 +10,7 @@ using the :func:`sqlalchemy.event.listen` function.
 """
 
 import logging
+import time
 
 from flask_restful import marshal
 import stomp
@@ -24,6 +25,41 @@ from waiverdb.models import Waiver
 from waiverdb.utils import stomp_connection
 
 _log = logging.getLogger(__name__)
+
+MAX_STOMP_RETRY = 3
+STOMP_RETRY_DELAY_SECONDS = 5
+
+
+def _send_stomp_message(session):
+    with stomp_connection() as conn:
+        stomp_configs = current_app.config.get('STOMP_CONFIGS')
+        for row in session.identity_map.values():
+            monitor.messaging_tx_to_send_counter.inc()
+            if not isinstance(row, Waiver):
+                continue
+            _log.debug('Publishing a message for %r', row)
+            msg = json.dumps(marshal(row, waiver_fields))
+            kwargs = dict(body=msg, headers={}, destination=stomp_configs['destination'])
+            if stomp.__version__[0] < 4:
+                kwargs['message'] = kwargs.pop('body')  # On EL7, different sig.
+            try:
+                conn.send(**kwargs)
+                monitor.messaging_tx_sent_ok_counter.inc()
+            except Exception:
+                _log.exception('Couldn\'t publish message via stomp')
+                monitor.messaging_tx_failed_counter.inc()
+                raise
+
+
+def _send_stomp_message_with_retry(session, max_retry, retry_delay):
+    for i in range(max_retry):
+        time.sleep(i * retry_delay)
+        try:
+            _send_stomp_message(session)
+        except stomp.exception.StompException:
+            _log.exception('Failed to send message (try %s/%s)', i + 1, max_retry)
+        else:
+            break
 
 
 def publish_new_waiver(session):
@@ -66,24 +102,9 @@ def publish_new_waiver(session):
                current_app.config['MESSAGE_PUBLISHER'])
 
     if current_app.config['MESSAGE_PUBLISHER'] == 'stomp':
-        with stomp_connection() as conn:
-            stomp_configs = current_app.config.get('STOMP_CONFIGS')
-            for row in session.identity_map.values():
-                monitor.messaging_tx_to_send_counter.inc()
-                if not isinstance(row, Waiver):
-                    continue
-                _log.debug('Publishing a message for %r', row)
-                msg = json.dumps(marshal(row, waiver_fields))
-                kwargs = dict(body=msg, headers={}, destination=stomp_configs['destination'])
-                if stomp.__version__[0] < 4:
-                    kwargs['message'] = kwargs.pop('body')  # On EL7, different sig.
-                try:
-                    conn.send(**kwargs)
-                    monitor.messaging_tx_sent_ok_counter.inc()
-                except Exception:
-                    _log.exception('Couldn\'t publish message via stomp')
-                    monitor.messaging_tx_failed_counter.inc()
-                    raise
+        max_retry = current_app.config.get('MAX_STOMP_RETRY', MAX_STOMP_RETRY)
+        retry_delay = current_app.config.get('STOMP_RETRY_DELAY_SECONDS', STOMP_RETRY_DELAY_SECONDS)
+        _send_stomp_message_with_retry(session, max_retry=max_retry, retry_delay=retry_delay)
 
     elif current_app.config['MESSAGE_PUBLISHER'] == 'fedmsg':
         for row in session.identity_map.values():

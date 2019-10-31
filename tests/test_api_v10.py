@@ -763,3 +763,37 @@ def test_create_waiver_with_arbitrary_subject_type(mocked_user, client, session)
     assert res_data['product_version'] == 'fool-1'
     assert res_data['waived'] is True
     assert res_data['comment'] == 'it broke'
+
+
+def test_create_waiver_failed_event_once(mocked_user, client, session, caplog):
+    config = dict(
+        MESSAGE_BUS_PUBLISH=True,
+        MESSAGE_PUBLISHER='stomp',
+        MAX_STOMP_RETRY=3,
+        STOMP_RETRY_DELAY_SECONDS=0,
+        STOMP_CONFIGS={
+            'destination': '/topic/VirtualTopic.eng.waiverdb.waiver.new',
+            'connection': {
+                'host_and_ports': [('broker01', 61612)],
+            },
+        },
+    )
+
+    data = {
+        'subject_type': 'koji_build',
+        'subject_identifier': 'glibc-2.26-27.fc27',
+        'testcase': 'testcase1',
+        'product_version': 'fool-1',
+        'waived': True,
+        'comment': 'it broke',
+    }
+
+    with patch.dict(client.application.config, config):
+        with patch('waiverdb.events.stomp.Connection') as connection:
+            connection().connect.side_effect = (StompException, StompException, None)
+            r = client.post('/api/v1.0/waivers/', json=data)
+            assert r.status_code == 201
+            assert 'Failed to send message (try 1/3)' in caplog.text
+            assert 'Failed to send message (try 2/3)' in caplog.text
+            assert 'Failed to send message (try 3/3)' not in caplog.text
+            assert 'StompException' in caplog.text
