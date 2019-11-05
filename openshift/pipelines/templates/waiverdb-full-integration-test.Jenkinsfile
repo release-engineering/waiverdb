@@ -1,5 +1,6 @@
 library identifier: 'c3i@master', changelog: false,
   retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://pagure.io/c3i-library.git'])
+def pipeline_data
 pipeline {
   agent {
     kubernetes {
@@ -34,52 +35,100 @@ pipeline {
     timestamps()
     timeout(time: 30, unit: 'MINUTES')
   }
+  environment {
+    TRIGGER_NAMESPACE = readFile("/run/secrets/kubernetes.io/serviceaccount/namespace").trim()
+  }
   stages {
-    stage('Run integration test') {
+    stage('Request Pipeline') {
+      openshift.withCluster() {
+        openshift.withProject(env.TRIGGER_NAMESPACE) {
+          def testroute = openshift.create('route', 'edge', "test-${env.BUILD_NUMBER}",  '--service=test', '--port=8080')
+          def testhost = testroute.object().spec.host
+          env.PAAS_DOMAIN = testhost.minus("test-${env.BUILD_NUMBER}-${env.TRIGGER_NAMESPACE}.")
+          testroute.delete()
+        }
+      }
+      echo "Routes end with ${env.PAAS_DOMAIN}"
       steps {
         script {
-          env.IMAGE_DIGEST = getImageDigest(env.IMAGE)
-          if (!env.IMAGE_DIGEST) {
-            env.IMAGE_URI = env.IMAGE
-             if (!env.IMAGE_URI.startsWith('atomic:') && !env.IMAGE_URI.startsWith('docker://')) {
-                  env.IMAGE_URI = 'docker://' + env.IMAGE_URI
-              }
-            echo "Image URI ${env.IMAGE_URI} doesn't contain the image digest. Fetching from the registry..."
-            def metadataText = sh(returnStdout: true, script: 'skopeo inspect ${IMAGE_URI}').trim()
-            def metadata = readJSON text: metadataText
-            env.IMAGE_DIGEST = metadata.Digest
-          }
-          if (!env.IMAGE_DIGEST) {
-            error "Couldn't get digest of image '${env.IMAGE}'"
-          }
-          echo "Digest of image '${env.IMAGE}': ${env.IMAGE_DIGEST}"
-
-          // TODO: in the short term, we don't run integration tests here
-          // but trigger the integration test job in the c3i project.
+          env.PIPELINE_ID = 'c3i-pipeline-' + UUID.randomUUID().toString().substring(0,4)
           openshift.withCluster() {
-            openshift.withProject(params.BACKEND_INTEGRATION_TEST_JOB_NAMESPACE) {
-              c3i.buildAndWait(script: this, objs: "bc/${params.BACKEND_INTEGRATION_TEST_JOB}",
+            openshift.withProject(params.PIPELINEAAS_PROJECT) {
+              c3i.buildAndWait(script: this, objs: "bc/pipeline-as-a-service",
+                '-e', "DEFAULT_IMAGE_TAG=${env.ENVIRONMENT}",
                 '-e', "WAIVERDB_IMAGE=${env.IMAGE}",
-                '-e', "TARGET_IMAGE_REPO=factory2/waiverdb",
-                '-e', "TARGET_IMAGE_DIGEST=${env.IMAGE_DIGEST}",
-                '-e', "TARGET_IMAGE_IS_SCRATCH=${env.IMAGE_IS_SCRATCH}",
-                '-e', "TARGET_IMAGE_VERREL=${env.BUILD_TAG}",
-                '-e', "TESTCASE_CATEGORY=${env.ENVIRONMENT}",
-                )
-              echo "Integration test passed."
+                '-e', "PIPELINE_ID=${env.PIPELINE_ID}",
+                '-e', "PAAS_DOMAIN=${env.PAAS_DOMAIN}"
+                '-e', "KOJI_HUB_IMAGE=",
+                '-e', "MBS_BACKEND_IMAGE=",
+                '-e', "MBS_FRONTEND_IMAGE=",
+                '-e', "KOJI_HUB_IMAGE="
+              )
             }
           }
         }
       }
     }
+    stage('Run integration test') {
+      steps {
+        script {
+          c3i.clone(repo: params.BACKEND_INTEGRATION_TEST_REPO,
+            branch: params.BACKEND_INTEGRATION_TEST_REPO_BRANCH)
+          pipeline_data = readJSON(text: controller.getVars())
+          sh "${env.WORKSPACE}/${BACKEND_INTEGRATION_TEST_FILE} https://${env.PIPELINE_ID}.${env.PAAS_DOMAIN}"
+        }
+      }
+    }
   }
-}
-
-// Extract digest from the image URI
-// e.g. factory2/waiverdb@sha256:35201c572fc8a137862b7a256476add8d7465fa5043d53d117f4132402f8ef6b
-//   -> sha256:35201c572fc8a137862b7a256476add8d7465fa5043d53d117f4132402f8ef6b
-@NonCPS
-def getImageDigest(String image) {
-  def matcher = (env.IMAGE =~ /@(sha256:\w+)$/)
-  return matcher ? matcher[0][1] : ''
+  post {
+    changed {
+      script {
+        if (params.MAIL_ADDRESS) {
+          emailext to: "${env.MAIL_ADDRESS}",
+          subject: "${env.JOB_NAME} ${env.BUILD_NUMBER} changed: ${currentBuild.result}",
+          body: "${env.JOB_NAME} ${env.BUILD_NUMBER} changed. Current status: ${currentBuild.result}. You can check it out: ${env.BUILD_URL}"
+        }
+      }
+    }
+    always {
+      script {
+        if (!env.MESSAGING_PROVIDER) {
+          // Don't send a message if messaging provider is not configured
+          return
+        }
+        c3i.sendResultToMessageBus(
+          pipeline_data.WAIVERDB_IMAGE,
+          pipeline_data.WAIVERDB_IMAGE_DIGEST,
+          env.BUILD_TAG,
+          env.TARGET_IMAGE_IS_SCRATCH == "true",
+          env.MESSAGING_PROVIDER
+        )
+      }
+    }
+    failure {
+      script {
+        openshift.withCluster() {
+          openshift.withProject(env.PIPELINE_ID) {
+            echo 'Getting logs from all pods...'
+            openshift.selector('pods').logs('--tail=100')
+          }
+        }
+      }
+    }
+    cleanup {
+      script {
+        if (env.NO_CLEANUP_AFTER_TEST == 'true') {
+          return
+        }
+        openshift.withCluster() {
+          openshift.withProject(env.PIPELINE_ID) {
+            /* Tear down everything we just created */
+            echo 'Tearing down test resources...'
+            openshift.selector('all,pvc,configmap,secret',
+                               ['c3i.redhat.com/pipeline': env.PIPELINE_ID]).delete('--ignore-not-found=true')
+          }
+        }
+      }
+    }
+  }
 }
