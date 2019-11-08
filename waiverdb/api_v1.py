@@ -629,6 +629,40 @@ class AboutResource(Resource):
         return {'version': __version__, 'auth_method': current_app.config['AUTH_METHOD']}
 
 
+class ConfigResource(Resource):
+    @jsonp
+    def get(self):
+        """
+        Returns the current configuration (PERMISSION_MAPPING and SUPERUSERS).
+
+        **Sample response**:
+
+        .. sourcecode:: none
+
+          HTTP/1.0 200 OK
+          Content-Length: 55
+          Content-Type: application/json
+          Date: Tue, 31 Oct 2017 04:29:19 GMT
+          Server: Werkzeug/0.11.10 Python/2.7.13
+
+          {
+            "permission_mapping": {
+                "^kernel-qe": {
+                    "groups": ["devel", "qa"],
+                    "users": []
+                }
+            },
+            "superusers": ["alice", "bob"]
+          }
+
+        :statuscode 200: Configuration is returned.
+        """
+        return {
+            'permission_mapping': current_app.config.get('PERMISSION_MAPPING'),
+            'superusers': current_app.config.get('SUPERUSERS'),
+        }
+
+
 class MonitorResource(Resource):
     def get(self):
         from waiverdb.monitor import MonitorAPI
@@ -641,4 +675,5 @@ api.add_resource(WaiverResource, '/waivers/<int:waiver_id>')
 api.add_resource(FilteredWaiversResource, '/waivers/+filtered')
 api.add_resource(GetWaiversBySubjectsAndTestcases, '/waivers/+by-subjects-and-testcases')
 api.add_resource(AboutResource, '/about', strict_slashes=False)
+api.add_resource(ConfigResource, '/config', strict_slashes=False)
 api.add_resource(MonitorResource, '/metrics')

@@ -651,6 +651,39 @@ def test_about_endpoint(client, trailing_slash):
     assert output['auth_method'] == client.application.config['AUTH_METHOD']
 
 
+def test_config_endpoint_permissions_map(client):
+    config = {
+        'PERMISSION_MAPPING': {
+            '^kernel-qe\\.': {
+                'groups': ['devel', 'qa'],
+                'users': [],
+            },
+            '': {
+                'groups': ['factory2-admins'],
+                'users': [],
+            },
+        }
+    }
+
+    with patch.dict(client.application.config, config):
+        r = client.get('/api/v1.0/config')
+
+    assert r.status_code == 200
+    assert r.json['permission_mapping'] == config['PERMISSION_MAPPING']
+
+
+def test_config_endpoint_superusers(client):
+    config = {
+        'SUPERUSERS': ['alice', 'bob']
+    }
+
+    with patch.dict(client.application.config, config):
+        r = client.get('/api/v1.0/config')
+
+    assert r.status_code == 200
+    assert r.json['superusers'] == config['SUPERUSERS']
+
+
 def test_cors_good(client, session):
     headers = {
         'Access-Control-Request-Method': 'POST',
