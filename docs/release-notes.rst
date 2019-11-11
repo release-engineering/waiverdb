@@ -2,6 +2,16 @@
 Release Notes
 =============
 
+WaiverDB 1.1.4
+==============
+
+Released 11 November 2019
+
+* New ``/config`` API endpoint to expose the application configuration, i.e.
+  PERMISSION_MAPPING and SUPERUSERS.
+* Retry sending STOMP message after a delay
+* Revert allow overriding krb_principal option for waiverdb-cli
+
 WaiverDB 1.1.3
 ==============
 
@@ -79,7 +89,7 @@ WaiverDB 0.14.0
   is necessary to configure "dns_canonicalize_hostname" inside the Kerberos
   configuration file otherwise the user will get an error response that is a bit
   ambiguous. There's no way to detect if that was the problem or it is just a
-  generic authentication error. But we can provide an hint to the user, and 
+  generic authentication error. But we can provide an hint to the user, and
   also advise to check the doc.
 
 * Introduce a /metrics endpoint to the API for monitoring reasons.
