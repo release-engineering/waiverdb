@@ -128,6 +128,9 @@ objects:
     completionDeadlineSeconds: 1800
     strategy:
       dockerStrategy:
+        buildArgs:
+        - name: CA_URLS
+          value: https://password.corp.redhat.com/RH-IT-Root-CA.crt
         forcePull: true
         dockerfilePath: openshift/containers/jenkins-slave/Dockerfile
     resources:
