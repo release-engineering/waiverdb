@@ -63,6 +63,7 @@ parameters:
   displayName: Name of OpenShift cloud in Jenkins master configuration
   required: true
   value: openshift
+{% include "snippets/c3i-library-parameters.yaml" %}
 objects:
 - kind: ServiceAccount
   apiVersion: v1
@@ -90,10 +91,6 @@ objects:
   spec:
     runPolicy: "Serial" # FIXME: Parallel is supported, but we have limited quota in UpShift.
     completionDeadlineSeconds: 1800
-    source:
-      git:
-        uri: "${WAIVERDB_GIT_REPO}"
-        ref: "${WAIVERDB_GIT_REF}"
     strategy:
       type: JenkinsPipeline
       source:
@@ -120,4 +117,5 @@ objects:
           value: "${JENKINS_AGENT_CLOUD_NAME}"
         - name: JENKINS_AGENT_SERVICE_ACCOUNT
           value: "${NAME}-jenkins-slave"
-        jenkinsfilePath: openshift/pipelines/templates/waiverdb-image-promotion.Jenkinsfile
+        jenkinsfile: |
+          {% filter indent(width=10) %}{% include "waiverdb-image-promotion.Jenkinsfile" %}{% endfilter %}

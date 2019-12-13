@@ -94,10 +94,6 @@ objects:
   spec:
     runPolicy: "Parallel"
     completionDeadlineSeconds: 1800
-    source:
-      git:
-        uri: "${WAIVERDB_GIT_REPO}"
-        ref: "${WAIVERDB_GIT_REF}"
     strategy:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
@@ -136,4 +132,5 @@ objects:
           value: "${BACKEND_INTEGRATION_TEST_REPO_BRANCH}"
         - name: BACKEND_INTEGRATION_TEST_FILE
           value: "${BACKEND_INTEGRATION_TEST_FILE}"
-        jenkinsfilePath: openshift/pipelines/templates/waiverdb-full-integration-test.Jenkinsfile
+        jenkinsfile: |
+          {% filter indent(width=10) %}{% include "waiverdb-full-integration-test.Jenkinsfile" %}{% endfilter %}

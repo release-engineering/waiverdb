@@ -1,5 +1,4 @@
-library identifier: 'c3i@master', changelog: false,
-  retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://pagure.io/c3i-library.git'])
+{% include "snippets/c3i-library.groovy" %}
 import static org.apache.commons.lang.StringEscapeUtils.escapeHtml;
 pipeline {
   agent {
@@ -23,11 +22,6 @@ pipeline {
           imagePullPolicy: Always
           tty: true
           env:
-          - name: REGISTRY_CREDENTIALS
-            valueFrom:
-              secretKeyRef:
-                name: "${params.CONTAINER_REGISTRY_CREDENTIALS}"
-                key: '.dockerconfigjson'
           # Required by unit tests: Set up NSS Wrapper to generate a fake user name for the random UID assigned by OpenShift
           - name: LD_PRELOAD
             value: '/usr/lib64/libnss_wrapper.so'
@@ -355,10 +349,11 @@ pipeline {
             env.WAIVERDB_DEV_IMAGE_DESTINATIONS.split(',') : []
           openshift.withCluster() {
             def sourceImage = env.RESULTING_IMAGE_REPO + ":" + env.RESULTING_TAG
-            if (env.REGISTRY_CREDENTIALS) {
-               dir ("${env.HOME}/.docker") {
-                    writeFile file:'config.json', text: env.REGISTRY_CREDENTIALS
-               }
+            if (params.CONTAINER_REGISTRY_CREDENTIALS) {
+              dir ("${env.HOME}/.docker") {
+                def dockerconf = openshift.selector('secret', params.CONTAINER_REGISTRY_CREDENTIALS).object().data['.dockerconfigjson']
+                writeFile file: 'config.json', text: dockerconf, encoding: "Base64"
+              }
             }
             // pull the built image from imagestream
             echo "Pulling container from ${sourceImage}..."

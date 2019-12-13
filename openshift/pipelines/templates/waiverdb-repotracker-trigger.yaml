@@ -41,6 +41,7 @@ parameters:
 - name: TEST_JOB_NAME
   displayName: Name of integration test job to trigger
   required: true
+{% include "snippets/c3i-library-parameters.yaml" %}
 objects:
 - kind: ServiceAccount
   apiVersion: v1
@@ -68,10 +69,6 @@ objects:
   spec:
     runPolicy: "Serial"
     completionDeadlineSeconds: 1800
-    source:
-      git:
-        uri: "${WAIVERDB_GIT_REPO}"
-        ref: "${WAIVERDB_GIT_REF}"
     strategy:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
@@ -97,4 +94,5 @@ objects:
           value:
         - name: MESSAGE_HEADERS
           value:
-        jenkinsfilePath: openshift/pipelines/templates/waiverdb-repotracker-trigger.Jenkinsfile
+        jenkinsfile: |
+          {% filter indent(width=10) %}{% include "waiverdb-repotracker-trigger.Jenkinsfile" %}{% endfilter %}

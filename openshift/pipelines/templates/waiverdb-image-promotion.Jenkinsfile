@@ -1,40 +1,5 @@
 pipeline {
-  agent {
-    kubernetes {
-      cloud "${params.JENKINS_AGENT_CLOUD_NAME}"
-      label "jenkins-slave-${UUID.randomUUID().toString()}"
-      serviceAccount "${params.JENKINS_AGENT_SERVICE_ACCOUNT}"
-      defaultContainer 'jnlp'
-      yaml """
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        labels:
-          app: "jenkins-${env.JOB_BASE_NAME}"
-          factory2-pipeline-kind: "waiverdb-image-promotion-pipeline"
-          factory2-pipeline-build-number: "${env.BUILD_NUMBER}"
-      spec:
-        containers:
-        - name: jnlp
-          image: "${params.JENKINS_AGENT_IMAGE}"
-          imagePullPolicy: Always
-          tty: true
-          env:
-          - name: REGISTRY_CREDENTIALS
-            valueFrom:
-              secretKeyRef:
-                name: "${params.CONTAINER_REGISTRY_CREDENTIALS}"
-                key: '.dockerconfigjson'
-          resources:
-            requests:
-              memory: 512Mi
-              cpu: 200m
-            limits:
-              memory: 768Mi
-              cpu: 500m
-      """
-    }
-  }
+  {% include "snippets/default-agent.groovy" %}
   options {
     timestamps()
     timeout(time: 30, unit: 'MINUTES')
@@ -56,9 +21,13 @@ pipeline {
               'auth': sh(returnStdout: true, script: 'set +x; echo -n "serviceaccount:$SERVICE_ACCOUNT_TOKEN" | base64 -').trim()
               ]
             // merging user specified credentials
-            if (env.REGISTRY_CREDENTIALS) {
-              toBeMerged = readJSON text: env.REGISTRY_CREDENTIALS
-              dockerConfig.auths.putAll(toBeMerged.auths)
+            if (params.CONTAINER_REGISTRY_CREDENTIALS) {
+              openshift.withCluster() {
+                def dockerconf = openshift.selector('secret', params.CONTAINER_REGISTRY_CREDENTIALS).object().data['.dockerconfigjson']
+                def dockerString = new String(dockerconf.decodeBase64())
+                toBeMerged = readJSON text: dockerString
+                dockerConfig.auths.putAll(toBeMerged.auths)
+              }
             }
             // writing to ~/.docker/config.json
             writeJSON file: 'config.json', json: dockerConfig

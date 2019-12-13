@@ -47,6 +47,7 @@ parameters:
 - name: OPENSHIFT_CLOUD_NAME
   displayName: Name of OpenShift cloud in Jenkins master configuration
   value: openshift
+{% include "snippets/c3i-library-parameters.yaml" %}
 objects:
 - kind: ServiceAccount
   apiVersion: v1
@@ -74,10 +75,6 @@ objects:
   spec:
     runPolicy: "Serial"
     completionDeadlineSeconds: 1800
-    source:
-      git:
-        uri: "${WAIVERDB_GIT_REPO}"
-        ref: "${WAIVERDB_GIT_REF}"
     strategy:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
@@ -111,4 +108,5 @@ objects:
           value:
         - name: MESSAGE_HEADERS
           value:
-        jenkinsfilePath: openshift/pipelines/templates/waiverdb-greenwave-trigger.Jenkinsfile
+        jenkinsfile: |
+          {% filter indent(width=10) %}{% include "waiverdb-greenwave-trigger.Jenkinsfile" %}{% endfilter %}

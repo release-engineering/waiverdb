@@ -1,36 +1,7 @@
-library identifier: 'c3i@master', changelog: false,
-  retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://pagure.io/c3i-library.git'])
+{% include "snippets/c3i-library.groovy" %}
 def pipeline_data
 pipeline {
-  agent {
-    kubernetes {
-      cloud "${params.JENKINS_AGENT_CLOUD_NAME}"
-      label "jenkins-slave-${UUID.randomUUID().toString()}"
-      serviceAccount "${params.JENKINS_AGENT_SERVICE_ACCOUNT}"
-      defaultContainer 'jnlp'
-      yaml """
-      apiVersion: v1
-      kind: Pod
-      metadata:
-        labels:
-          app: "${env.JOB_BASE_NAME}"
-          factory2-pipeline-kind: "waiverdb-integration-test-pipeline"
-          factory2-pipeline-build-number: "${env.BUILD_NUMBER}"
-      spec:
-        containers:
-        - name: jnlp
-          image: "${params.JENKINS_AGENT_IMAGE}"
-          imagePullPolicy: Always
-          resources:
-            requests:
-              memory: 512Mi
-              cpu: 200m
-            limits:
-              memory: 768Mi
-              cpu: 300m
-      """
-    }
-  }
+  {% include "snippets/default-agent.groovy" %}
   options {
     timestamps()
     timeout(time: 30, unit: 'MINUTES')

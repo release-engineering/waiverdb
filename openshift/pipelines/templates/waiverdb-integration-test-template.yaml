@@ -46,6 +46,7 @@ parameters:
 - name: MESSAGING_PROVIDER
   displayName: Name of the JMS messaging provider
   value: Red Hat UMB
+{% include "snippets/c3i-library-parameters.yaml" %}
 objects:
 - kind: ServiceAccount
   apiVersion: v1
@@ -73,10 +74,6 @@ objects:
   spec:
     runPolicy: "Serial" # FIXME: Parallel is supported, but we have limited quota in UpShift.
     completionDeadlineSeconds: 1800
-    source:
-      git:
-        uri: "${WAIVERDB_GIT_REPO}"
-        ref: "${WAIVERDB_GIT_REF}"
     strategy:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
@@ -103,4 +100,5 @@ objects:
           value: "${ENVIRONMENT}"
         - name: MESSAGING_PROVIDER
           value: "${MESSAGING_PROVIDER}"
-        jenkinsfilePath: openshift/pipelines/templates/waiverdb-integration-test.Jenkinsfile
+        jenkinsfile: |
+          {% filter indent(width=10) %}{% include "waiverdb-integration-test.Jenkinsfile" %}{% endfilter %}

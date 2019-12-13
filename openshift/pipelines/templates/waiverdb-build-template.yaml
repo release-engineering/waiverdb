@@ -114,6 +114,7 @@ parameters:
   value: 'pagure-api-key'
 - name: MAIL_ADDRESS
   displayName: If set, build failure messages to this mail address.
+{% include "snippets/c3i-library-parameters.yaml" %}
 labels:
   template: waiverdb-build
 objects:
@@ -179,10 +180,6 @@ objects:
   spec:
     runPolicy: "Serial"
     completionDeadlineSeconds: 1800
-    source:
-      git:
-        uri: "${WAIVERDB_GIT_REPO}"
-        ref: "${WAIVERDB_MAIN_BRANCH}"
     strategy:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
@@ -233,4 +230,5 @@ objects:
           value: "${PAGURE_API_KEY_SECRET_NAME}"
         - name: MAIL_ADDRESS
           value: "${MAIL_ADDRESS}"
-        jenkinsfilePath: openshift/pipelines/templates/waiverdb-build.Jenkinsfile
+        jenkinsfile: |
+          {% filter indent(width=10) %}{% include "waiverdb-build.Jenkinsfile" %}{% endfilter %}

@@ -1,7 +1,5 @@
 // Use scripted syntax because CIBuildTrigger currently doesn't support the declarative syntax
-library identifier: 'c3i@master', changelog: false,
-  retriever: modernSCM([$class: 'GitSCMSource', remote: 'https://pagure.io/c3i-library.git'])
-
+{% include "snippets/c3i-library.groovy" %}
 properties([
   disableConcurrentBuilds(),
   pipelineTriggers([
