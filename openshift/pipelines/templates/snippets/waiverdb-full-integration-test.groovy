@@ -1,16 +1,20 @@
-{% include "snippets/c3i-library.groovy" %}
-def pipeline_data
-pipeline {
-  {% include "snippets/default-agent.groovy" %}
-  options {
-    timestamps()
-    timeout(time: 30, unit: 'MINUTES')
-  }
-  environment {
-    TRIGGER_NAMESPACE = readFile("/run/secrets/kubernetes.io/serviceaccount/namespace").trim()
-  }
+stage('Run integration tests') {
   stages {
     stage('Request Pipeline') {
+      if (!env.TRIGGER_NAMESPACE) {
+        env.TRIGGER_NAMESPACE = readFile("/run/secrets/kubernetes.io/serviceaccount/namespace").trim()
+      }
+      if(!env.PAAS_DOMAIN) {
+        openshift.withCluster() {
+          openshift.withProject(env.TRIGGER_NAMESPACE) {
+            def testroute = openshift.create('route', 'edge', "test-${env.BUILD_NUMBER}",  '--service=test', '--port=8080')
+            def testhost = testroute.object().spec.host
+            env.PAAS_DOMAIN = testhost.minus("test-${env.BUILD_NUMBER}-${env.TRIGGER_NAMESPACE}.")
+            testroute.delete()
+          }
+        }
+        echo "Routes end with ${env.PAAS_DOMAIN}"
+      }
       openshift.withCluster() {
         openshift.withProject(env.TRIGGER_NAMESPACE) {
           def testroute = openshift.create('route', 'edge', "test-${env.BUILD_NUMBER}",  '--service=test', '--port=8080')
@@ -45,7 +49,6 @@ pipeline {
         script {
           c3i.clone(repo: params.BACKEND_INTEGRATION_TEST_REPO,
             branch: params.BACKEND_INTEGRATION_TEST_REPO_BRANCH)
-          pipeline_data = readJSON(text: controller.getVars())
           sh "${env.WORKSPACE}/${BACKEND_INTEGRATION_TEST_FILE} https://${env.PIPELINE_ID}.${env.PAAS_DOMAIN}"
         }
       }
@@ -68,6 +71,7 @@ pipeline {
           return
         }
         c3i.sendResultToMessageBus(
+          pipeline_data = readJSON(text: controller.getVars())
           pipeline_data.WAIVERDB_IMAGE,
           pipeline_data.WAIVERDB_IMAGE_DIGEST,
           env.BUILD_TAG,

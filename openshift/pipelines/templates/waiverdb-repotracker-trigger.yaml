@@ -38,9 +38,10 @@ parameters:
 - name: MESSAGING_TOPIC
   displayName: Name of the topic that the trigger subscribes to
   value: "Consumer.rh-jenkins-ci-plugin.c3i-waiverdb-repotracker-trigger.VirtualTopic.eng.repotracker.container.tag.>"
-- name: TEST_JOB_NAME
-  displayName: Name of integration test job to trigger
+- name: ENVIRONMENT
+  displayName: environment name (dev/stage/prod)
   required: true
+  value: dev
 {% include "snippets/c3i-library-parameters.yaml" %}
 objects:
 - kind: ServiceAccount
@@ -83,12 +84,12 @@ objects:
           value: "${TRACKED_CONTAINER_REPO}"
         - name: "TRACKED_TAG"
           value: "${TRACKED_TAG}"
-        - name: "TEST_JOB_NAME"
-          value: "${TEST_JOB_NAME}"
         - name: MESSAGING_PROVIDER
           value: "${MESSAGING_PROVIDER}"
         - name: MESSAGING_TOPIC
           value: "${MESSAGING_TOPIC}"
+        - name: ENVIRONMENT
+          value: "${ENVIRONMENT}"
         # CI_MESSAGE and MESSAGE_HEADERS are used internally by JMS messaging plugin
         - name: CI_MESSAGE
           value:
