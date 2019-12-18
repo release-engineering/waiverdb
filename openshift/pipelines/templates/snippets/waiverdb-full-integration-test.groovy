@@ -83,6 +83,7 @@ stage('Run integration tests') {
     }
     failure {
       script {
+        env.TESTCASE_CATEGORY = env.ENVIRONMENT
         c3i.archiveContainersLogs(env.PIPELINE_ID)
       }
     }

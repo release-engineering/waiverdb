@@ -314,29 +314,7 @@ pipeline {
         }
       }
     }
-    stage('Run functional tests') {
-      steps {
-        script {
-          openshift.withCluster() {
-            openshift.withProject(params.WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAMESPACE) {
-              echo 'Starting a functional test for the built container image...'
-              c3i.buildAndWait(script: this, objs: "bc/${params.WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAME}",
-                '-e', "WAIVERDB_GIT_REPO=${params.WAIVERDB_GIT_REPO}",
-                '-e', "IMAGE=${env.RESULTING_IMAGE_REPO}:${env.RESULTING_TAG}",
-                '-e', "WAIVERDB_GIT_REF=${env.PR_NO ? env.WAIVERDB_GIT_REF : env.WAIVERDB_GIT_COMMIT}",
-                '-e', "IMAGE_IS_SCRATCH=${params.WAIVERDB_GIT_REF != params.WAIVERDB_MAIN_BRANCH}"
-              )
-              echo "Functional test passed."
-            }
-          }
-        }
-      }
-      post {
-        failure {
-          echo "Functional test failed."
-        }
-      }
-    }
+    {% include "snippets/waiverdb-integration-test.groovy" %}
     stage('Push container') {
       when {
         expression {

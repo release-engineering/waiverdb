@@ -1,19 +1,12 @@
-import java.text.*
-
-{% include "snippets/c3i-library.groovy" %}
-pipeline {
-  {% include "snippets/default-agent.groovy" %}
-  options {
-    timestamps()
-    timeout(time: 30, unit: 'MINUTES')
-  }
+stage("Functional tests phase") {
   stages {
     stage('Prepare') {
       steps {
         checkout([$class: 'GitSCM',
-          branches: [[name: params.WAIVERDB_GIT_REF]],
+          branches: [[name: env.PR_NO ? env.WAIVERDB_GIT_REF : env.WAIVERDB_GIT_COMMIT]],
           userRemoteConfigs: [[url: params.WAIVERDB_GIT_REPO, refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pull/*/head']],
         ])
+        env.IMAGE = "${env.RESULTING_IMAGE_REPO}:${env.RESULTING_TAG}"
       }
     }
     stage('Cleanup') {
@@ -55,7 +48,7 @@ pipeline {
         TEST_ID = "${params.TEST_ID ?: 'jenkins-' + currentBuild.id + '-' + UUID.randomUUID().toString().substring(0,7)}"
       }
       steps {
-        echo "Container image ${params.IMAGE} will be tested."
+        echo "Container image ${env.IMAGE} will be tested."
         script {
           openshift.withCluster() {
             // Don't set ENVIRONMENT_LABEL in the environment block! Otherwise you will get 2 different UUIDs.
@@ -65,7 +58,7 @@ pipeline {
             echo "Creating testing environment with TEST_ID=${env.TEST_ID}..."
             def models = openshift.process(template,
               '-p', "TEST_ID=${env.TEST_ID}",
-              '-p', "WAIVERDB_APP_IMAGE=${params.IMAGE}",
+              '-p', "WAIVERDB_APP_IMAGE=${env.IMAGE}",
               '-p', "WAIVERDB_REPLICAS=${webPodReplicas}",
             )
             c3i.deployAndWait(script: this, objs: models, timeout: 15)
@@ -148,9 +141,9 @@ pipeline {
               "type": "container-image",
               "repository": "factory2/waiverdb",
               "digest": "${env.IMAGE_DIGEST}",
-              "nvr": "${params.IMAGE}",
+              "nvr": "${env.IMAGE}",
               "issuer": "c3i-jenkins",
-              "scratch": ${params.IMAGE_IS_SCRATCH},
+              "scratch": ${params.WAIVERDB_GIT_REF != params.WAIVERDB_MAIN_BRANCH},
               "id": "waiverdb@${env.IMAGE_DIGEST}"
             },
             "system":
