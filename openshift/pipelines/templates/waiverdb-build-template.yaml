@@ -46,7 +46,7 @@ parameters:
   description: If WAIVERDB_MAIN_BRANCH equals WAIVERDB_GIT_REF, this is a post-merge build, otherwise it's a pre-merge build.
   value: master
   required: true
-- name: JENKINS_AGENT_CLOUD_NAME
+- name: OPENSHIFT_CLOUD_NAME
   displayName: Name of OpenShift cloud in Jenkins master configuration
   required: true
   value: openshift
@@ -102,6 +102,9 @@ parameters:
   displayName: Whether to tag the pushed image as dev
   value: "true"
   required: true
+- name: MESSAGING_PROVIDER
+  displayName: Name of the JMS messaging provider
+  value: Red Hat UMB
 - name: PAGURE_URL
   displayName: Pagure URL
   value: https://pagure.io
@@ -188,8 +191,8 @@ objects:
           value: "${WAIVERDB_GIT_REPO}"
         - name: "WAIVERDB_GIT_REF"
           value: "${WAIVERDB_GIT_REF}"
-        - name: "JENKINS_AGENT_CLOUD_NAME"
-          value: "${JENKINS_AGENT_CLOUD_NAME}"
+        - name: "OPENSHIFT_CLOUD_NAME"
+          value: "${OPENSHIFT_CLOUD_NAME}"
         - name: "JENKINS_AGENT_IMAGE"
           value:  "${JENKINS_AGENT_IMAGE}"
         - name: "JENKINS_AGENT_SERVICE_ACCOUNT"
@@ -220,6 +223,8 @@ objects:
           value: "${WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAME}"
         - name: "WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAMESPACE"
           value: "${WAIVERDB_INTEGRATION_TEST_BUILD_CONFIG_NAMESPACE}"
+        - name: "MESSAGING_PROVIDER"
+          value: "${MESSAGING_PROVIDER}"
         - name: PAGURE_REPO_NAME
           value: "${PAGURE_REPO_NAME}"
         - name: PAGURE_REPO_IS_FORK

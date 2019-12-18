@@ -1,43 +1,44 @@
 stage('Run integration tests') {
   stages {
     stage('Request Pipeline') {
-      if (!env.TRIGGER_NAMESPACE) {
-        env.TRIGGER_NAMESPACE = readFile("/run/secrets/kubernetes.io/serviceaccount/namespace").trim()
-      }
-      if(!env.PAAS_DOMAIN) {
-        openshift.withCluster() {
-          openshift.withProject(env.TRIGGER_NAMESPACE) {
-            def testroute = openshift.create('route', 'edge', "test-${env.BUILD_NUMBER}",  '--service=test', '--port=8080')
-            def testhost = testroute.object().spec.host
-            env.PAAS_DOMAIN = testhost.minus("test-${env.BUILD_NUMBER}-${env.TRIGGER_NAMESPACE}.")
-            testroute.delete()
-          }
-        }
-        echo "Routes end with ${env.PAAS_DOMAIN}"
-      }
-      openshift.withCluster() {
-        openshift.withProject(env.TRIGGER_NAMESPACE) {
-          def testroute = openshift.create('route', 'edge', "test-${env.BUILD_NUMBER}",  '--service=test', '--port=8080')
-          def testhost = testroute.object().spec.host
-          env.PAAS_DOMAIN = testhost.minus("test-${env.BUILD_NUMBER}-${env.TRIGGER_NAMESPACE}.")
-          testroute.delete()
-        }
-      }
-      echo "Routes end with ${env.PAAS_DOMAIN}"
       steps {
         script {
+          if (!env.TRIGGER_NAMESPACE) {
+            env.TRIGGER_NAMESPACE = readFile("/run/secrets/kubernetes.io/serviceaccount/namespace").trim()
+          }
+          if(!env.PAAS_DOMAIN) {
+            openshift.withCluster() {
+              openshift.withProject(env.TRIGGER_NAMESPACE) {
+                def testroute = openshift.create('route', 'edge', "test-${env.BUILD_NUMBER}",  '--service=test', '--port=8080')
+                def testhost = testroute.object().spec.host
+                env.PAAS_DOMAIN = testhost.minus("test-${env.BUILD_NUMBER}-${env.TRIGGER_NAMESPACE}.")
+                testroute.delete()
+              }
+            }
+            echo "Routes end with ${env.PAAS_DOMAIN}"
+          }
+          openshift.withCluster() {
+            openshift.withProject(env.TRIGGER_NAMESPACE) {
+              def testroute = openshift.create('route', 'edge', "test-${env.BUILD_NUMBER}",  '--service=test', '--port=8080')
+              def testhost = testroute.object().spec.host
+              env.PAAS_DOMAIN = testhost.minus("test-${env.BUILD_NUMBER}-${env.TRIGGER_NAMESPACE}.")
+              testroute.delete()
+            }
+          }
+          echo "Routes end with ${env.PAAS_DOMAIN}"
           env.PIPELINE_ID = 'c3i-pipeline-' + UUID.randomUUID().toString().substring(0,4)
           openshift.withCluster() {
-            openshift.withProject(params.PIPELINEAAS_PROJECT) {
+            openshift.withProject(params.PIPELINE_AS_A_SERVICE_BUILD_NAMESPACE) {
               c3i.buildAndWait(script: this, objs: "bc/pipeline-as-a-service",
                 '-e', "DEFAULT_IMAGE_TAG=${env.ENVIRONMENT}",
                 '-e', "WAIVERDB_IMAGE=${env.IMAGE}",
                 '-e', "PIPELINE_ID=${env.PIPELINE_ID}",
-                '-e', "PAAS_DOMAIN=${env.PAAS_DOMAIN}"
+                '-e', "PAAS_DOMAIN=${env.PAAS_DOMAIN}",
                 '-e', "KOJI_HUB_IMAGE=",
                 '-e', "MBS_BACKEND_IMAGE=",
                 '-e', "MBS_FRONTEND_IMAGE=",
-                '-e', "KOJI_HUB_IMAGE="
+                '-e', "KOJI_HUB_IMAGE=",
+                '-e', "TRIGGERED_BY=${env.BUILD_URL}"
               )
             }
           }
@@ -70,8 +71,8 @@ stage('Run integration tests') {
           // Don't send a message if messaging provider is not configured
           return
         }
+        pipeline_data = controller.getVars()
         c3i.sendResultToMessageBus(
-          pipeline_data = readJSON(text: controller.getVars())
           pipeline_data.WAIVERDB_IMAGE,
           pipeline_data.WAIVERDB_IMAGE_DIGEST,
           env.BUILD_TAG,
@@ -82,12 +83,7 @@ stage('Run integration tests') {
     }
     failure {
       script {
-        openshift.withCluster() {
-          openshift.withProject(env.PIPELINE_ID) {
-            echo 'Getting logs from all pods...'
-            openshift.selector('pods').logs('--tail=100')
-          }
-        }
+        c3i.archiveContainersLogs(env.PIPELINE_ID)
       }
     }
     cleanup {

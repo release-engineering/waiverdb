@@ -12,14 +12,6 @@ parameters:
   displayName: Short unique identifier for the templated instances
   description: This field is used to deploy multiple pipelines to one OpenShift project from this template.
   value: waiverdb-repotracker-trigger
-- name: WAIVERDB_GIT_REPO
-  displayName: WaiverDB Git repo URL
-  description: Default WaiverDB Git repo URL in which to run dev tests against
-  value: "https://pagure.io/waiverdb.git"
-- name: WAIVERDB_GIT_REF
-  displayName: WaiverDB Git repo ref
-  description: Default WaiverDB Git repo ref in which to run dev tests against
-  value: master
 - name: TRACKED_CONTAINER_REPO
   displayName: Container repo to be tracked
   value: "quay.io/factory2/waiverdb"
@@ -28,10 +20,14 @@ parameters:
   required: true
 - name: JENKINS_AGENT_IMAGE
   displayName: Container image for Jenkins slave pods
-  value: docker-registry.upshift.redhat.com/factory2/waiverdb-jenkins-slave:latest
+  value: docker-registry.upshift.redhat.com/factory2/factory2-integration-test-jenkins-slave:latest
 - name: OPENSHIFT_CLOUD_NAME
   displayName: Name of OpenShift cloud in Jenkins master configuration
   value: openshift
+- name: PIPELINE_AS_A_SERVICE_BUILD_NAMESPACE
+  displayName: The namespace where the Pipeline-as-a-Service project request BuildConfig has been defined
+  required: false
+  value: c3i
 - name: MESSAGING_PROVIDER
   displayName: Name of the JMS messaging provider
   value: Red Hat UMB
@@ -42,6 +38,22 @@ parameters:
   displayName: environment name (dev/stage/prod)
   required: true
   value: dev
+- name: BACKEND_INTEGRATION_TEST_REPO
+  displayName: backend integration test repo
+  value: https://gitlab.cee.redhat.com/devops/factory2-segment-tests.git
+- name: BACKEND_INTEGRATION_TEST_REPO_BRANCH
+  displayName: backend integration test repo
+  required: true
+  value: master
+- name: BACKEND_INTEGRATION_TEST_FILE
+  displayName: backend integration test file
+  required: true
+  value: greenwave-segment-test/greenwave-segment-test-c3i.sh
+- name: NO_CLEANUP_AFTER_TEST
+  displayName: Keep environment after test
+  value: "false"
+- name: MAIL_ADDRESS
+  displayName: If set, build failure messages to this mail address.
 {% include "snippets/c3i-library-parameters.yaml" %}
 objects:
 - kind: ServiceAccount
@@ -90,6 +102,18 @@ objects:
           value: "${MESSAGING_TOPIC}"
         - name: ENVIRONMENT
           value: "${ENVIRONMENT}"
+        - name: PIPELINE_AS_A_SERVICE_BUILD_NAMESPACE
+          value: "${PIPELINE_AS_A_SERVICE_BUILD_NAMESPACE}"
+        - name: "NO_CLEANUP_AFTER_TEST"
+          value: "${NO_CLEANUP_AFTER_TEST}"
+        - name:  MAIL_ADDRESS
+          value: "${MAIL_ADDRESS}"
+        - name: BACKEND_INTEGRATION_TEST_REPO
+          value: "${BACKEND_INTEGRATION_TEST_REPO}"
+        - name: BACKEND_INTEGRATION_TEST_REPO_BRANCH
+          value: "${BACKEND_INTEGRATION_TEST_REPO_BRANCH}"
+        - name: BACKEND_INTEGRATION_TEST_FILE
+          value: "${BACKEND_INTEGRATION_TEST_FILE}"
         # CI_MESSAGE and MESSAGE_HEADERS are used internally by JMS messaging plugin
         - name: CI_MESSAGE
           value:

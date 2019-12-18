@@ -115,6 +115,10 @@ pipeline {
           // Don't send a message if the job fails before getting the image digest.
           return;
         }
+        if (!env.MESSAGING_PROVIDER) {
+          // Don't send a message if messaging provider is not configured
+          return
+        }
         // currentBuild.result == null || currentBuild.result == 'SUCCESS' indicates a successful build,
         // because it's possible that the pipeline engine hasn't set the value nor seen an error when reaching to this line.
         // See example code in https://jenkins.io/doc/book/pipeline/jenkinsfile/#deploy

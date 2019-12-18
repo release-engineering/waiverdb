@@ -35,7 +35,7 @@ parameters:
   displayName: Secret name of container registries used for pulling and pushing images
   value: factory2-pipeline-registry-credentials
   required: false
-- name: JENKINS_AGENT_CLOUD_NAME
+- name: OPENSHIFT_CLOUD_NAME
   displayName: Name of OpenShift cloud in Jenkins master configuration
   required: true
   value: openshift
@@ -92,8 +92,8 @@ objects:
           value: ""
         - name: JENKINS_AGENT_IMAGE
           value: "${JENKINS_AGENT_IMAGE}"
-        - name: JENKINS_AGENT_CLOUD_NAME
-          value: "${JENKINS_AGENT_CLOUD_NAME}"
+        - name: OPENSHIFT_CLOUD_NAME
+          value: "${OPENSHIFT_CLOUD_NAME}"
         - name: JENKINS_AGENT_SERVICE_ACCOUNT
           value: "${NAME}-jenkins-slave"
         - name: ENVIRONMENT

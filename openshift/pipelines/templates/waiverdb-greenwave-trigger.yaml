@@ -12,14 +12,6 @@ parameters:
   displayName: Short unique identifier for the templated instances
   description: This field is used to deploy multiple pipelines to one OpenShift project from this template.
   value: waiverdb-greenwave-trigger
-- name: WAIVERDB_GIT_REPO
-  displayName: WaiverDB Git repo URL
-  description: Default WaiverDB Git repo URL in which to run dev tests against
-  value: "https://pagure.io/waiverdb.git"
-- name: WAIVERDB_GIT_REF
-  displayName: WaiverDB Git repo ref
-  description: Default WaiverDB Git repo ref in which to run dev tests against
-  value: master
 - name: DECISION_CONTEXT_REGEX
   displayName: Regex pattern for Greenwave decision context in CI message
   required: true
@@ -98,10 +90,6 @@ objects:
       type: JenkinsPipeline
       jenkinsPipelineStrategy:
         env:
-        - name: WAIVERDB_GIT_REPO
-          value: "${WAIVERDB_GIT_REPO}"
-        - name: WAIVERDB_GIT_REF
-          value: "${WAIVERDB_GIT_REF}"
         - name: OPENSHIFT_CLOUD_NAME
           value: "${OPENSHIFT_CLOUD_NAME}"
         - name: PROMOTING_DESTINATIONS
@@ -122,8 +110,6 @@ objects:
           value: "${SOURCE_CONTAINER_REPO}"
         - name: TARGET_TAG
           value: "${TARGET_TAG}"
-        - name: IMAGE_PROMOTION_JOB
-          value: "${IMAGE_PROMOTION_JOB}"
         - name: DECISION_CONTEXT_REGEX
           value: "${DECISION_CONTEXT_REGEX}"
         - name: SUBJECT_IDENTIFIER_REGEX

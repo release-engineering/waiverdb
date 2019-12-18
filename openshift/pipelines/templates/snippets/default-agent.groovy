@@ -1,6 +1,6 @@
 agent {
   kubernetes {
-    cloud "${params.JENKINS_AGENT_CLOUD_NAME}"
+    cloud "${params.OPENSHIFT_CLOUD_NAME}"
     label "jenkins-slave-${UUID.randomUUID().toString()}"
     serviceAccount "${params.JENKINS_AGENT_SERVICE_ACCOUNT}"
     defaultContainer 'jnlp'

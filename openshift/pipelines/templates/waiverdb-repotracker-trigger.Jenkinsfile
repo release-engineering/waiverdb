@@ -27,7 +27,7 @@ pipeline {
           }
           def message = readJSON text: params.CI_MESSAGE
           echo "Tag :${message.tag} is ${message.action} in ${message.repo}. New digest: ${message.digest}"
-          def env.IMAGE = "${message.repo}@${message.digest}"
+          env.IMAGE = "${message.repo}@${message.digest}"
           echo "Triggering a job to test if ${env.IMAGE} meets all criteria of desired tag :${message.tag}"
           env.IMAGE_IS_SCRATCH = false
           env.PIPELINE_ID = "c3i-waiverdb-tag-${message.tag}-${message.digest[-9..-1]}"
