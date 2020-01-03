@@ -1,0 +1,29 @@
+version: '2.1'
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: openshift/containers/waiverdb/Dockerfile
+    working_dir: /code
+    env_file: ["docker/dev.env"]
+    command: ["bash", "-c", "/start.sh"]
+    volumes:
+      - ./:/code:ro,Z
+      - ./docker/home:/home/dev:Z
+      - ./docker/dev-command.sh:/start.sh:ro,z
+      - ./docker/settings.py:/etc/waiverdb/settings.py:ro,z
+      - ./docker/client_secrets.json:/etc/secret/client_secrets.json:ro,z
+    ports:
+     - 5004:5004
+    user: '0'
+    depends_on:
+      - waiverdb-db
+
+  waiverdb-db:
+    image: postgres:9.5.2
+    restart: always
+    env_file: ["docker/waiverdb-db.env"]
+
+networks:
+  default:
+    driver: bridge

@@ -10,6 +10,14 @@ against test results.
 
 ## Quick development setup
 
+The fastest way to setting up development environment is to install
+docker-compose or podman-compose and use `make up` to provision required
+containers and use `make test` to run tests or `make coverage` to generate and
+open coverage report.
+
+As alternative to using containers, below are steps to set up development
+environment on local machine.
+
 Install dependencies:
 
     $ sudo dnf builddep waiverdb.spec
