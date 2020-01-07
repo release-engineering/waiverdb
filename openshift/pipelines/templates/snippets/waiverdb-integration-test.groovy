@@ -2,11 +2,9 @@ stage("Functional tests phase") {
   stages {
     stage('Prepare') {
       steps {
-        checkout([$class: 'GitSCM',
-          branches: [[name: env.PR_NO ? env.WAIVERDB_GIT_REF : env.WAIVERDB_GIT_COMMIT]],
-          userRemoteConfigs: [[url: params.WAIVERDB_GIT_REPO, refspec: '+refs/heads/*:refs/remotes/origin/* +refs/pull/*/head:refs/remotes/origin/pull/*/head']],
-        ])
-        env.IMAGE = "${env.RESULTING_IMAGE_REPO}:${env.RESULTING_TAG}"
+        script {
+          env.IMAGE = "${env.RESULTING_IMAGE_REPO}:${env.RESULTING_TAG}"
+        }
       }
     }
     stage('Cleanup') {
@@ -14,29 +12,8 @@ stage("Functional tests phase") {
       steps {
         script {
           openshift.withCluster() {
-            def df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
-            df.setTimeZone(TimeZone.getTimeZone('UTC'))
-            // Get all OpenShift objects of previous test environments
-            def oldObjs = openshift.selector('dc,deploy,configmap,secret,svc,route',
-              ['template': 'waiverdb-test', 'app':'waiverdb'])
-            def now = new Date()
-            // Delete all objects that are older than 1 hour
-            for (objName in oldObjs.names()) {
-              def obj = openshift.selector(objName)
-              def objData = obj.object()
-              if (!objData.metadata.creationTimestamp)
-                continue
-              def creationTime = df.parse(objData.metadata.creationTimestamp)
-              // 1 hour = 1000 * 60 * 60 ms
-              if (now.getTime() - creationTime.getTime() < 1000 * 60 * 60)
-                continue
-              echo "Deleting ${objName}..."
-              try {
-                obj.delete()
-                echo "Deleted ${objName}"
-              } catch (e) {
-                echo "Error deleting ${objName}: ${e.message}"
-              }
+            openshift.withProject(env.PIPELINE_ID) {
+              c3i.cleanup(script: this, age: 60, 'waiverdb')
             }
           }
         }
