@@ -93,8 +93,10 @@ def stomp_connection():
         conn = stomp.Connection(**configs['connection'])
         conn.start()
         conn.connect(**configs.get('credentials', {}))
-        yield conn
-        conn.disconnect()
+        try:
+            yield conn
+        finally:
+            conn.disconnect()
     else:
         raise RuntimeError('stomp was configured to publish messages, '
                            'but STOMP_CONFIGS is not configured')
