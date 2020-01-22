@@ -6,7 +6,7 @@ stage('Run integration tests') {
           if (!env.TRIGGER_NAMESPACE) {
             env.TRIGGER_NAMESPACE = readFile("/run/secrets/kubernetes.io/serviceaccount/namespace").trim()
           }
-          if(!env.PAAS_DOMAIN) {
+          if (!env.PAAS_DOMAIN) {
             openshift.withCluster() {
               openshift.withProject(env.TRIGGER_NAMESPACE) {
                 def testroute = openshift.create('route', 'edge', "test-${env.BUILD_NUMBER}",  '--service=test', '--port=8080')
@@ -17,15 +17,6 @@ stage('Run integration tests') {
             }
             echo "Routes end with ${env.PAAS_DOMAIN}"
           }
-          openshift.withCluster() {
-            openshift.withProject(env.TRIGGER_NAMESPACE) {
-              def testroute = openshift.create('route', 'edge', "test-${env.BUILD_NUMBER}",  '--service=test', '--port=8080')
-              def testhost = testroute.object().spec.host
-              env.PAAS_DOMAIN = testhost.minus("test-${env.BUILD_NUMBER}-${env.TRIGGER_NAMESPACE}.")
-              testroute.delete()
-            }
-          }
-          echo "Routes end with ${env.PAAS_DOMAIN}"
           env.PIPELINE_ID = 'c3i-pipeline-' + UUID.randomUUID().toString().substring(0,4)
           openshift.withCluster() {
             openshift.withProject(params.PIPELINE_AS_A_SERVICE_BUILD_NAMESPACE) {
