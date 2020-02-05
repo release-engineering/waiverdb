@@ -3,6 +3,7 @@ stage('Run integration tests') {
     stage('Request Pipeline') {
       steps {
         script {
+          env.TESTCASE_CATEGORY = env.ENVIRONMENT
           if (!env.TRIGGER_NAMESPACE) {
             env.TRIGGER_NAMESPACE = readFile("/run/secrets/kubernetes.io/serviceaccount/namespace").trim()
           }
@@ -60,8 +61,10 @@ stage('Run integration tests') {
           return
         }
         pipeline_data = controller.getVars()
+        // convert 'quay.io/factory2/waiverdb@sha256:1647bbaa..' or 'quay.io/factory2/waiverdb:tag' to factory2/waiverdb
+        def image_repo = pipeline_data.WAIVERDB_IMAGE.tokenize(':@')[0].tokenize('/')[1..-1].join('/')
         c3i.sendResultToMessageBus(
-          pipeline_data.WAIVERDB_IMAGE,
+          image_repo,
           pipeline_data.WAIVERDB_IMAGE_DIGEST,
           env.BUILD_TAG,
           env.TARGET_IMAGE_IS_SCRATCH == "true",
@@ -71,7 +74,6 @@ stage('Run integration tests') {
     }
     failure {
       script {
-        env.TESTCASE_CATEGORY = env.ENVIRONMENT
         c3i.archiveContainersLogs(env.PIPELINE_ID)
       }
     }
