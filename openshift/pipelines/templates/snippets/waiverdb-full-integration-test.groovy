@@ -26,7 +26,7 @@ stage('Run integration tests') {
                 '-e', "WAIVERDB_IMAGE=${env.IMAGE}",
                 '-e', "PIPELINE_ID=${env.PIPELINE_ID}",
                 '-e', "PAAS_DOMAIN=${env.PAAS_DOMAIN}",
-                '-e', "SERVICES_TO_DEPLOY='resultsdb-updater datanommer greenwave resultsdb umb waiverdb datagrepper'",
+                '-e', "SERVICES_TO_DEPLOY='resultsdb-updater datanommer greenwave resultsdb umb waiverdb datagrepper krb5 ldap koji'",
                 '-e', "TRIGGERED_BY=${env.BUILD_URL}"
               )
             }
