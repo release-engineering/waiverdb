@@ -13,6 +13,7 @@ test results.
    waiverdb-cli
    client-conf
    developer-guide
+   admin-guide
    release-notes
 
 
