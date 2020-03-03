@@ -57,7 +57,7 @@ def client(app):
     by default.
     """
     with app.test_client() as client:
-        with patch('fedora_messaging.api._session_cache'):
+        with patch('waiverdb.events.publish'):
             yield client
 
 
