@@ -2,6 +2,13 @@
 Release Notes
 =============
 
+WaiverDB 1.1.6
+==============
+
+Released 10 March 2020
+
+* Version 1.1.5 was bumped due to error during the release
+
 WaiverDB 1.1.5
 ==============
 
