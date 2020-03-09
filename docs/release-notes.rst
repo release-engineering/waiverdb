@@ -2,6 +2,14 @@
 Release Notes
 =============
 
+WaiverDB 1.1.5
+==============
+
+Released 9 March 2020
+
+* STOMP connection will always disconnect regardless of errors
+* Added ``docker-compose`` support
+
 WaiverDB 1.1.4
 ==============
 
