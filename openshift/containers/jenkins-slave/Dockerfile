@@ -20,9 +20,9 @@ ARG CA_URLS=""
 USER root
 
 RUN ${DNF_CMD} install -y \
-    java-1.8.0-openjdk-headless gettext nss_wrapper git-core \
+    java-1.8.0-openjdk-headless gettext git-core \
     tar gzip skopeo wget make bind-utils \
-    origin-clients \
+    origin-clients python3-jinja2-cli \
     # Jenkins pipeline 'sh' steps seem to require ps
     procps-ng \
     # Tools to build and test waiverdb
