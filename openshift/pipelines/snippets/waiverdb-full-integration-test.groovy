@@ -7,7 +7,7 @@ stage('Run integration tests') {
             openshift.withProject(params.PIPELINE_AS_A_SERVICE_BUILD_NAMESPACE) {
               c3i.buildAndWait(script: this, objs: "bc/pipeline-as-a-service",
                 '-e', "DEFAULT_IMAGE_TAG=${env.ENVIRONMENT}",
-                '-e', "WAIVERDB_IMAGE=${env.IMAGE}",
+                '-e', "WAIVERDB_IMAGE=${env.TRACKED_CONTAINER_REPO}:${env.TRACKED_TAG}",
                 '-e', "PIPELINE_ID=${env.PIPELINE_ID}",
                 '-e', "PAAS_DOMAIN=${env.PAAS_DOMAIN}",
                 '-e', "SERVICES_TO_DEPLOY='resultsdb-updater datanommer greenwave resultsdb umb waiverdb datagrepper krb5 ldap koji-hub'",
