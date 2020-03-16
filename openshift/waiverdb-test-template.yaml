@@ -172,7 +172,7 @@ objects:
 - apiVersion: v1
   kind: Route
   metadata:
-    name: "waiverdb-test-${TEST_ID}-web"
+    name: "waiverdb-test-web"
     labels:
       environment: "test-${TEST_ID}"
       app: waiverdb
