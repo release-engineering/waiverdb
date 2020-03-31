@@ -17,3 +17,7 @@ c3i_jenkins_test_agent_image: docker-registry.upshift.redhat.com/factory2/factor
 
 c3i_lib_url: https://pagure.io/c3i-library.git
 c3i_lib_branch: master
+
+# Allow prod image promotion based on waiverdb-deployments-allowed flag state.
+c3i_semaphore_custom_flags:
+  - waiverdb-deployments-allowed
