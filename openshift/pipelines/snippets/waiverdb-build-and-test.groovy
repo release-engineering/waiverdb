@@ -195,8 +195,12 @@ stage("Functional tests phase") {
               c3i.deployAndWait(script: this, objs: models, timeout: 15)
               def appPod = openshift.selector('pods', ['environment': env.ENVIRONMENT_LABEL, 'service': 'web']).object()
               env.IMAGE_DIGEST = appPod.status.containerStatuses[0].imageID.split('@')[1]
+              // Create route with short name
+              openshift.create('route', 'edge', 'waiverdb', "--service=waiverdb-test-${env.TEST_ID}-web")
+              // Give some time to active the route
+              sh 'sleep 5'
               // Run functional tests
-              def route_hostname = openshift.selector('routes', ['environment': env.ENVIRONMENT_LABEL]).object().spec.host
+              def route_hostname = openshift.selector('routes', 'waiverdb').object().spec.host
               echo "Running tests against https://${route_hostname}/"
               withEnv(["WAIVERDB_TEST_URL=https://${route_hostname}/"]) {
                 sh 'py.test-3 -v --junitxml=junit-functional-tests.xml functional-tests/'
