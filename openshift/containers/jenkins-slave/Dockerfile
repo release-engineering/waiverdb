@@ -2,7 +2,7 @@
 # https://github.com/jenkinsci/docker-jnlp-slave/blob/master/Dockerfile
 # https://github.com/jenkinsci/docker-slave/blob/master/Dockerfile
 
-FROM fedora:29
+FROM fedora:31
 LABEL \
     org.opencontainers.image.title="Jenkins agent image for WaiverDB" \
     org.opencontainers.image.description="Jenkins slave for WaiverDB dev tests" \
