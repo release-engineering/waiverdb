@@ -21,3 +21,7 @@ c3i_lib_branch: master
 # Allow prod image promotion based on waiverdb-deployments-allowed flag state.
 c3i_semaphore_custom_flags:
   - waiverdb-deployments-allowed
+
+c3i_tower_template_id_dev: 568
+c3i_tower_template_id_stage: 570
+c3i_tower_template_id_prod: 571
