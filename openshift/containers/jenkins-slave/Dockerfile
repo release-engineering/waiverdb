@@ -2,7 +2,7 @@
 # https://github.com/jenkinsci/docker-jnlp-slave/blob/master/Dockerfile
 # https://github.com/jenkinsci/docker-slave/blob/master/Dockerfile
 
-FROM fedora:31
+FROM fedora:32
 LABEL \
     org.opencontainers.image.title="Jenkins agent image for WaiverDB" \
     org.opencontainers.image.description="Jenkins slave for WaiverDB dev tests" \
@@ -14,12 +14,15 @@ ARG UID=10000
 ARG HOME_DIR=/home/jenkins
 ARG REMOTING_VERSION=3.36
 ARG TINI_VERSION=0.18.0
-ARG DNF_CMD="dnf -y --setopt=deltarpm=0 --setopt=install_weak_deps=false --setopt=tsflags=nodocs"
 ARG CA_URLS=""
 
 USER root
 
-RUN ${DNF_CMD} install -y \
+RUN dnf -y \
+    --setopt=deltarpm=0 \
+    --setopt=install_weak_deps=false \
+    --setopt=tsflags=nodocs \
+    install \
     java-1.8.0-openjdk-headless gettext git-core \
     tar gzip skopeo wget make bind-utils \
     origin-clients python3-jinja2-cli \
@@ -40,8 +43,8 @@ RUN for ca_url in ${CA_URLS}; do curl -skO ${ca_url}; done && \
 # install build dependencies for WaiverDB
 COPY waiverdb.spec /usr/local/src/waiverdb/waiverdb.spec
 RUN cd /usr/local/src/waiverdb \
-  && ${DNF_CMD} builddep waiverdb.spec \
-  && ${DNF_CMD} clean all \
+  && dnf -y builddep waiverdb.spec \
+  && dnf -y clean all \
   && cd / && rm -rf /usr/local/src/waiverdb
 
 # Setup the user for non-arbitrary UIDs with OpenShift
@@ -69,7 +72,7 @@ RUN curl -L -o /usr/local/bin/tini "https://github.com/krallin/tini/releases/dow
     && chmod +rx /usr/local/bin/tini \
     && curl -L -o /usr/local/bin/wait-for-it "https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh" \
     && chmod +rx /usr/local/bin/tini /usr/local/bin/wait-for-it \
-    && ${DNF_CMD} clean all
+    && dnf -y clean all
 
 # For OpenShift we MUST use the UID of the user and not the name.
 USER ${UID}

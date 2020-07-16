@@ -259,10 +259,7 @@ def test_404_for_nonexistent_waiver(client, session):
     r = client.get('/api/v1.0/waivers/foo')
     assert r.status_code == 404
     res_data = json.loads(r.get_data(as_text=True))
-    message = (
-        'The requested URL was not found on the server.  If you entered the '
-        'URL manually please check your spelling and try again.')
-    assert res_data['message'] == message
+    assert 'The requested URL was not found on the server' in res_data['message']
 
 
 @patch('waiverdb.api_v1.AboutResource.get', side_effect=ConnectionError)
