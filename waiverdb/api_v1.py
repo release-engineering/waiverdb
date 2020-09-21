@@ -335,7 +335,10 @@ class WaiversResource(Resource):
 
         ldap_host = current_app.config.get('LDAP_HOST')
         ldap_base = current_app.config.get('LDAP_BASE')
-        return verify_authorization(user, testcase, permission_mapping, ldap_host, ldap_base)
+        ldap_search_string = current_app.config.get('LDAP_SEARCH_STRING', '(memberUid={user})')
+        return verify_authorization(
+            user, testcase, permission_mapping, ldap_host, ldap_base, ldap_search_string
+        )
 
     def _create_waiver(self, args, user):
         proxied_by = None
