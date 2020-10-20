@@ -50,6 +50,7 @@ class Waiver(db.Model):
     proxied_by = db.Column(db.String(255))
     product_version = db.Column(db.String(200), nullable=False)
     waived = db.Column(db.Boolean, nullable=False, default=False)
+    scenario = db.Column(db.String(255), nullable=True)
     comment = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     __table_args__ = (
