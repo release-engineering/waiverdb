@@ -16,7 +16,7 @@ def get_group_membership(ldap, user, con, ldap_search):
     try:
         results = con.search_s(
             ldap_search['BASE'], ldap.SCOPE_SUBTREE,
-            ldap_search.get('SEARCH_STRING', '(memberUid={user})').format(user), ['cn']
+            ldap_search.get('SEARCH_STRING', '(memberUid={user})').format(user=user), ['cn']
         )
         return [group[1]['cn'][0].decode('utf-8') for group in results]
     except KeyError:
@@ -50,7 +50,11 @@ def verify_authorization(user, testcase, permission_mapping, ldap_host, ldap_sea
         raise InternalServerError(('If PERMISSION_MAPPING is defined, '
                                    'python-ldap needs to be installed.'))
 
-    con = ldap.initialize(ldap_host)
+    try:
+        con = ldap.initialize(ldap_host)
+    except ldap.LDAPError:
+        log.exception('Some error occurred initializing the LDAP connection.')
+        raise Unauthorized('Some error occurred initializing the LDAP connection.')
     group_membership = set()
 
     for cur_ldap_search in ldap_searches:

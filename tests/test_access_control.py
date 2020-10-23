@@ -39,8 +39,8 @@ class TestAccessControl(object):
                         content_type='application/json', headers=self.headers)
         res_data = json.loads(r.get_data(as_text=True))
         assert r.status_code == 500
-        assert res_data['message'] == ("LDAP_HOST and LDAP_BASE also need to be "
-                                       "defined if PERMISSION_MAPPING is defined.")
+        assert res_data['message'] == ('LDAP_HOST and LDAP_SEARCHES also need to be defined '
+                                       'if PERMISSION_MAPPING is defined.')
 
     @pytest.mark.usefixtures('enable_ldap_host')
     def test_ldap_host_defined_base_not(self, client, session):
