@@ -19,6 +19,7 @@ waiver_fields = {
     'subject': BackwardsCompatibleSubjectField,
     'testcase': fields.String,
     'username': fields.String,
+    'scenario': fields.String,
     'proxied_by': fields.String,
     'product_version': fields.String,
     'waived': fields.Boolean,

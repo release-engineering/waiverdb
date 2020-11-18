@@ -58,7 +58,7 @@ class Waiver(db.Model):
     )
 
     def __init__(self, subject_type, subject_identifier, testcase, username, product_version,
-                 waived=False, comment=None, proxied_by=None):
+                 waived=False, comment=None, proxied_by=None, scenario=None):
         self.subject_type = subject_type
         self.subject_identifier = subject_identifier
         self.testcase = testcase
@@ -67,12 +67,13 @@ class Waiver(db.Model):
         self.waived = waived
         self.comment = comment
         self.proxied_by = proxied_by
+        self.scenario = scenario
 
     def __repr__(self):
-        return ('%s(subject_type=%r, subject_identifier=%r, testcase=%r, username=%r, '
+        return ('%s(subject_type=%r, subject_identifier=%r, testcase=%r, scenario=%r, username=%r, '
                 'product_version=%r, waived=%r)'
                 % (self.__class__.__name__, self.subject_type, self.subject_identifier,
-                   self.testcase, self.username, self.product_version, self.waived))
+                   self.testcase, self.scenario, self.username, self.product_version, self.waived))
 
     @classmethod
     def by_results(cls, query, results):

@@ -58,6 +58,7 @@ def test_create_waiver(mocked_user, client, session):
     assert res_data['product_version'] == 'fool-1'
     assert res_data['waived'] is True
     assert res_data['comment'] == 'it broke'
+    assert res_data['scenario'] is None
 
 
 def test_create_waiver_with_subject(mocked_user, client, session):
@@ -89,6 +90,7 @@ def test_create_waiver_with_result_id(mocked_user, mocked_resultsdb, client, ses
         'data': {
             'type': ['koji_build'],
             'item': ['somebuild'],
+            'scenario': ['somescenario'],
         },
         'testcase': {'name': 'sometest'}
     }
@@ -105,6 +107,7 @@ def test_create_waiver_with_result_id(mocked_user, mocked_resultsdb, client, ses
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 201
     assert res_data['username'] == 'foo'
+    assert res_data['scenario'] == 'somescenario'
     assert res_data['subject'] == {'type': 'koji_build', 'item': 'somebuild'}
     assert res_data['subject_type'] == 'koji_build'
     assert res_data['subject_identifier'] == 'somebuild'
@@ -156,6 +159,31 @@ def test_create_waiver_without_comment(mocked_user, client, session):
     assert r.status_code == 400
     res_data = json.loads(r.get_data(as_text=True))
     assert res_data['message']['comment'] == 'Missing required parameter in the JSON body'
+
+
+def test_create_waiver_with_scenario(mocked_user, client, session):
+    data = {
+        'subject_type': 'koji_build',
+        'subject_identifier': 'glibc-2.26-27.fc27',
+        'testcase': 'testcase1',
+        'product_version': 'fool-1',
+        'scenario': 'scenario1',
+        'waived': True,
+        'comment': 'it broke',
+    }
+    r = client.post('/api/v1.0/waivers/', data=json.dumps(data),
+                    content_type='application/json')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 201
+    assert res_data['username'] == 'foo'
+    assert res_data['subject'] == {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}
+    assert res_data['subject_type'] == 'koji_build'
+    assert res_data['subject_identifier'] == 'glibc-2.26-27.fc27'
+    assert res_data['testcase'] == 'testcase1'
+    assert res_data['product_version'] == 'fool-1'
+    assert res_data['waived'] is True
+    assert res_data['comment'] == 'it broke'
+    assert res_data['scenario'] == 'scenario1'
 
 
 def test_create_waiver_with_unknown_result_id(mocked_user, mocked_resultsdb, client, session):
@@ -253,6 +281,39 @@ def test_get_waiver(client, session):
     assert res_data['product_version'] == waiver.product_version
     assert res_data['waived'] is True
     assert res_data['comment'] == waiver.comment
+    assert res_data['scenario'] is None
+
+
+def test_get_waiver_by_scenario(client, session):
+    scenario_name = 'scenario19'
+    # create a new waiver
+    waiver1 = create_waiver(
+        session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
+        testcase='testcase1', username='foo', product_version='foo-1', comment='bla bla bla',
+        scenario=scenario_name
+    )
+    create_waiver(
+        session, subject_type='bodhi_update', subject_identifier='glibc-2.26-27.fc27',
+        testcase='testcase1', username='foo', product_version='foo-1', comment='bla bla bla',
+        scenario='yyyyyy'
+    )
+    r = client.get(f'/api/v1.0/waivers/?scenario={scenario_name}')
+    assert r.status_code == 200
+    res_data = json.loads(r.get_data(as_text=True))
+    assert len(res_data['data']) == 1
+    assert res_data['data'][0]['username'] == waiver1.username
+    assert res_data['data'][0]['subject'] == {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}
+    assert res_data['data'][0]['subject_type'] == waiver1.subject_type
+    assert res_data['data'][0]['subject_identifier'] == waiver1.subject_identifier
+    assert res_data['data'][0]['testcase'] == waiver1.testcase
+    assert res_data['data'][0]['product_version'] == waiver1.product_version
+    assert res_data['data'][0]['waived'] is True
+    assert res_data['data'][0]['comment'] == waiver1.comment
+    assert res_data['data'][0]['scenario'] == scenario_name
+    assert res_data['prev'] is None
+    assert res_data['next'] is None
+    assert res_data['first'] == res_data['last']
+    assert res_data['last'] == f'http://localhost/api/v1.0/waivers/?page=1&scenario={scenario_name}'
 
 
 def test_404_for_nonexistent_waiver(client, session):

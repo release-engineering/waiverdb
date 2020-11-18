@@ -121,6 +121,7 @@ RP['create_waiver'].add_argument('waived', type=bool, required=True, location='j
 RP['create_waiver'].add_argument('product_version', type=str, required=True, location='json')
 RP['create_waiver'].add_argument('comment', type=str, required=True, location='json')
 RP['create_waiver'].add_argument('username', type=str, default=None, location='json')
+RP['create_waiver'].add_argument('scenario', type=str, default=None, location='json')
 
 RP['get_waivers'] = reqparse.RequestParser()
 RP['get_waivers'].add_argument('subject_type', location='args')
@@ -129,6 +130,7 @@ RP['get_waivers'].add_argument('testcase', location='args')
 RP['get_waivers'].add_argument('product_version', location='args')
 RP['get_waivers'].add_argument('username', location='args')
 RP['get_waivers'].add_argument('include_obsolete', type=bool, default=False, location='args')
+RP['get_waivers'].add_argument('scenario', type=str, default=None, location='args')
 # XXX This matches the since query parameter in resultsdb but I think it would
 # be good to use two parameters(since and until).
 RP['get_waivers'].add_argument('since', type=reqparse_since, location='args')
@@ -198,6 +200,7 @@ class WaiversResource(Resource):
         :query string subject_type: Only include waivers for the given subject type.
         :query string subject_identifier: Only include waivers for the given subject identifier.
         :query string testcase: Only include waivers for the given test case name.
+        :query string scenario: Only include waivers for the given scenario name.
         :query string product_version: Only include waivers for the given
             product version.
         :query string username: Only include waivers which were submitted by
@@ -222,6 +225,8 @@ class WaiversResource(Resource):
             query = query.filter(Waiver.subject_identifier == args['subject_identifier'])
         if args['testcase']:
             query = query.filter(Waiver.testcase == args['testcase'])
+        if args['scenario']:
+            query = query.filter(Waiver.scenario == args['scenario'])
         if args['product_version']:
             query = query.filter(Waiver.product_version == args['product_version'])
         if args['username']:
@@ -290,6 +295,7 @@ class WaiversResource(Resource):
                "subject_type": "compose",
                "subject_identifier": "Fedora-9000-19700101.n.18",
                "testcase": "compose.install_no_user",
+               "scenario": null,
                "timestamp": "2017-03-16T17:42:04.209638",
                "username": "jcline",
                "waived": false,
@@ -301,6 +307,7 @@ class WaiversResource(Resource):
             waiver is for. The semantics of this identifier depend on the
             "subject_type". For example, Koji builds are identified by their NVR.
         :json string testcase: The result testcase for the waiver.
+        :json string scenario: The result scenario for the waiver.
         :json boolean waived: Whether or not the result is waived.
         :json string product_version: The product version string.
         :json string comment: A comment explaining the waiver.
@@ -354,9 +361,9 @@ class WaiversResource(Resource):
 
         # WaiverDB < 0.6
         if args['result_id']:
-            if args['subject'] or args['testcase']:
-                raise BadRequest('Only result_id or subject and '
-                                 'testcase are allowed.  Not both.')
+            if args['subject'] or args['testcase'] or args['scenario']:
+                raise BadRequest('result_id argument should not be used together with arguments: '
+                                 '"subject", "testcase" or "scenario"')
             try:
                 result = get_resultsdb_result(args.pop('result_id'))
             except requests.HTTPError as e:
@@ -381,6 +388,8 @@ class WaiversResource(Resource):
                                  'id for this result. Please try again specifying '
                                  'a subject and a testcase.')
             args['testcase'] = result['testcase']['name']
+            if 'scenario' in result_data:
+                args['scenario'] = result_data['scenario'][0]
 
         # WaiverDB < 0.11
         if args['subject']:
@@ -412,7 +421,9 @@ class WaiversResource(Resource):
             args['product_version'],
             args['waived'],
             args['comment'],
-            proxied_by)
+            proxied_by,
+            args['scenario']
+        )
 
 
 class WaiverResource(Resource):
@@ -486,6 +497,7 @@ class FilteredWaiversResource(Resource):
                         "subject_type": "compose",
                         "subject_identifier": "Fedora-9000-19700101.n.18",
                         "testcase": "compose.install_no_user",
+                        "scenario": null,
                         "timestamp": "2017-03-16T17:42:04.209638",
                         "username": "jcline",
                         "waived": true,
@@ -514,6 +526,8 @@ class FilteredWaiversResource(Resource):
                 inner_clauses.append(Waiver.subject_identifier == filter_['subject_identifier'])
             if 'testcase' in filter_:
                 inner_clauses.append(Waiver.testcase == filter_['testcase'])
+            if 'scenario' in filter_:
+                inner_clauses.append(Waiver.scenario == filter_['scenario'])
             if 'product_version' in filter_:
                 inner_clauses.append(Waiver.product_version == filter_['product_version'])
             if 'username' in filter_:
