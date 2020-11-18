@@ -2,6 +2,16 @@
 Release Notes
 =============
 
+WaiverDB 1.1.7
+==============
+
+Released 18 November 2020
+
+* Support for multiple LDAP queries was added
+* Calling ``start`` for the ``stomp.py`` connection was removed as
+  it was deprecated
+* ``scenario`` field was added to the database
+
 WaiverDB 1.1.6
 ==============
 
