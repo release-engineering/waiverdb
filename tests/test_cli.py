@@ -2,6 +2,7 @@
 import pytest
 import json
 from mock import Mock, patch
+from textwrap import dedent
 from click.testing import CliRunner
 from waiverdb import __version__
 from waiverdb.cli import cli as waiverdb_cli
@@ -313,6 +314,19 @@ api_url=http://localhost:5004/api/v1.0
     assert result.output == 'Error: Please specify result_id or subject/testcase. Not both\n'
 
 
+def test_malformed_submission_with_id_and_scenario(tmpdir):
+    runner = CliRunner()
+    p = tmpdir.join('client.conf')
+    p.write(dedent("""
+        [waiverdb]
+        auth_method=dummy
+        api_url=http://localhost:5004/api/v1.0
+    """))
+    args = ['-C', p.strpath, '-p', 'Parrot', '-r', '123', '-S', 'somescenario', '-c', "This is OK"]
+    result = runner.invoke(waiverdb_cli, args, catch_exceptions=False)
+    assert result.output == 'Error: Please specify result_id or scenario. Not both\n'
+
+
 def test_submit_waiver_for_original_spec_nvr_result(tmpdir):
     with patch('requests.request') as mock_request:
         mock_rv = Mock()
@@ -386,6 +400,42 @@ koji_base_url=https://koji.fedoraproject.org/kojihub
             'Created waiver 15 for result with '
             'subject type koji_build, identifier setup-2.8.71-7.el7_4 '
             'and testcase test.testcase\n'
+        )
+
+
+def test_create_waiver_product_version_from_koji_build_scenario(tmpdir):
+    with patch('requests.request') as mock_request:
+        mock_rv = Mock()
+        mock_rv.json.return_value = [{
+            "comment": "This is fine",
+            "id": 15,
+            "subject_type": "koji_build",
+            "subject_identifier": "setup-2.8.71-7.el7_4",
+            "scenario": "somescenario",
+            "testcase": "test.testcase",
+            "timestamp": "2017-010-16T17:42:04.209638",
+            "username": "foo",
+            "waived": True
+        }]
+        mock_request.return_value = mock_rv
+        p = tmpdir.join('client.conf')
+        p.write(dedent("""
+            [waiverdb]
+            auth_method=dummy
+            api_url=http://localhost:5004/api/v1.0
+            koji_base_url=https://koji.fedoraproject.org/kojihub
+        """))
+        runner = CliRunner()
+        args = [
+            '-C', p.strpath, '-s', '{"type": "koji_build", "item": "setup-2.8.71-7.el7_4"}',
+            '-S', 'somescenario', '-t', 'test.testcase', '-c', "This is fine"
+        ]
+        result = runner.invoke(waiverdb_cli, args, catch_exceptions=False)
+        mock_request.assert_called()
+        assert result.output == (
+            'Created waiver 15 for result with '
+            'subject type koji_build, identifier setup-2.8.71-7.el7_4 '
+            'and testcase test.testcase, scenario is somescenario\n'
         )
 
 

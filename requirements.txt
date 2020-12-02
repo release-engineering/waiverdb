@@ -9,6 +9,8 @@ flask-cors
 SQLAlchemy
 gssapi
 flask-oidc
+Flask-Migrate
+stomp.py
 
 # Documentation requirements
 sphinx

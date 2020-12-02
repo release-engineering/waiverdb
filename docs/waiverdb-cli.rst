@@ -43,6 +43,10 @@ Options
 
     Specify a testcase for the subject.
 
+.. option:: -S, --scenario SCENARIO
+
+    Specify a scenario for a result to waive.
+
 .. option:: -p, --product-version TEXT
 
     Specify one of PDC's product version identifiers.
@@ -86,3 +90,10 @@ Waive test results with specific subject and product version::
     waiverdb-cli -t dist.rpmdeplint \
         -s '{"item": "qclib-1.3.1-3.fc28", "type": "koji_build"}' \
         -p "fedora-28" -c "This is expected for non-x86 packages"
+
+Waive test results with a specific subject and scenario::
+
+    waiverdb-cli -t update.install_default_update_live \
+        -i FEDORA-2020-a70501de3d -T koji_build \
+        -S "fedora.updates-everything-boot-iso.x86_64.uefi" \
+        -c "This is ok"

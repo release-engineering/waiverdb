@@ -86,6 +86,8 @@ def check_response(resp, result_ids):
             waiver_id = data['id']
             msg = 'subject type {0}, identifier {1} and testcase {2}'.format(
                 data['subject_type'], data['subject_identifier'], data['testcase'])
+            if data.get('scenario'):
+                msg += f", scenario is {data['scenario']}"
             print_result(waiver_id, msg)
 
 
@@ -122,6 +124,8 @@ def guess_product_version(toparse, koji_build=False):
               help='Specify a config file to use')
 @click.option('--result-id', '-r', multiple=True, type=int,
               help='Specify one or more results to be waived')
+@click.option('--scenario', '-S',
+              help='Specify a scenario for a result to waive')
 @click.option('--subject', '-s', type=OldJSONSubject(),
               help=('Deprecated. Use --subject-identifier and --subject-type instead. '
                     'Subject for a result to waive.'))
@@ -139,8 +143,8 @@ def guess_product_version(toparse, koji_build=False):
               help='A comment explaining why the result is waived')
 @click.option('--username', '-u', default=None,
               help='Username on whose behalf the caller is proxying.')
-def cli(username, comment, waived, product_version, testcase, subject, subject_identifier,
-        subject_type, result_id, config_file):
+def cli(username, comment, waived, product_version, testcase, scenario, subject,
+        subject_identifier, subject_type, result_id, config_file):
     """
     Creates new waiver against test results.
 
@@ -150,8 +154,12 @@ def cli(username, comment, waived, product_version, testcase, subject, subject_i
         waiverdb-cli -r 47 -r 48 -p "fedora-28" -c "This is fine"
 
     \b
-        waiverdb-cli -t dist.rpmdeplint -i qclib-1.3.1-3.fc28 -T koji_build \\
+        waiverdb-cli -t dist.rpmdeplint -i qclib-1.3.1-3.fc28 -T bodhi_update \\
             -p "fedora-28" -c "This is expected for non-x86 packages"
+
+    \b
+        waiverdb-cli -t update.install_default_update_live -i FEDORA-2020-a70501de3d \\
+            -T koji_build -S "fedora.updates-everything-boot-iso.x86_64.uefi" -c "This is ok"
     """
     config = configparser.ConfigParser()
 
@@ -179,6 +187,8 @@ def cli(username, comment, waived, product_version, testcase, subject, subject_i
         raise click.ClickException('Please specify comment')
     if result_ids and (testcase or subject_identifier):
         raise click.ClickException('Please specify result_id or id/type/testcase. Not both')
+    if result_ids and scenario:
+        raise click.ClickException('Please specify result_id or scenario. Not both')
     if not result_ids and not subject_identifier:
         raise click.ClickException('Please specify subject-identifier')
     if not result_ids and not testcase:
@@ -223,6 +233,7 @@ def cli(username, comment, waived, product_version, testcase, subject, subject_i
             'subject_type': subject_type,
             'testcase': testcase,
             'waived': waived,
+            'scenario': scenario,
             'product_version': product_version,
             'comment': comment,
             'username': username
