@@ -2,6 +2,13 @@
 Release Notes
 =============
 
+WaiverDB 1.2.0
+==============
+
+Released 7 January 2020
+
+* ``scenario`` field is now supported for both REST API and CLI
+
 WaiverDB 1.1.7
 ==============
 
