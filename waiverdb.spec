@@ -17,6 +17,7 @@ URL:            https://pagure.io/waiverdb
 Source0:        https://files.pythonhosted.org/packages/source/w/%{name}/%{name}-%{upstream_version}.tar.gz
 
 BuildArch:      noarch
+BuildRequires:  make
 %if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires:  python3-devel
 BuildRequires:  python3-setuptools
