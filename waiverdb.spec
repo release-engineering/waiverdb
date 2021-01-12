@@ -20,7 +20,8 @@ BuildArch:      noarch
 %if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires:  python3-devel
 BuildRequires:  python3-setuptools
-%else # EPEL7 uses Python 2 and python- package naming convention
+%else
+# EPEL7 uses Python 2 and python- package naming convention
 BuildRequires:  python2-devel
 BuildRequires:  python-setuptools
 %endif
