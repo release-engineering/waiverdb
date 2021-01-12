@@ -18,7 +18,6 @@ if git status --porcelain | grep -q '^.M' ; then
     exit 1
 fi
 
-sed -i -e "/%global upstream_version /c\%global upstream_version ${version}${prerelease}" waiverdb.spec
 sed -i -e "/^Version:/c\Version:        $version" waiverdb.spec
 if [ -n "$prerelease" ] ; then
     sed -i -e "/^Release:/c\Release:        0.$prerelease%{?dist}" waiverdb.spec

@@ -1,5 +1,3 @@
-%global upstream_version 1.2.0
-
 %if 0%{?fedora} || 0%{?rhel} > 7
 %bcond_without server
 %else
@@ -14,7 +12,7 @@ Release:        1%{?dist}
 Summary:        Service for waiving results in ResultsDB
 License:        GPLv2+
 URL:            https://pagure.io/waiverdb
-Source0:        https://files.pythonhosted.org/packages/source/w/%{name}/%{name}-%{upstream_version}.tar.gz
+Source0:        https://files.pythonhosted.org/packages/source/w/%{name}/%{name}-%{version}.tar.gz
 
 BuildArch:      noarch
 BuildRequires:  make
@@ -101,7 +99,7 @@ This package contains a CLI tool for interacting with waiverdb.
 Primarily, submitting new waiverdbs.
 
 %prep
-%setup -q -n %{name}-%{upstream_version}
+%setup -q -n %{name}-%{version}
 
 # We guard against version flask-restful=0.3.6 in requirements.txt,
 # but the version in Fedora is patched to work.

@@ -27,9 +27,9 @@ git archive --format=tar HEAD | tar -C "$workdir" -xf -
 if [ -n "$WAIVERDB_RPM_RELEASE" ] ; then
     # need to hack the version in the spec
     sed --regexp-extended --in-place \
-        -e "/%global upstream_version /c\%global upstream_version ${WAIVERDB_VERSION}" \
         -e "/^Version:/cVersion: ${WAIVERDB_RPM_VERSION}" \
         -e "/^Release:/cRelease: ${WAIVERDB_RPM_RELEASE}%{?dist}" \
+        -e "/^Source0:/cSource0: waiverdb-${WAIVERDB_RPM_VERSION}.${WAIVERDB_RPM_RELEASE}.tar.gz" \
         "$workdir/${name}.spec"
     # also hack the Python module version
     sed --regexp-extended --in-place \
