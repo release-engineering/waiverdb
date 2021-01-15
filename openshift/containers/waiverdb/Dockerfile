@@ -1,4 +1,4 @@
-FROM fedora:32
+FROM registry.fedoraproject.org/fedora:32
 LABEL \
     name="waiverdb" \
     maintainer="WaiverDB developers" \
