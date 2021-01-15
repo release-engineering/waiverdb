@@ -8,6 +8,7 @@ conf/settings.py
 .cache
 /build/
 docs/_build
+docs-on-pagure
 /rpmbuild-output/
 *.src.rpm
 .tox
