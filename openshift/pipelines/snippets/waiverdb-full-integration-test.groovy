@@ -10,7 +10,8 @@ stage('Run integration tests') {
                 '-e', "WAIVERDB_IMAGE=${env.TRACKED_CONTAINER_REPO}:${env.TRACKED_TAG}",
                 '-e', "PIPELINE_ID=${env.PIPELINE_ID}",
                 '-e', "PAAS_DOMAIN=${env.PAAS_DOMAIN}",
-                '-e', "SERVICES_TO_DEPLOY='resultsdb-updater datanommer greenwave resultsdb umb waiverdb datagrepper krb5 ldap koji-hub'",
+                '-e', "SERVICES_TO_DEPLOY='resultsdb-updater greenwave resultsdb umb waiverdb krb5 ldap'",
+                '-e', "PIPELINE_PARAMS='{\"greenwave_wrapper_koji\": \"\", \"greenwave_side_tags_url_template\": \"\", \"greenwave_dist_git_url_template\": \"\" }'",
                 '-e', "TRIGGERED_BY=${env.BUILD_URL}"
               )
             }
