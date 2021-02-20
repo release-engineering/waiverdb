@@ -1,9 +1,11 @@
-%if 0%{?fedora} || 0%{?rhel} > 7
+%if 0%{?fedora} || 0%{?rhel} > 8
 %bcond_without server
+%bcond_without docs
 %else
-# For EPEL7 we build only the CLI, not the server bits,
+# For EPEL8 we build only the CLI, not the server bits,
 # because Flask and other dependencies are too old.
 %bcond_with server
+%bcond_with docs
 %endif
 
 Name:           waiverdb
@@ -16,14 +18,8 @@ Source0:        https://files.pythonhosted.org/packages/source/w/%{name}/%{name}
 
 BuildArch:      noarch
 BuildRequires:  make
-%if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires:  python3-devel
 BuildRequires:  python3-setuptools
-%else
-# EPEL7 uses Python 2 and python- package naming convention
-BuildRequires:  python2-devel
-BuildRequires:  python-setuptools
-%endif
 
 %if %{with server}
 BuildRequires:  python3-sphinx
@@ -76,20 +72,10 @@ for other WaiverDB subpackages.
 
 %package cli
 Summary: A CLI tool for interacting with waiverdb
-%if 0%{?fedora} || 0%{?rhel} > 7
 BuildRequires:  python3-click
 BuildRequires:  python3-requests-gssapi
 Requires:       python3-click
 Requires:       python3-requests-gssapi
-%else
-BuildRequires:  python-click
-BuildRequires:  python-requests-gssapi
-Requires:       python-click
-Requires:       python-requests-gssapi
-Requires:       python-configparser
-# For xmlrpc.client
-Requires:       python2-future
-%endif
 
 Requires:       waiverdb-common = %{version}-%{release}
 
@@ -109,24 +95,18 @@ sed -i '/Flask-RESTful/d' requirements.txt
 sed -i 's/\.stg\.fedoraproject\.org/.fedoraproject.org/g' conf/client.conf.example
 
 %build
-%if 0%{?fedora} || 0%{?rhel} > 7
 %py3_build
+%if %{with docs}
 make -C docs html man text
-%else
-%py2_build
 %endif
 
 %install
-%if 0%{?fedora} || 0%{?rhel} > 7
 %py3_install
-%else
-PYTHONDONTWRITEBYTECODE=1 %py2_install
-%endif
 
 %if ! %{with server}
 # Need to properly split out the client one day...
 rm %{buildroot}%{_bindir}/waiverdb
-ls -d %{buildroot}%{python2_sitelib}/waiverdb/* | grep -E -v '(__init__.py|cli.py)$' | xargs rm -r
+ls -d %{buildroot}%{python3_sitelib}/waiverdb/* | grep -E -v '(__init__.py|cli.py)$' | xargs rm -r
 %endif
 
 install -d %{buildroot}%{_sysconfdir}/waiverdb/
@@ -134,7 +114,7 @@ install -m0644 \
     conf/client.conf.example \
     %{buildroot}%{_sysconfdir}/waiverdb/client.conf
 
-%if 0%{?fedora} || 0%{?rhel} > 7
+%if %{with docs}
 install -D -m0644 \
     docs/_build/man/waiverdb-cli.1 \
     %{buildroot}%{_mandir}/man1/waiverdb-cli.1
@@ -166,31 +146,23 @@ install -D -m0644 \
 %files common
 %license COPYING
 %doc README.md conf
-%if 0%{?fedora} || 0%{?rhel} > 7
+%if %{with docs}
 %doc docs/_build/html docs/_build/text
+%endif
 %dir %{python3_sitelib}/%{name}
 %dir %{python3_sitelib}/%{name}/__pycache__
 %{python3_sitelib}/%{name}/__init__.py
 %{python3_sitelib}/%{name}/__pycache__/__init__.*pyc
 %{python3_sitelib}/%{name}*.egg-info
-%else
-%dir %{python2_sitelib}/%{name}
-%{python2_sitelib}/%{name}/__init__.py*
-%{python2_sitelib}/%{name}*.egg-info
-%endif
 
 %files cli
 %license COPYING
-%if 0%{?fedora} || 0%{?rhel} > 7
 %{python3_sitelib}/%{name}/cli.py
 %{python3_sitelib}/%{name}/__pycache__/cli.*.pyc
-%else
-%{python2_sitelib}/%{name}/cli.py*
-%endif
 %attr(755,root,root) %{_bindir}/waiverdb-cli
 %config(noreplace) %{_sysconfdir}/waiverdb/client.conf
 
-%if 0%{?fedora} || 0%{?rhel} > 7
+%if %{with docs}
 %{_mandir}/man1/waiverdb-cli.1*
 %{_mandir}/man5/waiverdb-client.conf.5*
 %{_mandir}/man7/waiverdb.7*
