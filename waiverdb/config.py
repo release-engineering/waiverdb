@@ -55,7 +55,7 @@ class TestingConfig(Config):
     TRAP_BAD_REQUEST_ERRORS = True
     # Beware that the tests constantly wipe and re-create this database!
     # Do not configure this to point at any data you care about!
-    DATABASE_URI = 'postgresql+psycopg2:///waiverdb_test'
+    DATABASE_URI = 'sqlite:///:memory:'
     TESTING = True
     OIDC_CLIENT_SECRETS = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tests',

@@ -26,10 +26,11 @@ def db(app):
     # template1 database in special AUTOCOMMIT isolation level.
     dburl = copy(db.engine.url)
     dburl.database = 'template1'
-    with create_engine(dburl).connect() as connection:
-        connection.execution_options(isolation_level='AUTOCOMMIT')
-        connection.execute('DROP DATABASE IF EXISTS {}'.format(dbname))
-        connection.execute('CREATE DATABASE {}'.format(dbname))
+    if ':memory:' not in dbname:
+        with create_engine(dburl).connect() as connection:
+            connection.execution_options(isolation_level='AUTOCOMMIT')
+            connection.execute('DROP DATABASE IF EXISTS {}'.format(dbname))
+            connection.execute('CREATE DATABASE {}'.format(dbname))
     db.create_all()
     db_hook_event_listeners()
     return db
