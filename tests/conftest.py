@@ -35,7 +35,7 @@ def db(app):
     return db
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def session(db, monkeypatch):
     """Patch Flask-SQLAlchemy to use a specific connection"""
     connection = db.engine.connect()
@@ -51,7 +51,7 @@ def session(db, monkeypatch):
     connection.close()
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def client(app):
     """A Flask test client. An instance of :class:`flask.testing.TestClient`
     by default.
