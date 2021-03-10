@@ -730,6 +730,44 @@ def test_config_endpoint_permissions_map(client):
     assert r.json['permission_mapping'] == config['PERMISSION_MAPPING']
 
 
+def test_permissions_endpoint(client):
+    config = {
+        'PERMISSIONS': [
+            {
+                "name": "^kernel-qe",
+                "maintainers": ["alice@example.com"],
+                "_testcase_regex_pattern": "^kernel-qe",
+                "groups": ["devel", "qa"],
+                "users": ["alice@example.com"],
+            },
+            {
+                "name": "Greenwave Tests",
+                "maintainers": ["greenwave-dev@example.com"],
+                "testcases": ["greenwave-tests.*"],
+                "groups": [],
+                "users": ["HTTP/greenwave-dev.tests.example.com"]
+            }
+        ]
+    }
+
+    with patch.dict(client.application.config, config):
+        r = client.get('/api/v1.0/permissions')
+        assert r.status_code == 200
+        assert r.json == config['PERMISSIONS']
+
+        r = client.get('/api/v1.0/permissions?testcase=xxx')
+        assert r.status_code == 200
+        assert r.json == []
+
+        r = client.get('/api/v1.0/permissions?testcase=greenwave-tests.test1')
+        assert r.status_code == 200
+        assert r.json == config['PERMISSIONS'][1:]
+
+        r = client.get('/api/v1.0/permissions?testcase=kernel-qe.test1')
+        assert r.status_code == 200
+        assert r.json == config['PERMISSIONS'][0:1]
+
+
 def test_config_endpoint_superusers(client):
     config = {
         'SUPERUSERS': ['alice', 'bob']

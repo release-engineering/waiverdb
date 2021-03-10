@@ -21,24 +21,35 @@ Option ``AUTH_METHOD`` is name of authentication method. This can be "OIDC",
 Waive Permission
 ================
 
-If ``PERMISSION_MAPPING`` option is unset, anyone is able to waive any test
-result.
+If ``PERMISSIONS`` option (and ``PERMISSION_MAPPING`` deprecated option) is
+unset, anyone is able to waive any test result.
 
 If the option is set, it describes which users and groups can waive which test
-cases. It is a mapping from test case name pattern to dict with user and group
-lists.
+cases. Field ``testcases`` contains a glob expression to match test case names
+and map them to ``groups`` and/or ``users``.
+
+It is helpful to include metadata about permissions: ``name``,
+``maintainer`` and ``description``.
 
 LDAP needs to be properly configured (i.e. options ``LDAP_HOST`` and
 ``LDAP_BASE``).
 
 .. code-block:: python
 
-    PERMISSION_MAPPING = {
-      "^kernel-qe\.": {
-          "groups": ["devel", "qa"],
-          "users": []
-      },
-      "": {"groups": ["waiverdb-admins"], "users": []},
+    PERMISSIONS = {
+        {
+            "name": "kernel-qe",
+            "maintainers": ["alice@example.com"],
+            "testcases": ["kernel-qe.*"],
+            "groups": ["devel", "qa"],
+            "users": ["alice@example.com"]
+        },
+        {
+            "name": "Admins",
+            "maintainers": ["bob@example.com"],
+            "testcases": ["*"],
+            "groups": ["waiverdb-admins"]
+        }
     }
     LDAP_HOST = 'ldap://ldap.example.com'
     LDAP_BASE = 'ou=Groups,dc=example,dc=com'

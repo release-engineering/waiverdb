@@ -2,6 +2,7 @@
 
 import logging
 import re
+from fnmatch import fnmatch
 
 from werkzeug.exceptions import (
     BadGateway,
@@ -30,24 +31,38 @@ def get_group_membership(ldap, user, con, ldap_search):
         raise Unauthorized('Some error occurred initializing the LDAP connection.')
 
 
-def verify_authorization(user, testcase, permission_mapping, ldap_host, ldap_searches):
+def match_testcase_permissions(testcase, permissions):
+    for permission in permissions:
+        if "testcases" in permission:
+            testcase_match = any(
+                fnmatch(testcase, testcase_pattern)
+                for testcase_pattern in permission["testcases"]
+            )
+        elif "_testcase_regex_pattern" in permission:
+            testcase_match = re.search(
+                permission["_testcase_regex_pattern"], testcase)
+        else:
+            continue
+
+        if testcase_match:
+            yield permission
+
+
+def verify_authorization(user, testcase, permissions, ldap_host, ldap_searches):
     if not (ldap_host and ldap_searches):
         raise InternalServerError(('LDAP_HOST and LDAP_SEARCHES also need to be defined '
-                                   'if PERMISSION_MAPPING is defined.'))
+                                   'if PERMISSIONS is defined.'))
 
     allowed_groups = []
-    for testcase_pattern, permission in permission_mapping.items():
-        testcase_match = re.search(testcase_pattern, testcase)
-        if testcase_match:
-            # checking if the user is allowed
-            if user in permission['users']:
-                return True
-            allowed_groups += permission['groups']
+    for permission in match_testcase_permissions(testcase, permissions):
+        if user in permission.get('users', []):
+            return True
+        allowed_groups += permission.get('groups', [])
 
     try:
         import ldap
     except ImportError:
-        raise InternalServerError(('If PERMISSION_MAPPING is defined, '
+        raise InternalServerError(('If PERMISSIONS is defined, '
                                    'python-ldap needs to be installed.'))
 
     try:

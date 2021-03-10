@@ -14,7 +14,7 @@ from werkzeug.exceptions import (
 from sqlalchemy.sql.expression import func, and_, or_
 
 from waiverdb import __version__
-from waiverdb.authorization import verify_authorization
+from waiverdb.authorization import match_testcase_permissions, verify_authorization
 from waiverdb.models import db
 from waiverdb.models.waivers import Waiver, subject_dict_to_type_identifier
 from waiverdb.utils import json_collection, jsonp
@@ -90,6 +90,31 @@ def reqparse_since(since):
     return start, end
 
 
+def permissions():
+    """
+    Return PERMISSIONS configuration.
+    PERMISSION_MAPPING converted to the new format.
+    """
+    permissions_config = current_app.config.get('PERMISSIONS')
+    if permissions_config:
+        return permissions_config
+
+    permission_mapping = current_app.config.get('PERMISSION_MAPPING')
+    if permission_mapping:
+        return [
+            {
+                "name": testcase_pattern,
+                "maintainers": [props["maintainer"]] if "maintainer" in props else [],
+                "_testcase_regex_pattern": testcase_pattern,
+                "groups": props.get("groups", []),
+                "users": props.get("users", []),
+            }
+            for testcase_pattern, props in permission_mapping.items()
+        ]
+
+    return []
+
+
 def _filter_out_obsolete_waivers(query):
     """
     Filters out obsolete waivers.
@@ -137,6 +162,9 @@ RP['get_waivers'].add_argument('since', type=reqparse_since, location='args')
 RP['get_waivers'].add_argument('page', default=1, type=int, location='args')
 RP['get_waivers'].add_argument('limit', default=10, type=int, location='args')
 RP['get_waivers'].add_argument('proxied_by', location='args')
+
+RP['get_permissions'] = reqparse.RequestParser()
+RP['get_permissions'].add_argument('testcase', location='args')
 
 RP['filter_waivers'] = reqparse.RequestParser()
 RP['filter_waivers'].add_argument('filters', type=valid_filter_list, required=True, location='json')
@@ -336,8 +364,7 @@ class WaiversResource(Resource):
         return result, 201, headers
 
     def _verify_authorization(self, user, testcase):
-        permission_mapping = current_app.config.get('PERMISSION_MAPPING')
-        if not permission_mapping:
+        if not permissions():
             return True
 
         ldap_host = current_app.config.get('LDAP_HOST')
@@ -349,7 +376,7 @@ class WaiversResource(Resource):
                     'LDAP_SEARCH_STRING', '(memberUid={user})'
                 )
                 ldap_searches = [{'BASE': ldap_base, 'SEARCH_STRING': ldap_search_string}]
-        return verify_authorization(user, testcase, permission_mapping, ldap_host, ldap_searches)
+        return verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches)
 
     def _create_waiver(self, args, user):
         proxied_by = None
@@ -656,6 +683,9 @@ class ConfigResource(Resource):
         """
         Returns the current configuration (PERMISSION_MAPPING and SUPERUSERS).
 
+        **Note:** PERMISSION_MAPPING is **deprecated**,
+        use :http:get:`/api/v1.0/permissions` instead.
+
         **Sample response**:
 
         .. sourcecode:: none
@@ -684,6 +714,50 @@ class ConfigResource(Resource):
         }
 
 
+class PermissionsResource(Resource):
+    @jsonp
+    def get(self):
+        """
+        Returns the waiver permissions.
+
+        **Sample response**:
+
+        .. sourcecode:: none
+
+          HTTP/1.0 200 OK
+          Content-Length: 999
+          Content-Type: application/json
+          Server: gunicorn/20.0.4
+          Date: Wed, 10 Mar 2021 08:00:00 GMT
+
+          [
+              {
+                  "name": "kernel-qe",
+                  "maintainers": ["alice@example.com"],
+                  "testcases": ["kernel-qe.*"],
+                  "groups": ["devel", "qa"],
+                  "users": ["alice@example.com"]
+              },
+              {
+                  "name": "Greenwave Tests",
+                  "maintainers": ["greenwave-dev@example.com"],
+                  "testcases": ["greenwave-tests.*"],
+                  "groups": [],
+                  "users": ["HTTP/greenwave-dev.tests.example.com"]
+              }
+          ]
+
+        :json string testcase: If specified, only permissions for given test case is returned.
+        :statuscode 200: Permissions are returned.
+        """
+        args = RP['get_permissions'].parse_args()
+        testcase = args['testcase']
+        if testcase:
+            return list(match_testcase_permissions(testcase, permissions()))
+
+        return permissions()
+
+
 class MonitorResource(Resource):
     def get(self):
         from waiverdb.monitor import MonitorAPI
@@ -697,4 +771,5 @@ api.add_resource(FilteredWaiversResource, '/waivers/+filtered')
 api.add_resource(GetWaiversBySubjectsAndTestcases, '/waivers/+by-subjects-and-testcases')
 api.add_resource(AboutResource, '/about', strict_slashes=False)
 api.add_resource(ConfigResource, '/config', strict_slashes=False)
+api.add_resource(PermissionsResource, '/permissions', strict_slashes=False)
 api.add_resource(MonitorResource, '/metrics')
