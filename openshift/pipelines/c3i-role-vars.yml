@@ -3,7 +3,7 @@ c3i_build_and_test_snippet: snippets/waiverdb-build-and-test.groovy
 c3i_build_agent_snippet: snippets/build-agent.groovy
 c3i_integration_test_snippet: snippets/waiverdb-full-integration-test.groovy
 
-c3i_mail_address: pnt-factory2-devel@redhat.com
+c3i_mail_address: exd-guild-gating-alerts@redhat.com
 
 c3i_integration_test_custom_parameters:
   - name: BACKEND_INTEGRATION_TEST_REPO
