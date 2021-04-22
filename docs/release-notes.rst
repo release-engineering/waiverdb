@@ -2,6 +2,21 @@
 Release Notes
 =============
 
+WaiverDB 1.3.0
+==============
+
+Released 26 April 2021
+
+* A simpler permission configuration can be now used. New option
+  ``PERMISSIONS`` uses glob expressions instead of a regular expression to
+  verify the user is allowed to waive a test case. The configuration can be
+  listed with :http:get:`/api/v1.0/permissions`. Additional GET parameter
+  ``testcase`` can be used to filter the list by matching test case.
+  ``PERMISSION_MAPPING`` is deprecated but still works if the new option is not
+  defined.
+* Fixes possible disconnecting issue with older stomp.py library
+  (https://github.com/jasonrbriggs/stomp.py/issues/323).
+
 WaiverDB 1.2.0
 ==============
 
