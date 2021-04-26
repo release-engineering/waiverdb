@@ -9,7 +9,7 @@
 %endif
 
 Name:           waiverdb
-Version:        1.2.0
+Version:        1.3.0
 Release:        1%{?dist}
 Summary:        Service for waiving results in ResultsDB
 License:        GPLv2+
