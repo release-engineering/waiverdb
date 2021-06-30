@@ -297,11 +297,15 @@ def cli(username, comment, waived, product_version, testcase, scenario, subject,
         resp = requests.request(
             'POST', url, auth=auth, **common_request_arguments)
         if resp.status_code == 401:
-            msg = resp.json().get(
-                'message', ('WaiverDB authentication using GSSAPI failed. Make sure you have a '
-                            'valid Kerberos ticket or that you correctly configured your Kerberos '
-                            'configuration file. Please check the doc for troubleshooting '
-                            'information.'))
+            failure_msg = ('WaiverDB authentication using GSSAPI failed. Make sure you have a '
+                           'valid Kerberos ticket or that you correctly configured your Kerberos '
+                           'configuration file. Please check the doc for troubleshooting '
+                           'information.')
+            failure_msg += '\nServer response: {}'.format(resp.text)
+            try:
+                msg = resp.json().get('message', failure_msg)
+            except json.JSONDecodeError:
+                msg = failure_msg
             raise click.ClickException(msg)
         check_response(resp, result_ids)
     elif auth_method == 'dummy':
