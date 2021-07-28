@@ -46,6 +46,10 @@ def load_config(app):
         default_config_obj = 'waiverdb.config.TestingConfig'
         default_config_file = os.getcwd() + '/conf/settings.py'
         silent = True
+    elif os.getenv('DOCS') == 'true':
+        default_config_obj = 'waiverdb.config.DevelopmentConfig'
+        default_config_file = os.getcwd() + '/conf/settings.py'
+        silent = True
     else:
         default_config_obj = 'waiverdb.config.ProductionConfig'
         default_config_file = '/etc/waiverdb/settings.py'

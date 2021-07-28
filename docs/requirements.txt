@@ -1,0 +1,12 @@
+fedora_messaging
+Flask
+flask-cors
+Flask-Migrate
+Flask-RESTful!=0.3.6
+flask-oidc
+stomp.py
+sphinx < 4
+sphinxcontrib-httpdomain
+prometheus_client
+dogpile.cache
+PyYAML
