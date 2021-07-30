@@ -15,11 +15,6 @@ stage('Run checks') {
         sh 'flake8'
       }
     }
-    stage('Invoke Pylint') {
-      steps {
-        sh 'pylint-3 --reports=n waiverdb'
-      }
-    }
   }
 }
 stage('Run unit tests') {
