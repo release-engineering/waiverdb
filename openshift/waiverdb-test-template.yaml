@@ -37,11 +37,6 @@ parameters:
   description: ResultsDB URL in which to pull results against
   required: true
   value: https://resultsdb-api.engineering.redhat.com/api/v2.0
-- name: WAIVERDB_REPLICAS
-  displayName: WaiverDB-web Replicas
-  description: Number of replicas to deploy for the web frontend
-  required: true
-  value: "2"
 objects:
 - apiVersion: v1
   kind: Secret
@@ -194,7 +189,7 @@ objects:
       app: waiverdb
       service: web
   spec:
-    replicas: ${WAIVERDB_REPLICAS}
+    replicas: 1
     selector:
       environment: "test-${TEST_ID}"
       app: waiverdb

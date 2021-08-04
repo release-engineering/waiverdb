@@ -150,12 +150,10 @@ stage("Functional tests phase") {
               // Don't set ENVIRONMENT_LABEL in the environment block! Otherwise you will get 2 different UUIDs.
               env.ENVIRONMENT_LABEL = "test-${env.TEST_ID}"
               def template = readYaml file: 'openshift/waiverdb-test-template.yaml'
-              def webPodReplicas = 1 // The current quota in UpShift is agressively limited
               echo "Creating testing environment with TEST_ID=${env.TEST_ID}..."
               def models = openshift.process(template,
                 '-p', "TEST_ID=${env.TEST_ID}",
                 '-p', "WAIVERDB_APP_IMAGE=${env.IMAGE}",
-                '-p', "WAIVERDB_REPLICAS=${webPodReplicas}",
               )
               c3i.deployAndWait(script: this, objs: models, timeout: 15)
               def appPod = openshift.selector('pods', ['environment': env.ENVIRONMENT_LABEL, 'service': 'web']).object()
