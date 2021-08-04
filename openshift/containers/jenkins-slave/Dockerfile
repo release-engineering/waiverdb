@@ -95,4 +95,6 @@ RUN curl -L -o /usr/local/bin/tini \
 # For OpenShift we MUST use the UID of the user and not the name.
 USER ${UID}
 WORKDIR ${HOME_DIR}
+ENV JENKINS_HOME ${HOME_DIR}
+ENV HOME ${HOME_DIR}
 ENTRYPOINT ["/usr/local/bin/tini", "--", "jenkins-agent"]
