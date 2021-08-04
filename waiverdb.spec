@@ -64,11 +64,11 @@ WaiverDB is a companion service to ResultsDB, for recording waivers
 against test results.
 
 %package common
-Summary: Common resources for WaiverDB subpackages.
+Summary: Common resources for WaiverDB sub-packages
 
 %description common
 This package is not useful on its own.  It contains common filesystem resources
-for other WaiverDB subpackages.
+for other WaiverDB sub-packages.
 
 %package cli
 Summary: A CLI tool for interacting with waiverdb
@@ -82,7 +82,7 @@ Requires:       waiverdb-common = %{version}-%{release}
 %description cli
 This package contains a CLI tool for interacting with waiverdb.
 
-Primarily, submitting new waiverdbs.
+Primarily, submitting new waivers.
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -98,6 +98,7 @@ sed -i 's/\.stg\.fedoraproject\.org/.fedoraproject.org/g' conf/client.conf.examp
 %py3_build
 %if %{with docs}
 make -C docs html man text
+rm -rf docs/_build/html/.buildinfo
 %endif
 
 %install
@@ -118,6 +119,10 @@ install -m0644 \
 install -D -m0644 \
     docs/_build/man/waiverdb-cli.1 \
     %{buildroot}%{_mandir}/man1/waiverdb-cli.1
+
+install -D -m0644 \
+    docs/_build/man/waiverdb.1 \
+    %{buildroot}%{_mandir}/man1/waiverdb.1
 
 install -D -m0644 \
     docs/_build/man/client.conf.5 \
@@ -141,6 +146,10 @@ install -D -m0644 \
 %exclude %{python3_sitelib}/%{name}/cli.py
 %exclude %{python3_sitelib}/%{name}/__pycache__/cli.*.pyc
 %attr(755,root,root) %{_bindir}/waiverdb
+
+%if %{with docs}
+%{_mandir}/man1/waiverdb.1*
+%endif
 %endif
 
 %files common

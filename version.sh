@@ -17,7 +17,7 @@ else
     commitcount=$(git rev-list "$revbase" HEAD | wc -l)
 fi
 
-if [ "$(git rev-list "$revbase" HEAD | wc -l)" -eq 0 ] ; then
+if [ "$commitcount" -eq 0 ] ; then
     # building a tag
     rpmver=""
     rpmrel=""

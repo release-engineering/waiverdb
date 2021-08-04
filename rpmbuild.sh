@@ -19,7 +19,10 @@ source "$HERE"/version.sh
 
 name=waiverdb
 workdir="$(mktemp -d)"
-trap "rm -rf $workdir" EXIT
+cleanup() {
+    rm -rf "$workdir"
+}
+trap cleanup EXIT
 outdir="$(readlink -f ./rpmbuild-output)"
 mkdir -p "$outdir"
 
@@ -29,11 +32,11 @@ if [ -n "$WAIVERDB_RPM_RELEASE" ] ; then
     sed --regexp-extended --in-place \
         -e "/^Version:/cVersion: ${WAIVERDB_RPM_VERSION}" \
         -e "/^Release:/cRelease: ${WAIVERDB_RPM_RELEASE}%{?dist}" \
-        -e "/^Source0:/cSource0: waiverdb-${WAIVERDB_RPM_VERSION}.${WAIVERDB_RPM_RELEASE}.tar.gz" \
+        -e "/^Source0:/cSource0: waiverdb-${WAIVERDB_RPM_VERSION}.tar.gz" \
         "$workdir/${name}.spec"
     # also hack the Python module version
     sed --regexp-extended --in-place \
-        -e "/^__version__ = /c\\__version__ = '$WAIVERDB_VERSION'" \
+        -e "/^__version__ = /c\\__version__ = '$WAIVERDB_RPM_VERSION'" \
         "$workdir/waiverdb/__init__.py"
 fi
 ( cd "$workdir" && python3 setup.py sdist )

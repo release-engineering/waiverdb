@@ -11,6 +11,7 @@ test results.
    user-guide
    api
    waiverdb-cli
+   waiverdb
    client-conf
    developer-guide
    admin-guide
