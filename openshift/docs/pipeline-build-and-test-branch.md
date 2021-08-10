@@ -29,5 +29,5 @@
 
     For more information about job parameters, see  [waiverdb-build-template.yaml](../pipelines/templates/waiverdb-build-template.yaml).
 
-3. Visualize the build process at https://paas.upshift.redhat.com/console/project/waiverdb-test/browse/pipelines/waiverdb-postmerge.
+3. Visualize the build process at `https://console-openshift-console.apps.<CLUSTER>/k8s/ns/waiverdb-test/buildconfigs/waiverdb-postmerge/builds`.
 4. Your newly built image will be available at `quay.io/factory2/waiverdb:<tag-name>` if `WAIVERDB_GIT_REF` is `master` or `FORCE_PUBLISH_IMAGE` is `true`. Otherwise the newly built image will be thrown away.

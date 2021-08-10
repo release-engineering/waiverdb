@@ -30,6 +30,6 @@ This document is for advanced users to manually trigger a `premerge` pipeline bu
 
     For more information about job parameters, see  [waiverdb-build-template.yaml](../pipelines/templates/waiverdb-build-template.yaml).
 
-3. Visualize the build process at https://paas.upshift.redhat.com/console/project/waiverdb-test/browse/pipelines/waiverdb-premerge.
+3. Visualize the build process at `https://console-openshift-console.apps.<CLUSTER>/k8s/ns/waiverdb-test/buildconfigs/waiverdb-premerge/builds`.
 
 4. Your newly built image will be available at `quay.io/factory2/waiverdb:<tag-name>` if `FORCE_PUBLISH_IMAGE` and `WAIVERDB_DEV_IMAGE_TAG` is specified.

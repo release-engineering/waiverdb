@@ -31,6 +31,6 @@
     If your container registry requires authentication, use the `CONTAINER_REGISTRY_CREDENTIALS` parameter.
     For more information about parameters of integration test pipeline jobs, see  [waiverdb-integration-test-template.yaml](../pipelines/templates/waiverdb-integration-test-template.yaml).
 
-4. Visualize the build process at https://paas.upshift.redhat.com/console/project/waiverdb-test/browse/pipelines/$job-name.
+4. Visualize the build process at `https://console-openshift-console.apps.<CLUSTER>/k8s/ns/waiverdb-test/builds/<JOB_NAME>`.
 
 5. After the test finishes, a UMB message will be sent to `VirtualTopic.eng.ci.container-image.test.complete` topic. The test result will also be available at ResultsDB with the artifact type `container-image`. 

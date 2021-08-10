@@ -29,6 +29,6 @@
     If your container registry requires authentication, use the `CONTAINER_REGISTRY_CREDENTIALS` parameter.
     For more information about parameters of integration test pipeline jobs, see  [waiverdb-image-promotion-template.yaml](../pipelines/templates/waiverdb-image-promotion-template.yaml).
 
-4. Visualize the promotion process at https://paas.upshift.redhat.com/console/project/waiverdb-test/browse/pipelines/$job-name.
+4. Visualize the build process at `https://console-openshift-console.apps.<CLUSTER>/k8s/ns/waiverdb-test/builds/<JOB_NAME>`.
 
 5. Verify the image change by logging into your container registry (quay.io).
