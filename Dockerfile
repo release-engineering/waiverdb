@@ -1,28 +1,40 @@
-FROM registry.fedoraproject.org/fedora:32
+FROM registry.fedoraproject.org/fedora:34 AS builder
+
+RUN dnf -y install --nodocs --setopt=install_weak_deps=false \
+        'dnf-command(builddep)' \
+        git-core \
+        rpm-build
+
+COPY .git /src/.git
+
+RUN cd /src \
+    && git reset --hard HEAD \
+    && dnf -y builddep waiverdb.spec \
+    && ./rpmbuild.sh -bb \
+    && rm /src/rpmbuild-output/*/waiverdb-cli-*
+
+
+FROM registry.fedoraproject.org/fedora:34
 LABEL \
-    name="WaiverDB application" \
+    name="waiverdb" \
+    maintainer="WaiverDB developers" \
+    description="WaiverDB application" \
     vendor="WaiverDB developers" \
-    license="GPLv2+" \
-    build-date=""
+    license="GPLv2+"
 
-# The caller should build a waiverdb RPM package using ./rpmbuild.sh and then pass it in this arg.
-ARG waiverdb_rpm
-ARG waiverdb_common_rpm
+COPY --from=builder /src/rpmbuild-output /src/rpmbuild-output
+COPY conf/settings.py.example /etc/waiverdb/settings.py
+COPY conf/client.conf.example /etc/waiverdb/client.conf
+COPY docker /docker
 
-COPY $waiverdb_rpm /tmp
-COPY $waiverdb_common_rpm /tmp
-
-RUN dnf -y install \
-    --enablerepo=updates-testing \
-    python3-gunicorn \
-    /tmp/$(basename $waiverdb_rpm) \
-    /tmp/$(basename $waiverdb_common_rpm) \
-    && dnf -y clean all \
-    && rm -f /tmp/*
-
-COPY docker/ /docker/
 # Allow a non-root user to install a custom root CA at run-time
-RUN chmod g+w /etc/pki/tls/certs/ca-bundle.crt
+RUN chmod g+w /etc/pki/tls/certs/ca-bundle.crt \
+    && dnf -y install \
+        python3-gunicorn \
+        python3-ldap \
+        /src/rpmbuild-output/*/*.rpm \
+    && dnf -y clean all \
+    && rm -r /src
 
 USER 1001
 EXPOSE 8080
