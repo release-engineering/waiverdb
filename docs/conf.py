@@ -19,6 +19,21 @@
 import os
 import sys
 
+# Hot-fix broken sphinxcontrib.httpdomain
+# See: https://github.com/sphinx-contrib/httpdomain/pull/54
+try:
+    import pkg_resources
+
+    if pkg_resources.require("sphinxcontrib_httpdomain")[0].version == '1.7.0':
+        from sphinxcontrib import httpdomain
+
+        for typed_field in httpdomain.HTTPResource.doc_field_types:
+            typed_field.typerolename = None
+        for object_type in httpdomain.HTTPDomain.object_types.values():
+            object_type.roles = tuple(r for r in object_type.roles if r != 'obj')
+except Exception:
+    pass
+
 # This will cause the Flask application to be created with development configs
 os.environ['DEV'] = 'true'
 
