@@ -5,6 +5,8 @@ Release Notes
 WaiverDB 1.4.0
 ==============
 
+Released 10 November 2021
+
 * On an authentication error, waiverdb-cli will now print the actual error
   message instead of a JSONDecodeError exception.
 * Documentation has been updated and moved to: https://waiverdb.readthedocs.io
