@@ -67,6 +67,29 @@ Options
 
     Print usage help and exit.
 
+.. note::
+
+    Usually, **subject_identifier** must match **item** result's data in ResultsDB.
+
+    Usually, **subject_type** must match **type** in ResultsDB.
+
+    And there is no restriction for **subject_type** and **subject_identifier**, so the basic info on
+    how to figure out the identifier is as following:
+
+    If the result is failed, user can check the value of **item** in ResultsDB:
+
+    - *https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/results/{ID}*
+
+    If the result is missing, they can get the value from previous waivers or results of the same **subject_type**/**type**:
+
+    - *https://waiverdb.fedoraproject.org/api/v1.0/waivers/?subject_type={subject_type}*
+    - *https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/results?type={subject_type}*
+
+    If user does not even know the **type**, they can list all distinct types for the failed test case:
+
+    - *https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/results/latest?_distinct_on=type&testcases={testcases}*
+
+
 Files
 =====
 
