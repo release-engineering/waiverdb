@@ -6,7 +6,7 @@ conf/settings.py
 *.sqlite
 *.egg*
 .cache
-/build/
+build
 docs/_build
 docs-on-pagure
 /rpmbuild-output/
