@@ -95,7 +95,7 @@ def create_app(config_obj=None):
         app.config.from_object(config_obj)
     else:
         load_config(app)
-    if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':
+    if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':  # nosec
         raise Warning("You need to change the app.secret_key value for production")
 
     # register error handlers

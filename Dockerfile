@@ -3,16 +3,17 @@ FROM registry.fedoraproject.org/fedora:34 AS builder
 RUN dnf -y install --nodocs --setopt=install_weak_deps=false \
         'dnf-command(builddep)' \
         git-core \
-        rpm-build
+        rpm-build \
+    && dnf -y clean all
 
 COPY .git /src/.git
 
-RUN cd /src \
-    && git reset --hard HEAD \
+WORKDIR /src
+RUN git reset --hard HEAD \
     && dnf -y builddep waiverdb.spec \
     && ./rpmbuild.sh -bb \
     && rm /src/rpmbuild-output/*/waiverdb-cli-*
-
+WORKDIR /
 
 FROM registry.fedoraproject.org/fedora:34
 LABEL \
