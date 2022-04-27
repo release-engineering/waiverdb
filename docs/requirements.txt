@@ -3,7 +3,6 @@ Flask
 flask-cors
 Flask-Migrate
 Flask-RESTful!=0.3.6
-gssapi
 prometheus_client
 dogpile.cache
 PyYAML
