@@ -8,13 +8,18 @@ Flask-SQLAlchemy
 flask-cors
 SQLAlchemy
 gssapi
-flask-oidc
 Flask-Migrate
-stomp.py
+
+stomp.py==6.1.0
+cryptography==3.4.6
+
+flask-oidc==1.4.0
+itsdangerous==1.1.0
 
 # Documentation requirements
 sphinx
 sphinxcontrib-httpdomain
+markupsafe==1.1.1
 
 # CLI
 click
