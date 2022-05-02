@@ -11,7 +11,7 @@ stomp.py==8.0.1
 cryptography==37.0.1
 
 flask-oidc==1.4.0
-itsdangerous==1.1.0
+itsdangerous==2.0.1
 
 sphinx
 sphinxcontrib-httpdomain
