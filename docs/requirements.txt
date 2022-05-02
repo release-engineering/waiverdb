@@ -15,4 +15,4 @@ itsdangerous==1.1.0
 
 sphinx
 sphinxcontrib-httpdomain
-markupsafe==1.1.1
+markupsafe==2.1.1
