@@ -74,10 +74,6 @@ def db_hook_event_listeners(target=None):
     if not target:
         target = db.engine
 
-    @event.listens_for(target, 'dbapi_error', named=True)
-    def receive_dbapi_error(**kw):
-        db_dbapi_error_counter.inc()
-
     @event.listens_for(target, 'engine_connect')
     def receive_engine_connect(conn, branch):
         db_engine_connect_counter.inc()
