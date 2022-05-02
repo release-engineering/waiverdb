@@ -51,7 +51,7 @@ class TestOIDCAuthentication(object):
         with pytest.raises(Unauthorized) as excinfo:
             request = mock.MagicMock()
             waiverdb.auth.get_user(request)
-        assert "No 'Authorization' header found" in excinfo.value.get_description()
+        assert "No 'Authorization' header found" in str(excinfo.value)
 
     @mock.patch.object(flask_oidc.OpenIDConnect, '_get_token_info')
     def test_get_user_with_invalid_token(self, mocked_get_token, session):
