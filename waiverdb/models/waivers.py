@@ -51,7 +51,7 @@ class Waiver(db.Model):
     product_version = db.Column(db.String(200), nullable=False)
     waived = db.Column(db.Boolean, nullable=False, default=False)
     scenario = db.Column(db.String(255), nullable=True)
-    comment = db.Column(db.Text)
+    comment = db.Column(db.UnicodeText)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     __table_args__ = (
         db.Index('ix_waiver_subject_type_identifier', subject_type, subject_identifier),
