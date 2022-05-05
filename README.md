@@ -15,6 +15,19 @@ docker-compose or podman-compose and use `make up` to provision required
 containers and use `make test` to run tests or `make coverage` to generate and
 open coverage report.
 
+Examples:
+
+```bash
+# provision DB and HTTP REST API containers
+make up
+
+# make HTTP request
+curl --user dummy: http://localhost:5004/api/v1.0/waivers/ -d '{...}'
+
+# log into the DB
+podman exec -it waiverdb_waiverdb-db_1 psql 'postgresql://waiverdb:waiverdb@waiverdb-db:5433/waiverdb'
+```
+
 As alternative to using containers, below are steps to set up development
 environment on local machine.
 
