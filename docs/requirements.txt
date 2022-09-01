@@ -18,4 +18,4 @@ sphinxcontrib-httpdomain
 markupsafe==2.1.1
 
 # https://github.com/sphinx-contrib/httpdomain/issues/60
-Werkzeug<2.2
+Werkzeug<2.3
