@@ -6,7 +6,7 @@ Flask
 Flask-RESTful!=0.3.6
 Flask-SQLAlchemy
 flask-cors
-SQLAlchemy==1.4.40
+SQLAlchemy==1.4.41
 gssapi
 Flask-Migrate
 
