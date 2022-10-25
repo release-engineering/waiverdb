@@ -2,11 +2,16 @@
 
 
 import base64
+import binascii
 import os
 if not os.getenv('DOCS'):   # installing gssapi causing a problem for documentation building
     import gssapi
 from flask import current_app, Response, g
 from werkzeug.exceptions import Unauthorized, Forbidden
+
+from waiverdb.utils import auth_methods
+
+OIDC_AUTH_HEADER_PREFIX = "Bearer "
 
 
 # Inspired by https://github.com/mkomitee/flask-kerberos/blob/master/flask_kerberos.py
@@ -40,16 +45,31 @@ def process_gssapi_request(token):
 
 
 def get_user(request):
+    methods = auth_methods(current_app)
+    if not methods:
+        raise Unauthorized("Authenticated user required")
+
+    if len(methods) > 1:
+        auth_header = request.headers.get("Authorization", "").strip()
+        if "OIDC" in methods and auth_header.startswith(OIDC_AUTH_HEADER_PREFIX):
+            return get_user_by_method(request, "OIDC")
+        if "Kerberos" in methods and not auth_header.startswith(OIDC_AUTH_HEADER_PREFIX):
+            return get_user_by_method(request, "Kerberos")
+
+    return get_user_by_method(request, methods[0])
+
+
+def get_user_by_method(request, auth_method):
     user = None
     headers = dict()
-    if current_app.config['AUTH_METHOD'] == 'OIDC':
+    if auth_method == 'OIDC':
         if 'Authorization' not in request.headers:
             raise Unauthorized("No 'Authorization' header found.")
         token = request.headers.get("Authorization").strip()
-        prefix = 'Bearer '
-        if not token.startswith(prefix):
-            raise Unauthorized('Authorization headers must start with %r' % prefix)
-        token = token[len(prefix):].strip()
+        if not token.startswith(OIDC_AUTH_HEADER_PREFIX):
+            raise Unauthorized(
+                f"Authorization headers must start with {OIDC_AUTH_HEADER_PREFIX}")
+        token = token[len(OIDC_AUTH_HEADER_PREFIX):].strip()
         required_scopes = [
             'openid',
             current_app.config['OIDC_REQUIRED_SCOPE'],
@@ -58,18 +78,21 @@ def get_user(request):
         if validity is not True:
             raise Unauthorized(validity)
         user = g.oidc_token_info['username']
-    elif current_app.config['AUTH_METHOD'] == 'Kerberos':
+    elif auth_method == 'Kerberos':
         if 'Authorization' not in request.headers:
             response = Response('Unauthorized', 401, {'WWW-Authenticate': 'Negotiate'})
             raise Unauthorized(response=response)
         header = request.headers.get("Authorization")
         token = ''.join(header.strip().split()[1:])
-        user, token = process_gssapi_request(base64.b64decode(token))
+        try:
+            user, token = process_gssapi_request(base64.b64decode(token))
+        except binascii.Error:
+            raise Unauthorized("Invalid authentication token")
         # remove realm
         user = user.split("@")[0]
         headers = {'WWW-Authenticate': ' '.join(
             ['negotiate', base64.b64encode(token).decode()])}
-    elif current_app.config['AUTH_METHOD'] == 'SSL':
+    elif auth_method == 'SSL':
         # Nginx sets SSL_CLIENT_VERIFY and SSL_CLIENT_S_DN in request.environ
         # when doing SSL authentication.
         ssl_client_verify = request.environ.get('SSL_CLIENT_VERIFY')
@@ -78,7 +101,7 @@ def get_user(request):
         if not request.environ.get('SSL_CLIENT_S_DN'):
             raise Unauthorized('Unable to get user information (DN) from the client certificate')
         user = request.environ.get('SSL_CLIENT_S_DN')
-    elif current_app.config['AUTH_METHOD'] == 'dummy':
+    elif auth_method == 'dummy':
         # Blindly accept any username. For testing purposes only of course!
         if not request.authorization:
             response = Response('Unauthorized', 401, {'WWW-Authenticate': 'Basic realm="dummy"'})

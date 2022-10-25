@@ -99,3 +99,15 @@ def stomp_connection():
     else:
         raise RuntimeError('stomp was configured to publish messages, '
                            'but STOMP_CONFIGS is not configured')
+
+
+def auth_methods(app):
+    methods = app.config.get('AUTH_METHODS')
+    if methods:
+        return methods
+
+    method = app.config.get('AUTH_METHOD')
+    if method:
+        return [method]
+
+    return []

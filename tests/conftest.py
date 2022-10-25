@@ -45,6 +45,11 @@ def enable_kerberos(app, monkeypatch):
 
 
 @pytest.fixture()
+def enable_kerberos_oidc_fallback(app, monkeypatch):
+    monkeypatch.setitem(app.config, 'AUTH_METHODS', ['Kerberos', 'OIDC'])
+
+
+@pytest.fixture()
 def enable_ssl(app, monkeypatch):
     monkeypatch.setitem(app.config, 'AUTH_METHOD', 'SSL')
 

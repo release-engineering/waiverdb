@@ -10,6 +10,7 @@ except ImportError:
 from flask import Flask, current_app
 from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_oidc import OpenIDConnect
 from sqlalchemy import event
 from sqlalchemy.exc import ProgrammingError
 import requests
@@ -18,10 +19,11 @@ from waiverdb.events import publish_new_waiver
 from waiverdb.logger import init_logging
 from waiverdb.api_v1 import api_v1
 from waiverdb.models import db
-from waiverdb.utils import json_error
-from flask_oidc import OpenIDConnect
+from waiverdb.utils import auth_methods, json_error
 from werkzeug.exceptions import default_exceptions
 from waiverdb.monitor import db_hook_event_listeners
+
+oidc = OpenIDConnect()
 
 
 def enable_cors(app):
@@ -105,8 +107,9 @@ def create_app(config_obj=None):
     app.register_error_handler(requests.Timeout, json_error)
 
     populate_db_config(app)
-    if app.config['AUTH_METHOD'] == 'OIDC':
-        app.oidc = OpenIDConnect(app)
+    if 'OIDC' in auth_methods(app):
+        oidc.init_app(app)
+        app.oidc = oidc
     # initialize logging
     init_logging(app)
     # initialize db
@@ -118,6 +121,7 @@ def create_app(config_obj=None):
     # register blueprints
     app.register_blueprint(api_v1, url_prefix="/api/v1.0")
     app.add_url_rule('/healthcheck', view_func=healthcheck)
+    app.add_url_rule('/auth/oidclogin', view_func=login)
     register_event_handlers(app)
 
     # initialize DB event listeners from the monitor module
@@ -143,6 +147,14 @@ def healthcheck():
         raise RuntimeError('Unable to communicate with database.')
 
     return ('Health check OK', 200, [('Content-Type', 'text/plain')])
+
+
+@oidc.require_login
+def login():
+    return {
+        'email': oidc.user_getfield('email'),
+        'token': oidc.get_access_token(),
+    }
 
 
 def register_event_handlers(app):

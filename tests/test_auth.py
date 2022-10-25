@@ -12,6 +12,14 @@ import flask_oidc
 
 @pytest.mark.usefixtures('enable_kerberos')
 class TestGSSAPIAuthentication(object):
+    waiver_data = {
+        'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
+        'testcase': 'testcase1',
+        'product_version': 'fool-1',
+        'waived': True,
+        'comment': 'it broke',
+    }
+
     def test_unauthorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
         r = client.post('/api/v1.0/waivers/', content_type='application/json')
@@ -27,16 +35,9 @@ class TestGSSAPIAuthentication(object):
                          __new__=mock.Mock(return_value=None))
     def test_authorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
-        data = {
-            'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
-            'testcase': 'testcase1',
-            'product_version': 'fool-1',
-            'waived': True,
-            'comment': 'it broke',
-        }
         headers = {'Authorization':
                    'Negotiate %s' % b64encode(b"CTOKEN").decode()}
-        r = client.post('/api/v1.0/waivers/', data=json.dumps(data),
+        r = client.post('/api/v1.0/waivers/', data=json.dumps(self.waiver_data),
                         content_type='application/json', headers=headers)
         assert r.status_code == 201
         assert r.headers.get('WWW-Authenticate') == \
@@ -44,14 +45,24 @@ class TestGSSAPIAuthentication(object):
         res_data = json.loads(r.data.decode('utf-8'))
         assert res_data['username'] == 'foo'
 
+    def test_invalid_token(self, client, monkeypatch):
+        monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
+        headers = {'Authorization': 'Negotiate INVALID'}
+        r = client.post('/api/v1.0/waivers/', data=json.dumps(self.waiver_data),
+                        content_type='application/json', headers=headers)
+        assert r.status_code == 401
+        assert r.json == {"message": "Invalid authentication token"}
+
 
 class TestOIDCAuthentication(object):
+    invalid_token_error = "Token required but invalid"
+    auth_missing_error = "No 'Authorization' header found"
 
     def test_get_user_without_token(self, session):
         with pytest.raises(Unauthorized) as excinfo:
             request = mock.MagicMock()
             waiverdb.auth.get_user(request)
-        assert "No 'Authorization' header found" in str(excinfo.value)
+        assert self.auth_missing_error in str(excinfo.value)
 
     @mock.patch.object(flask_oidc.OpenIDConnect, '_get_token_info')
     def test_get_user_with_invalid_token(self, mocked_get_token, session):
@@ -67,7 +78,7 @@ class TestOIDCAuthentication(object):
         request.headers.__contains__.side_effect = headers.__contains__
         with pytest.raises(Unauthorized) as excinfo:
             waiverdb.auth.get_user(request)
-        assert 'Token required but invalid' in excinfo.value.get_description()
+        assert self.invalid_token_error in excinfo.value.get_description()
 
     @mock.patch.object(flask_oidc.OpenIDConnect, '_get_token_info')
     def test_get_user_good(self, mocked_get_token, session):
@@ -110,3 +121,17 @@ class TestSSLAuthentication(object):
         request = mock.MagicMock(environ=ssl)
         user, header = waiverdb.auth.get_user(request)
         assert user == name
+
+
+@pytest.mark.usefixtures('enable_kerberos_oidc_fallback')
+class TestKerberosWithFallbackAuthentication(TestGSSAPIAuthentication):
+    def test_unauthorized(self, client, monkeypatch):
+        monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
+        r = client.post('/api/v1.0/waivers/', content_type='application/json')
+        assert r.status_code == 401
+
+
+@pytest.mark.usefixtures('enable_kerberos_oidc_fallback')
+class TestOIDCWithFallbackAuthentication(TestOIDCAuthentication):
+    invalid_token_error = ""
+    auth_missing_error = ""
