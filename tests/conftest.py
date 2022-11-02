@@ -4,7 +4,7 @@ import os
 from mock import patch
 import pytest
 from waiverdb.app import create_app
-from waiverdb.models import db as waiverdb_db
+from waiverdb.models import db
 
 
 @pytest.fixture(scope='session')
@@ -15,27 +15,18 @@ def app():
         yield app
 
 
-@pytest.fixture(scope='session')
-def db(app):
-    """Session-wide test database."""
-    waiverdb_db.create_all()
-    return waiverdb_db
-
-
 @pytest.fixture
-def session(db, monkeypatch):
+def session(monkeypatch):
     """Patch Flask-SQLAlchemy to use a specific connection"""
-    connection = db.engine.connect()
-    transaction = connection.begin()
+    db.drop_all()
+    db.create_all()
+    with db.engine.connect() as connection:
+        # Patch Flask-SQLAlchemy to use our connection
+        monkeypatch.setattr(db, 'get_engine', lambda *args: connection)
 
-    # Patch Flask-SQLAlchemy to use our connection
-    monkeypatch.setattr(db, 'get_engine', lambda *args: connection)
+        yield db.session
 
-    yield db.session
-
-    db.session.remove()
-    transaction.rollback()
-    connection.close()
+        db.session.remove()
 
 
 @pytest.fixture
