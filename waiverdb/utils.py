@@ -15,7 +15,7 @@ def json_collection(query, page=1, limit=10):
     a collection of resources as JSON.
     """
     try:
-        p = query.paginate(page, limit)
+        p = query.paginate(page=page, per_page=limit)
     except NotFound:
         return {'data': [], 'prev': None, 'next': None, 'first': None, 'last': None}
     pages = {'data': marshal(p.items, waiver_fields)}
