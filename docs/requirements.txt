@@ -7,7 +7,7 @@ prometheus_client
 dogpile.cache
 PyYAML
 
-stomp.py==8.0.1
+stomp.py==8.1.0
 cryptography==38.0.1
 
 flask-oidc==1.4.0
