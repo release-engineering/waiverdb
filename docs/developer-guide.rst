@@ -7,38 +7,31 @@ Quick development setup
 
 Clone `upstream git repository <https://pagure.io/waiverdb>`__::
 
-    $ git clone https://pagure.io/waiverdb.git
+    $ git clone https://github.com/release-engineering/waiverdb.git
     $ cd waiverdb
 
 If you plan to fix issues or implement new features, create fork. Then update
 "upstream" and "origin" remotes::
 
     $ git remote rename origin upstream
-    $ git remote add origin ssh://git@pagure.io/forks/$USER/waiverdb.git
+    $ git remote add origin git@github.com:$USER/waiverdb.git
 
 Install packages required by pip to compile some python packages::
-    
+
     $ sudo dnf install swig openssl-devel cpp gcc
 
-Set up a python virtualenv::
+Install dependencies in a virtual environment::
 
-    $ sudo dnf install python-virtualenv
-    $ virtualenv env_waiverdb
-    $ source env_waiverdb/bin/activate
-    $ pip install -r requirements.txt
-
-Install the project::
-
-    $ python setup.py develop
+    $ poetry install
 
 Run the server::
 
     $ cp conf/settings.py.example conf/settings.py
-    $ PYTHONPATH=~/waiverdb DEV=true python waiverdb/manage.py run -h localhost -p 5004 --debugger
+    $ DEV=true poetry run waiverdb run -h localhost -p 5004 --debugger
 
 Migrate the db::
 
-    $ PYTHONPATH=~/waiverdb DEV=true python waiverdb/manage.py db upgrade
+    $ DEV=true poetry run waiverdb db upgrade
 
 The server is now running at on `localhost port 5004`_. Consult the
 :ref:`rest-api` for available API calls. All data is stored inside
@@ -56,13 +49,21 @@ values in ``waiverdb/config.py``.
 Running test suite
 ==================
 
-You can run this test suite with the following command::
-
-    $ py.test tests/
-
 To test against all supported versions of Python, you can use tox::
 
     $ sudo dnf install python3-tox
     $ tox
+
+Building the documentation
+==========================
+
+You can build the documentation locally with ``tox -e docs`` or::
+
+    $ cd docs
+    $ make html
+
+To view the documentation::
+
+    $ firefox _build/html/index.html
 
 .. _localhost port 5004: http://localhost:5004

@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 from waiverdb.models import db
 
 
-def create_waiver_app(_):
+def create_waiver_app():
     from waiverdb.app import create_app  # noqa: F401
     return create_app()
 

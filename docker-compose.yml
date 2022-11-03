@@ -1,9 +1,8 @@
+---
 version: '2.1'
 services:
   dev:
-    build:
-      context: .
-      dockerfile: openshift/containers/waiverdb/Dockerfile
+    build: .
     working_dir: /code
     env_file: ["docker/dev.env"]
     command: ["bash", "-c", "/start.sh"]
@@ -14,7 +13,7 @@ services:
       - ./docker/settings.py:/etc/waiverdb/settings.py:ro,z
       - ./docker/client_secrets.json:/etc/secret/client_secrets.json:ro,z
     ports:
-     - 5004:5004
+      - 127.0.0.1:5004:5004
     user: '0'
     depends_on:
       - waiverdb-db

@@ -90,8 +90,28 @@ def stomp_connection():
         if 'connection' not in configs or not configs['connection']:
             raise RuntimeError('stomp was configured to publish messages,, '
                                'but connection is not configured in STOMP_CONFIGS')
-        conn = stomp.Connection(**configs['connection'])
+
+        conn_args = configs['connection'].copy()
+        if 'use_ssl' in conn_args:
+            use_ssl = conn_args['use_ssl']
+            del conn_args['use_ssl']
+        else:
+            use_ssl = False
+
+        ssl_args = {'for_hosts': conn_args['host_and_ports']}
+        for attr in ('key_file', 'cert_file', 'ca_certs'):
+            conn_attr = f'ssl_{attr}'
+            if conn_attr in conn_args:
+                ssl_args[attr] = conn_args[conn_attr]
+                del conn_args[conn_attr]
+
+        conn = stomp.connect.StompConnection11(**conn_args)
+
+        if use_ssl:
+            conn.set_ssl(**ssl_args)
+
         conn.connect(wait=True, **configs.get('credentials', {}))
+
         try:
             yield conn
         finally:
