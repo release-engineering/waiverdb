@@ -7,23 +7,20 @@ try:
 except ImportError:
     from urlparse import urlparse, urlunsplit
 
-from flask import Flask, current_app
+from flask import Flask, current_app, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
-from flask_oidc import OpenIDConnect
 from sqlalchemy import event
 from sqlalchemy.exc import ProgrammingError
 import requests
 
 from waiverdb.events import publish_new_waiver
 from waiverdb.logger import init_logging
-from waiverdb.api_v1 import api_v1
+from waiverdb.api_v1 import api_v1, oidc
 from waiverdb.models import db
 from waiverdb.utils import auth_methods, json_error
 from werkzeug.exceptions import default_exceptions
 from waiverdb.monitor import db_hook_event_listeners
-
-oidc = OpenIDConnect()
 
 
 def enable_cors(app):
@@ -122,6 +119,7 @@ def create_app(config_obj=None):
     app.register_blueprint(api_v1, url_prefix="/api/v1.0")
     app.add_url_rule('/healthcheck', view_func=healthcheck)
     app.add_url_rule('/auth/oidclogin', view_func=login)
+    app.add_url_rule('/favicon.png', view_func=favicon)
     register_event_handlers(app)
 
     # initialize DB event listeners from the monitor module
@@ -170,3 +168,11 @@ def register_event_handlers(app):
         # can be removed after python-flask-sqlalchemy is upgraded to 2.2
         from flask_sqlalchemy import SignallingSession
         event.listen(SignallingSession, 'after_commit', publish_new_waiver)
+
+
+def favicon():
+    return send_from_directory(
+        os.path.join(current_app.root_path, 'static'),
+        'favicon.png',
+        mimetype='image/png',
+    )
