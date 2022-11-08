@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    WaiverDB: Create a Waiver
+{% endblock %}
+
+{% block body %}
+    <form method="post">
+        <div class="mb-3">
+            <label for="subject_type" class="form-label">Subject Type</label>
+            <input type="text" class="form-control" name="subject_type"
+            value="{{ request_args.subject_type }}" autocomplete="on"
+            aria-describedby="subject_type_help" required>
+            <div id="subject_type_help" class="form-text">
+                Examples: koji-build, container-image, redhat-container-image
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="subject_identifier" class="form-label">Subject Identifier</label>
+            <input type="text" class="form-control" name="subject_identifier"
+            value="{{ request_args.subject_identifier }}" autocomplete="on"
+            aria-describedby="subject_identifier_help" required>
+            <div id="subject_identifier_help" class="form-text">
+                Depending on the subject type, can contain a name-version-release, a
+                build ID or another identifier.
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="testcase" class="form-label">Test Case Name</label>
+            <input type="text" class="form-control" name="testcase"
+            value="{{ request_args.testcase }}" autocomplete="on"
+            aria-describedby="testcase_help" required>
+            <div id="testcase_help" class="form-text">
+                Examples: compose.install_default, update.desktop_browser, fedora-ci.koji-build.tier0.functional
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="product_version" class="form-label">Product Version</label>
+            <input type="text" class="form-control" name="product_version"
+            value="{{ request_args.product_version }}" autocomplete="on"
+            aria-describedby="product_version_help" required>
+            <div id="product_version_help" class="form-text">
+                Examples: fedora-36, rhel-9
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="comment" class="form-label">Comment</label>
+            <input type="text" class="form-control" name="comment"
+            value="{{ request_args.comment }}" autocomplete="on"
+            aria-describedby="comment_help" required>
+            <div id="comment_help" class="form-text">
+                Explain why failed or missing test has to be waived.
+                <em>Tip:</em> Add an issue identifier.
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="scenario" class="form-label">Scenario (Optional)</label>
+            <input type="text" class="form-control" name="scenario"
+            value="{{ request_args.scenario }}" autocomplete="on"
+            aria-describedby="scenario_help">
+            <div id="scenario_help" class="form-text">
+                Optional scenario to distinguish test results with same test case name.
+                Example: fedora.Cloud_Base-qcow2-qcow2.x86_64.uefi
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+{% endblock %}

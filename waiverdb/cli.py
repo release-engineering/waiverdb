@@ -271,10 +271,16 @@ def cli(username, comment, waived, product_version, testcase, scenario, subject,
         oidc_client_secret = None
         if config.has_option('waiverdb', 'oidc_client_secret'):
             oidc_client_secret = config.get('waiverdb', 'oidc_client_secret')
+        id_provider_mapping = {
+            'Token': config.get(
+                'waiverdb', 'oidc_token_endpoint', fallback='Token'),
+            'Authorization': config.get(
+                'waiverdb', 'oidc_auth_endpoint', fallback='Authorization'),
+        }
         oidc = openidc_client.OpenIDCClient(
             'waiverdb',
             config.get('waiverdb', 'oidc_id_provider'),
-            {'Token': 'Token', 'Authorization': 'Authorization'},
+            id_provider_mapping,
             config.get('waiverdb', 'oidc_client_id'),
             oidc_client_secret)
         scopes = config.get('waiverdb', 'oidc_scopes').strip().splitlines()

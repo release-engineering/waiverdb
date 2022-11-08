@@ -11,3 +11,5 @@ exclude conf/settings.py
 exclude conf/client.conf
 recursive-include docs *.py *.rst *.inv Makefile
 recursive-include waiverdb/migrations *.ini *mako README
+recursive-include waiverdb/static *
+recursive-include waiverdb/templates *.html

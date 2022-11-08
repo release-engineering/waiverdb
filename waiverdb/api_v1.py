@@ -4,7 +4,8 @@ import datetime
 import logging
 
 import requests
-from flask import Blueprint, request, current_app
+from flask import Blueprint, render_template, request, current_app, Response
+from flask_oidc import OpenIDConnect
 from flask_restful import Resource, Api, reqparse, marshal_with, marshal
 from werkzeug.exceptions import (
     BadRequest,
@@ -25,6 +26,7 @@ api_v1 = (Blueprint('api_v1', __name__))
 api = Api(api_v1)
 requests_session = requests.Session()
 log = logging.getLogger(__name__)
+oidc = OpenIDConnect()
 
 
 def valid_dict(value):
@@ -147,6 +149,14 @@ RP['create_waiver'].add_argument('product_version', type=str, required=True, loc
 RP['create_waiver'].add_argument('comment', type=str, required=True, location='json')
 RP['create_waiver'].add_argument('username', type=str, default=None, location='json')
 RP['create_waiver'].add_argument('scenario', type=str, default=None, location='json')
+
+RP['create_waiver_form'] = reqparse.RequestParser()
+RP['create_waiver_form'].add_argument('subject_type', type=str, location='form')
+RP['create_waiver_form'].add_argument('subject_identifier', type=str, location='form')
+RP['create_waiver_form'].add_argument('testcase', type=str, location='form')
+RP['create_waiver_form'].add_argument('product_version', type=str, required=True, location='form')
+RP['create_waiver_form'].add_argument('comment', type=str, required=True, location='form')
+RP['create_waiver_form'].add_argument('scenario', type=str, default=None, location='form')
 
 RP['get_waivers'] = reqparse.RequestParser()
 RP['get_waivers'].add_argument('subject_type', location='args')
@@ -387,7 +397,7 @@ class WaiversResource(Resource):
             user = args['username']
 
         # WaiverDB < 0.6
-        if args['result_id']:
+        if args.get('result_id'):
             if args['subject'] or args['testcase'] or args['scenario']:
                 raise BadRequest('result_id argument should not be used together with arguments: '
                                  '"subject", "testcase" or "scenario"')
@@ -419,7 +429,7 @@ class WaiversResource(Resource):
                 args['scenario'] = result_data['scenario'][0]
 
         # WaiverDB < 0.11
-        if args['subject']:
+        if args.get('subject'):
             args['subject_type'], args['subject_identifier'] = \
                 subject_dict_to_type_identifier(args.pop('subject'))
 
@@ -446,11 +456,42 @@ class WaiversResource(Resource):
             args['testcase'],
             user,
             args['product_version'],
-            args['waived'],
+            args.get('waived', True),
             args['comment'],
             proxied_by,
             args['scenario']
         )
+
+
+class WaiversNewResource(WaiversResource):
+    def get(self):
+        """
+        HTML form to create a waiver.
+
+        Default form input field values can be passed as request query parameters.
+
+        :query string subject_type: The type of thing which this waiver is for.
+        :query string subject_identifier: The identifier of the thing this
+            waiver is for. The semantics of this identifier depend on the
+            "subject_type". For example, Koji builds are identified by their NVR.
+        :query string testcase: The result testcase for the waiver.
+        :query string scenario: The result scenario for the waiver.
+        :query string product_version: The product version string.
+        :query string comment: A comment explaining the waiver.
+
+        :statuscode 200: The HTML with the form is returned.
+        """
+        html = render_template('new_waiver.html', request_args=request.args)
+        return Response(html, mimetype='text/html')
+
+    @marshal_with(waiver_fields)
+    def post(self):
+        user, headers = waiverdb.auth.get_user(request)
+        args = RP['create_waiver_form'].parse_args()
+        result = self._create_waiver(args, user)
+        db.session.add(result)
+        db.session.commit()
+        return result, 201, headers
 
 
 class WaiverResource(Resource):
@@ -766,6 +807,7 @@ class MonitorResource(Resource):
 
 # set up the Api resource routing here
 api.add_resource(WaiversResource, '/waivers/')
+api.add_resource(WaiversNewResource, '/waivers/new')
 api.add_resource(WaiverResource, '/waivers/<int:waiver_id>')
 api.add_resource(FilteredWaiversResource, '/waivers/+filtered')
 api.add_resource(GetWaiversBySubjectsAndTestcases, '/waivers/+by-subjects-and-testcases')
