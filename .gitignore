@@ -17,3 +17,4 @@ dist
 .pytest_cache/
 docker/home/
 .idea
+.coverage

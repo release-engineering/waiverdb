@@ -50,15 +50,5 @@ class EqualityComparableJSONType(_PGJSON):
             return json_serializer(value)
         return process
 
-    def result_processor(self, dialect, coltype):
-        if dialect._has_native_json:  # pylint: disable=W0212
-            return None
-
-        def process(value):
-            if value is None:
-                return None
-            return json.loads(value)
-        return process
-
 
 db = SQLAlchemy()

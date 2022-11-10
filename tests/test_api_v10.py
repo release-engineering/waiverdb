@@ -918,7 +918,7 @@ def test_create_waiver_failed_event_once(mocked_user, client, session, caplog):
     }
 
     with patch.dict(client.application.config, config):
-        with patch('waiverdb.events.stomp.Connection') as connection:
+        with patch('waiverdb.events.stomp.connect.StompConnection11') as connection:
             connection().connect.side_effect = (StompException, StompException, None)
             r = client.post('/api/v1.0/waivers/', json=data)
             assert r.status_code == 201

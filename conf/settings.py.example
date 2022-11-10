@@ -7,6 +7,7 @@ DATABASE_URI = 'postgresql+psycopg2:///waiverdb'
 HOST= '0.0.0.0'
 PORT = 5004
 ## Alternatively, you could use stomp to publish messages to a message bus.
+MESSAGE_BUS_PUBLISH = False
 #MESSAGE_PUBLISHER = 'stomp'
 #STOMP_CONFIGS = {
 #    'destination': '/topic/VirtualTopic.eng.waiverdb.waiver.new',
