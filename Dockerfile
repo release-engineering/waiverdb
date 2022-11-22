@@ -18,6 +18,8 @@ RUN set -exo pipefail \
         --releasever=8 \
         --setopt install_weak_deps=false \
         --nodocs \
+        krb5-libs \
+        openldap \
         python39 \
     && yum --installroot=/mnt/rootfs clean all \
     && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum.* \
