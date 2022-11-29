@@ -464,6 +464,7 @@ class WaiversResource(Resource):
 
 
 class WaiversNewResource(WaiversResource):
+    @oidc.require_login
     def get(self):
         """
         HTML form to create a waiver.
@@ -484,14 +485,15 @@ class WaiversNewResource(WaiversResource):
         html = render_template('new_waiver.html', request_args=request.args)
         return Response(html, mimetype='text/html')
 
+    @oidc.require_login
     @marshal_with(waiver_fields)
     def post(self):
-        user, headers = waiverdb.auth.get_user(request)
+        user = oidc.user_getfield(current_app.config["OIDC_USERNAME_FIELD"])
         args = RP['create_waiver_form'].parse_args()
         result = self._create_waiver(args, user)
         db.session.add(result)
         db.session.commit()
-        return result, 201, headers
+        return result, 201
 
 
 class WaiverResource(Resource):
