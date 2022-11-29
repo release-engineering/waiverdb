@@ -22,6 +22,7 @@ class Config(object):
     # https://github.com/flask-restful/flask-restful/issues/449
     ERROR_404_HELP = False
     AUTH_METHOD = 'OIDC'  # Specify OIDC, Kerberos or SSL for authentication
+    OIDC_USERNAME_FIELD = 'preferred_username'
     # Set this to True or False to enable publishing to a message bus
     MESSAGE_BUS_PUBLISH = True
     # Specify fedmsg or stomp for publishing messages
