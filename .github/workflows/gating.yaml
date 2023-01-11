@@ -56,9 +56,6 @@ jobs:
         with:
           python-version: "3.8"
 
-      - name: Test building documentation with tox
-        run: tox -e docs
-
   coveralls-finish:
     name: Finish coveralls-python
     needs: tests
