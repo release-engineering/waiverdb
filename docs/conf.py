@@ -37,9 +37,6 @@ except Exception:
 # This will cause the Flask application to be created with development configs
 os.environ['DEV'] = 'true'
 
-# Workaround to skip some missing dependencies
-os.environ['DOCS'] = 'true'
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import waiverdb  # noqa: E402
 

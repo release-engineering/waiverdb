@@ -3,9 +3,7 @@
 
 import base64
 import binascii
-import os
-if not os.getenv('DOCS'):   # installing gssapi causing a problem for documentation building
-    import gssapi
+import gssapi
 from flask import current_app, Response, g
 from werkzeug.exceptions import Unauthorized, Forbidden
 

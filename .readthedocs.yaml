@@ -9,6 +9,12 @@ version: 2
 sphinx:
    configuration: docs/conf.py
 
+build:
+  apt_packages:
+  - libkrb5-dev
+  - libldap2-dev
+  - libsasl2-dev
+
 # Optionally set the version of Python and requirements required to build your docs
 python:
    version: 3.8
