@@ -86,6 +86,7 @@ def _filter_out_obsolete_waivers(query):
         Waiver.subject_type,
         Waiver.subject_identifier,
         Waiver.testcase,
+        Waiver.scenario,
         Waiver.username,
         Waiver.product_version,
     )
