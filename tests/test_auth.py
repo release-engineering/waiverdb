@@ -45,7 +45,8 @@ class TestGSSAPIAuthentication(object):
 
     def test_unauthorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
-        r = client.post('/api/v1.0/waivers/', content_type='application/json')
+        r = client.post('/api/v1.0/waivers/', data=json.dumps(self.waiver_data),
+                        content_type='application/json')
         assert r.status_code == 401
         assert r.headers.get('www-authenticate') == 'Negotiate'
 
@@ -175,7 +176,8 @@ class TestSSLAuthentication(object):
 class TestKerberosWithFallbackAuthentication(TestGSSAPIAuthentication):
     def test_unauthorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
-        r = client.post('/api/v1.0/waivers/', content_type='application/json')
+        r = client.post('/api/v1.0/waivers/', data=json.dumps(self.waiver_data),
+                        content_type='application/json')
         assert r.status_code == 401
 
 

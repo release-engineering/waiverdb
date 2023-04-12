@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-import datetime
+from datetime import datetime, timedelta
 import json
 
 import pytest
@@ -65,7 +65,6 @@ def test_create_waiver_with_subject(mocked_user, client, session):
     # 'subject' key was the API in Waiverdb < 0.11
     data = {
         'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
-        'subject_identifier': 'glibc-2.26-27.fc27',
         'testcase': 'dist.rpmdeplint',
         'product_version': 'fedora-27',
         'waived': True,
@@ -157,8 +156,22 @@ def test_create_waiver_without_comment(mocked_user, client, session):
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    res_data = json.loads(r.get_data(as_text=True))
-    assert res_data['message']['comment'] == 'Missing required parameter in the JSON body'
+    bp = res_data['validation_error']['body_params']
+    assert {
+        'loc': ['__root__'],
+        'msg': 'value is not a valid list',
+        'type': 'type_error.list'
+    } in bp
+    assert {
+        'loc': ['__root__', 'comment'],
+        'msg': 'field required',
+        'type': 'value_error.missing'
+    } in bp
+    assert {
+        'loc': ['__root__', '__root__'],
+        'msg': 'Argument testcase is missing',
+        'type': 'value_error'
+    } in bp
 
 
 def test_create_waiver_with_scenario(mocked_user, client, session):
@@ -213,7 +226,17 @@ def test_create_waiver_with_no_testcase(mocked_user, client):
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    assert 'Missing required parameter in the JSON body' in res_data['message']['testcase']
+    bp = res_data['validation_error']['body_params']
+    assert {
+        'loc': ['__root__'],
+        'msg': 'value is not a valid list',
+        'type': 'type_error.list'
+    } in bp
+    assert {
+        'loc': ['__root__', '__root__'],
+        'msg': 'Argument testcase is missing',
+        'type': 'value_error'
+    } in bp
 
 
 def test_create_waiver_with_malformed_subject(mocked_user, client):
@@ -225,7 +248,34 @@ def test_create_waiver_with_malformed_subject(mocked_user, client):
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    assert 'Must be a valid dict' in res_data['message']['subject']
+    bp = res_data['validation_error']['body_params']
+    assert {
+        'loc': ['__root__'],
+        'msg': 'value is not a valid list',
+        'type': 'type_error.list'
+    } in bp
+    assert {
+        'loc': ['__root__', 'subject'],
+        'msg': 'value is not a valid dict',
+        'type': 'type_error.dict'
+    } in bp
+    assert {
+        'loc': ['__root__', 'product_version'],
+        'msg': 'field required', 'type': 'value_error.missing'
+    } in bp
+    assert {
+        'loc': ['__root__', 'comment'],
+        'msg': 'field required',
+        'type': 'value_error.missing'
+    } in bp
+    assert {
+        'loc': ['__root__', '__root__'],
+        'msg': (
+            'subject must be defined using result_id or subject '
+            'or both subject_identifier, subject_type'
+        ),
+        'type': 'value_error'
+    } in bp
 
 
 def test_non_superuser_cannot_create_waiver_for_other_users(mocked_user, client):
@@ -489,12 +539,12 @@ def test_filtering_waivers_by_username(client, session):
 
 
 def test_filtering_waivers_by_since(client, session):
-    before1 = (datetime.datetime.utcnow() - datetime.timedelta(seconds=100)).isoformat()
-    before2 = (datetime.datetime.utcnow() - datetime.timedelta(seconds=99)).isoformat()
-    after = (datetime.datetime.utcnow() + datetime.timedelta(seconds=100)).isoformat()
+    before1 = (datetime.utcnow() - timedelta(seconds=100)).isoformat()
+    before2 = (datetime.utcnow() - timedelta(seconds=99)).isoformat()
+    after = (datetime.utcnow() + timedelta(seconds=100)).isoformat()
     create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo', product_version='foo-1')
-    r = client.get('/api/v1.0/waivers/?since=%s' % before1)
+    r = client.get(f'/api/v1.0/waivers/?since={before1}')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 200
     assert len(res_data['data']) == 1
@@ -524,20 +574,19 @@ def test_filtering_waivers_by_malformed_since(client, session):
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
     assert res_data['message']['since'] == \
-        "time data '123' does not match format '%Y-%m-%dT%H:%M:%S.%f'"
+        "Invalid isoformat string: '123'"
 
-    r = client.get('/api/v1.0/waivers/?since=%s,badend' % datetime.datetime.utcnow().isoformat())
+    r = client.get(f'/api/v1.0/waivers/?since={datetime.utcnow().isoformat()},badend')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
     assert res_data['message']['since'] == \
-        "time data 'badend' does not match format '%Y-%m-%dT%H:%M:%S.%f'"
+        "Invalid isoformat string: 'badend'"
 
-    r = client.get('/api/v1.0/waivers/?since=%s,too,many,commas'
-                   % datetime.datetime.utcnow().isoformat())
+    r = client.get(f'/api/v1.0/waivers/?since={datetime.utcnow().isoformat()},too,many,commas')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
     assert res_data['message']['since'] == \
-        "time data 'too,many,commas' does not match format '%Y-%m-%dT%H:%M:%S.%f'"
+        "Invalid isoformat string: 'too,many,commas'"
 
 
 def test_filtering_waivers_by_proxied_by(client, session):
@@ -599,7 +648,8 @@ def test_filtering_with_missing_filter(client, session):
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    assert res_data['message']['filters'] == 'Missing required parameter in the JSON body'
+    bp = res_data['validation_error']['body_params']
+    assert {'loc': ['filters'], 'msg': 'field required', 'type': 'value_error.missing'} in bp
 
 
 def test_waivers_by_subjects_and_testcases(client, session):
@@ -633,18 +683,30 @@ def test_waivers_by_subjects_and_testcases(client, session):
     assert all(w['product_version'].startswith('foo-') for w in res_data['data'])
 
 
-@pytest.mark.parametrize("results", [
-    [{'item': {'subject.test1': 'subject1'}}],  # Unexpected key
-    [{'subject': 'subject1'}],  # Unexpected key type
+@pytest.mark.parametrize("results,expected_error_message,excepted_error_type", [
+    ([{'item': {'subject.test1': 'subject1'}}], 'field required', 'value_error.missing'),
+    ([{'subject': 'subject1'}], 'value is not a valid dict', 'type_error.dict'),
+    ([{}], 'field required', 'value_error.missing')
 ])
-def test_waivers_by_subjects_and_testcases_with_bad_results_parameter(client, session, results):
+def test_waivers_by_subjects_and_testcases_with_bad_results_parameter(
+        client, session, results, expected_error_message, excepted_error_type
+):
     data = {'results': results}
     r = client.post('/api/v1.0/waivers/+by-subjects-and-testcases', data=json.dumps(data),
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    assert res_data['message']['results'] == \
-        'Must be a list of dictionaries with "subject" and "testcase"'
+    bp = res_data['validation_error']['body_params']
+    assert {
+        'loc': ['results', 0, 'testcase'],
+        'type': 'value_error.missing',
+        'msg': 'field required'
+    } in bp
+    assert {
+        'loc': ['results', 0, 'subject'],
+        'type': excepted_error_type,
+        'msg': expected_error_message
+    }
 
 
 def test_waivers_by_subjects_and_testcases_with_unrecognized_subject_type(client, session):
@@ -667,14 +729,10 @@ def test_waivers_by_subjects_and_testcases_with_unrecognized_subject_type(client
     assert res_data['data'] == []
 
 
-@pytest.mark.parametrize("results", [
-    [],
-    [{}],
-])
-def test_waivers_by_subjects_and_testcases_with_empty_results_parameter(client, session, results):
+def test_waivers_by_subjects_and_testcases_with_empty_results_parameter(client, session):
     create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo-1', product_version='foo-1')
-    data = {'results': results}
+    data = {'results': []}
     r = client.post('/api/v1.0/waivers/+by-subjects-and-testcases', data=json.dumps(data),
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
@@ -688,7 +746,7 @@ def test_waivers_by_subjects_and_testcases_with_malformed_since(client, session)
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    assert res_data['message']['since'] == "argument of type 'int' is not iterable"
+    assert res_data['message']['since'] == "Invalid isoformat string: '123'"
 
     data = {'since': 'asdf'}
     r = client.post('/api/v1.0/waivers/+by-subjects-and-testcases', data=json.dumps(data),
@@ -696,7 +754,7 @@ def test_waivers_by_subjects_and_testcases_with_malformed_since(client, session)
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
     assert res_data['message']['since'] == \
-        "time data 'asdf' does not match format '%Y-%m-%dT%H:%M:%S.%f'"
+        "Invalid isoformat string: 'asdf'"
 
 
 @pytest.mark.parametrize('trailing_slash', ('', '/'))

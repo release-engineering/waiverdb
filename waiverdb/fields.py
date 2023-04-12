@@ -6,7 +6,6 @@ from waiverdb.models.waivers import subject_type_identifier_to_dict
 
 
 class BackwardsCompatibleSubjectField(fields.Raw):
-
     def output(self, key, obj):
         waiver = obj
         return subject_type_identifier_to_dict(waiver.subject_type, waiver.subject_identifier)
