@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-import datetime
 import logging
 
 import requests
@@ -14,7 +13,8 @@ from flask import (
     url_for,
 )
 from flask_oidc import OpenIDConnect
-from flask_restful import Resource, Api, reqparse, marshal_with, marshal
+from flask_pydantic import validate
+from flask_restful import Resource, Api, marshal_with, marshal
 from werkzeug.exceptions import (
     BadRequest,
     Forbidden,
@@ -22,11 +22,14 @@ from werkzeug.exceptions import (
     Unauthorized,
 )
 from sqlalchemy.sql.expression import func, and_, or_
-
 from waiverdb import __version__
 from waiverdb.authorization import match_testcase_permissions, verify_authorization
 from waiverdb.models import db
 from waiverdb.models.waivers import Waiver, subject_dict_to_type_identifier
+from waiverdb.models.requests import (
+    GetWaivers, CreateWaiver, FilterWaivers, GetWaiversBySubjectAndTestcase, GetPermissions,
+    parse_since, WaiverFilter, CreateWaiverList
+)
 from waiverdb.utils import json_collection, jsonp
 from waiverdb.fields import waiver_fields
 import waiverdb.auth
@@ -38,12 +41,6 @@ log = logging.getLogger(__name__)
 oidc = OpenIDConnect()
 
 
-def valid_dict(value):
-    if not isinstance(value, dict):
-        raise ValueError("Must be a valid dict, not %r" % value)
-    return value
-
-
 def get_resultsdb_result(result_id):
     response = requests_session.request('GET', '{0}/results/{1}'.format(
         current_app.config['RESULTSDB_API_URL'], result_id),
@@ -51,54 +48,6 @@ def get_resultsdb_result(result_id):
         timeout=60)
     response.raise_for_status()
     return response.json()
-
-
-def valid_results_list(results):
-    expected = {
-        'subject': dict,
-        'testcase': str,
-    }
-    for item in results:
-        for k, v in item.items():
-            if not (k in expected and isinstance(v, expected[k])):
-                raise ValueError('Must be a list of dictionaries with "subject" and "testcase"')
-    return results
-
-
-def valid_filter_list(filters):
-    if not filters:
-        raise ValueError('Must be a list of non-empty dictionaries')
-    for item in filters:
-        if not isinstance(item, dict) or not item:
-            raise ValueError('Must be a list of non-empty dictionaries')
-    return filters
-
-
-def reqparse_since(since):
-    """
-    Parses the 'since' query parameter, which is expected to be either a
-    single ISO8601 timestamp representing the start of a time period::
-
-        2017-02-13T23:37:58.193281
-
-    or a comma-separated pair of timestamps representing the start and end of
-    a range::
-
-        2017-02-13T23:37:58.193281,2017-02-16T23:37:58.193281
-
-    Returns a tuple (start, end) of datetime.datetime instances.
-    """
-    start = None
-    end = None
-    if ',' in since:
-        start, end = since.split(',', 1)
-    else:
-        start = since
-    if start:
-        start = datetime.datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%f")
-    if end:
-        end = datetime.datetime.strptime(end, "%Y-%m-%dT%H:%M:%S.%f")
-    return start, end
 
 
 def permissions():
@@ -152,9 +101,7 @@ def _verify_authorization(user, testcase):
     if not ldap_searches:
         ldap_base = current_app.config.get('LDAP_BASE')
         if ldap_base:
-            ldap_search_string = current_app.config.get(
-                'LDAP_SEARCH_STRING', '(memberUid={user})'
-            )
+            ldap_search_string = current_app.config.get('LDAP_SEARCH_STRING', '(memberUid={user})')
             ldap_searches = [{'BASE': ldap_base, 'SEARCH_STRING': ldap_search_string}]
     return verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches)
 
@@ -176,73 +123,9 @@ def _authorization_warning(request):
     return None
 
 
-# RP contains request parsers (reqparse.RequestParser).
-#    Parsers are added in each 'resource section' for better readability
-RP = {}
-RP['create_waiver'] = reqparse.RequestParser()
-RP['create_waiver'].add_argument('subject_type', type=str, location='json')
-RP['create_waiver'].add_argument('subject_identifier', type=str, location='json')
-RP['create_waiver'].add_argument('testcase', type=str, location='json')
-# These are accepted for backwards compatibility
-RP['create_waiver'].add_argument('subject', type=valid_dict, location='json')
-RP['create_waiver'].add_argument('result_id', type=int, location='json')
-RP['create_waiver'].add_argument('waived', type=bool, required=True, location='json')
-RP['create_waiver'].add_argument('product_version', type=str, required=True, location='json')
-RP['create_waiver'].add_argument('comment', type=str, required=True, location='json')
-RP['create_waiver'].add_argument('username', type=str, default=None, location='json')
-RP['create_waiver'].add_argument('scenario', type=str, default=None, location='json')
-
-RP['create_waiver_form'] = reqparse.RequestParser()
-RP['create_waiver_form'].add_argument('subject_type', type=str, location='form')
-RP['create_waiver_form'].add_argument('subject_identifier', type=str, location='form')
-RP['create_waiver_form'].add_argument('testcase', type=str, location='form')
-RP['create_waiver_form'].add_argument('product_version', type=str, required=True, location='form')
-RP['create_waiver_form'].add_argument('comment', type=str, required=True, location='form')
-RP['create_waiver_form'].add_argument('scenario', type=str, default=None, location='form')
-
-RP['get_waivers'] = reqparse.RequestParser()
-RP['get_waivers'].add_argument('subject_type', location='args')
-RP['get_waivers'].add_argument('subject_identifier', location='args')
-RP['get_waivers'].add_argument('testcase', location='args')
-RP['get_waivers'].add_argument('product_version', location='args')
-RP['get_waivers'].add_argument('username', location='args')
-RP['get_waivers'].add_argument('include_obsolete', type=bool, default=False, location='args')
-RP['get_waivers'].add_argument('scenario', type=str, default=None, location='args')
-# XXX This matches the since query parameter in resultsdb but I think it would
-# be good to use two parameters(since and until).
-RP['get_waivers'].add_argument('since', type=reqparse_since, location='args')
-RP['get_waivers'].add_argument('page', default=1, type=int, location='args')
-RP['get_waivers'].add_argument('limit', default=10, type=int, location='args')
-RP['get_waivers'].add_argument('proxied_by', location='args')
-
-RP['get_permissions'] = reqparse.RequestParser()
-RP['get_permissions'].add_argument('testcase', location='args')
-
-RP['filter_waivers'] = reqparse.RequestParser()
-RP['filter_waivers'].add_argument('filters', type=valid_filter_list, required=True, location='json')
-RP['filter_waivers'].add_argument('include_obsolete', type=bool, default=False, location='json')
-
-RP['get_waivers_by_subjects_and_testcase'] = rp = reqparse.RequestParser()
-rp.add_argument('results', type=valid_results_list, location='json')
-rp.add_argument('testcase', type=str, location='json')
-rp.add_argument('product_version', type=str, location='json')
-rp.add_argument('username', type=str, location='json')
-rp.add_argument('proxied_by', location='json')
-rp.add_argument('since', type=reqparse_since, location='json')
-rp.add_argument('include_obsolete', type=bool, default=False, location='json')
-
-
-class DummyJsonRequest(object):
-    """
-    Can be passed to reqparse.RequestParser.parse_args() instead of current
-    request.
-    """
-    def __init__(self, data):
-        self.json = data
-
-
 class WaiversResource(Resource):
     @jsonp
+    @validate(query=GetWaivers)
     def get(self):
         """
         Get waiver records.
@@ -296,36 +179,39 @@ class WaiversResource(Resource):
             Note that the response may still contain 0 waivers.
         :statuscode 400: The request was malformed and could not be processed.
         """
-        args = RP['get_waivers'].parse_args()
+
+        args = GetWaivers.parse_obj(request.args)
+
         query = Waiver.query.order_by(Waiver.timestamp.desc())
 
-        if args['subject_type']:
-            query = query.filter(Waiver.subject_type == args['subject_type'])
-        if args['subject_identifier']:
-            query = query.filter(Waiver.subject_identifier == args['subject_identifier'])
-        if args['testcase']:
-            query = query.filter(Waiver.testcase == args['testcase'])
-        if args['scenario']:
-            query = query.filter(Waiver.scenario == args['scenario'])
-        if args['product_version']:
-            query = query.filter(Waiver.product_version == args['product_version'])
-        if args['username']:
-            query = query.filter(Waiver.username == args['username'])
-        if args['proxied_by']:
-            query = query.filter(Waiver.proxied_by == args['proxied_by'])
-        if args['since']:
-            since_start, since_end = args['since']
+        if args.subject_type:
+            query = query.filter(Waiver.subject_type == args.subject_type)
+        if args.subject_identifier:
+            query = query.filter(Waiver.subject_identifier == args.subject_identifier)
+        if args.testcase:
+            query = query.filter(Waiver.testcase == args.testcase)
+        if args.scenario:
+            query = query.filter(Waiver.scenario == args.scenario)
+        if args.product_version:
+            query = query.filter(Waiver.product_version == args.product_version)
+        if args.username:
+            query = query.filter(Waiver.username == args.username)
+        if args.proxied_by:
+            query = query.filter(Waiver.proxied_by == args.proxied_by)
+        if args.since:
+            since_start, since_end = parse_since(args.since)
             if since_start:
                 query = query.filter(Waiver.timestamp >= since_start)
             if since_end:
                 query = query.filter(Waiver.timestamp <= since_end)
-        if not args['include_obsolete']:
+        if not args.include_obsolete:
             query = _filter_out_obsolete_waivers(query)
 
         query = query.order_by(Waiver.timestamp.desc())
-        return json_collection(query, args['page'], args['limit'])
+        return json_collection(query, args.page, args.limit)
 
     @jsonp
+    @validate(body=CreateWaiverList)
     @marshal_with(waiver_fields)
     def post(self):
         """
@@ -398,38 +284,31 @@ class WaiversResource(Resource):
         user, headers = waiverdb.auth.get_user(request)
         data = request.get_json(force=True)
 
+        data = CreateWaiverList.parse_obj(data).__root__
         if isinstance(data, list):
-            result = []
-            for sub_data in data:
-                sub_request = DummyJsonRequest(sub_data)
-                args = RP['create_waiver'].parse_args(sub_request)
-                one_result = self._create_waiver(args, user)
-                result.append(one_result)
+            result = [self._create_waiver(sub_data, user) for sub_data in data]
             db.session.add_all(result)
         else:
-            args = RP['create_waiver'].parse_args()
-            result = self._create_waiver(args, user)
+            result = self._create_waiver(data, user)
             db.session.add(result)
 
         db.session.commit()
 
         return result, 201, headers
 
-    def _create_waiver(self, args, user):
+    @staticmethod
+    def _create_waiver(args: CreateWaiver, user):
         proxied_by = None
-        if args.get('username'):
+        if args.username:
             if user not in current_app.config['SUPERUSERS']:
                 raise Forbidden('user %s does not have the proxyuser ability' % user)
             proxied_by = user
-            user = args['username']
+            user = args.username
 
         # WaiverDB < 0.6
-        if args.get('result_id'):
-            if args['subject'] or args['testcase'] or args['scenario']:
-                raise BadRequest('result_id argument should not be used together with arguments: '
-                                 '"subject", "testcase" or "scenario"')
+        if args.result_id is not None:
             try:
-                result = get_resultsdb_result(args.pop('result_id'))
+                result = get_resultsdb_result(args.result_id)
             except requests.HTTPError as e:
                 if e.response.status_code == 404:
                     raise BadRequest('Result id not found in Resultsdb')
@@ -439,54 +318,43 @@ class WaiversResource(Resource):
                 raise ServiceUnavailable('Failed looking up result in Resultsdb: %s' % e)
             result_data = result['data']  # ResultsDB "extra data" for the given result
             if 'original_spec_nvr' in result_data:
-                args['subject_type'] = 'koji_build'
-                args['subject_identifier'] = result_data['original_spec_nvr'][0]
+                args.subject_type = 'koji_build'
+                args.subject_identifier = result_data['original_spec_nvr'][0]
             elif 'type' in result_data and result_data['type'][0] in ['koji_build', 'brew-build']:
-                args['subject_type'] = 'koji_build'
-                args['subject_identifier'] = result_data['item'][0]
+                args.subject_type = 'koji_build'
+                args.subject_identifier = result_data['item'][0]
             elif 'type' in result_data:
-                args['subject_type'] = result_data['type'][0]
-                args['subject_identifier'] = result_data['item'][0]
+                args.subject_type = result_data['type'][0]
+                args.subject_identifier = result_data['item'][0]
             else:
                 raise BadRequest('It is not possible to submit a waiver by '
                                  'id for this result. Please try again specifying '
                                  'a subject and a testcase.')
-            args['testcase'] = result['testcase']['name']
+            args.testcase = result['testcase']['name']
             if 'scenario' in result_data:
-                args['scenario'] = result_data['scenario'][0]
+                args.scenario = result_data['scenario'][0]
 
         # WaiverDB < 0.11
-        if args.get('subject'):
-            args['subject_type'], args['subject_identifier'] = \
-                subject_dict_to_type_identifier(args.pop('subject'))
+        if args.subject:
+            args.subject_type, args.subject_identifier = \
+                subject_dict_to_type_identifier(args.subject)
 
-        # These are not marked required in the RequestParser, because they may
-        # be absent in the request but filled in by the backwards
-        # compatibility logic above. So we check explicitly here, and give
-        # back an error matching what RequestParser would do.
-        if not args['subject_type']:
-            raise BadRequest({'subject_type': 'Missing required parameter in the JSON body'})
-        if not args['subject_identifier']:
-            raise BadRequest({'subject_identifier': 'Missing required parameter in the JSON body'})
-        if not args['testcase']:
-            raise BadRequest({'testcase': 'Missing required parameter in the JSON body'})
-
-        _verify_authorization(user, args['testcase'])
+        _verify_authorization(user, args.testcase)
 
         # brew-build is an alias for koji_build
-        if args['subject_type'] == 'brew-build':
-            args['subject_type'] = 'koji_build'
+        if args.subject_type == 'brew-build':
+            args.subject_type = 'koji_build'
 
         return Waiver(
-            args['subject_type'],
-            args['subject_identifier'],
-            args['testcase'],
+            args.subject_type,
+            args.subject_identifier,
+            args.testcase,
             user,
-            args['product_version'],
-            args.get('waived', True),
-            args['comment'],
+            args.product_version,
+            args.waived,
+            args.comment,
             proxied_by,
-            args['scenario']
+            args.scenario
         )
 
 
@@ -514,11 +382,11 @@ class WaiversNewResource(WaiversResource):
         return Response(html, mimetype='text/html')
 
     @oidc.require_login
+    @validate(form=CreateWaiver)
     @marshal_with(waiver_fields)
     def post(self):
         user = oidc.user_getfield(current_app.config["OIDC_USERNAME_FIELD"])
-        args = RP['create_waiver_form'].parse_args()
-        result = self._create_waiver(args, user)
+        result = self._create_waiver(CreateWaiver.parse_obj(request.form), user)
         db.session.add(result)
         db.session.commit()
         return result, 201
@@ -543,7 +411,7 @@ class WaiverResource(Resource):
 
 
 class FilteredWaiversResource(Resource):
-
+    @validate(body=FilterWaivers)
     @marshal_with(waiver_fields, envelope='data')
     def post(self):
         """
@@ -613,37 +481,35 @@ class FilteredWaiversResource(Resource):
         :statuscode 200: Returns matching waivers, if any.
         :statuscode 400: The request was malformed (invalid filter critera).
         """
-        args = RP['filter_waivers'].parse_args()
+        args = FilterWaivers.parse_obj(request.get_json(force=True))
         query = Waiver.query.order_by(Waiver.timestamp.desc())
         clauses = []
-        for filter_ in args['filters']:
+        filter_: WaiverFilter
+        for filter_ in args.filters:
             inner_clauses = []
-            if 'subject_type' in filter_:
-                inner_clauses.append(Waiver.subject_type == filter_['subject_type'])
-            if 'subject_identifier' in filter_:
-                inner_clauses.append(Waiver.subject_identifier == filter_['subject_identifier'])
-            if 'testcase' in filter_:
-                inner_clauses.append(Waiver.testcase == filter_['testcase'])
-            if 'scenario' in filter_:
-                inner_clauses.append(Waiver.scenario == filter_['scenario'])
-            if 'product_version' in filter_:
-                inner_clauses.append(Waiver.product_version == filter_['product_version'])
-            if 'username' in filter_:
-                inner_clauses.append(Waiver.username == filter_['username'])
-            if 'proxied_by' in filter_:
-                inner_clauses.append(Waiver.proxied_by == filter_['proxied_by'])
-            if 'since' in filter_:
-                try:
-                    since_start, since_end = reqparse_since(filter_['since'])
-                except ValueError as e:
-                    raise BadRequest({'since': str(e)})
+            if filter_.subject_type:
+                inner_clauses.append(Waiver.subject_type == filter_.subject_type)
+            if filter_.subject_identifier:
+                inner_clauses.append(Waiver.subject_identifier == filter_.subject_identifier)
+            if filter_.testcase:
+                inner_clauses.append(Waiver.testcase == filter_.testcase)
+            if filter_.scenario:
+                inner_clauses.append(Waiver.scenario == filter_.scenario)
+            if filter_.product_version:
+                inner_clauses.append(Waiver.product_version == filter_.product_version)
+            if filter_.username:
+                inner_clauses.append(Waiver.username == filter_.username)
+            if filter_.proxied_by:
+                inner_clauses.append(Waiver.proxied_by == filter_.proxied_by)
+            if filter_.since:
+                since_start, since_end = parse_since(filter_.since)
                 if since_start:
                     inner_clauses.append(Waiver.timestamp >= since_start)
                 if since_end:
                     inner_clauses.append(Waiver.timestamp <= since_end)
             clauses.append(and_(*inner_clauses))
         query = query.filter(or_(*clauses))
-        if not args['include_obsolete']:
+        if not args.include_obsolete:
             subquery = db.session.query(func.max(Waiver.id))\
                 .group_by(Waiver.subject_type, Waiver.subject_identifier, Waiver.testcase)
             query = query.filter(Waiver.id.in_(subquery))
@@ -652,6 +518,7 @@ class FilteredWaiversResource(Resource):
 
 class GetWaiversBySubjectsAndTestcases(Resource):
     @jsonp
+    @validate(body=GetWaiversBySubjectAndTestcase)
     def post(self):
         """
         **Deprecated.** Use :http:post:`/api/v1.0/waivers/+filtered` instead.
@@ -698,23 +565,24 @@ class GetWaiversBySubjectsAndTestcases(Resource):
                 ]
            }
         """
-        args = RP['get_waivers_by_subjects_and_testcase'].parse_args()
+        data = request.get_json(force=True)
+        args = GetWaiversBySubjectAndTestcase.parse_obj(data)
         query = Waiver.query.order_by(Waiver.timestamp.desc())
-        if args['results']:
-            query = Waiver.by_results(query, args['results'])
-        if args['product_version']:
-            query = query.filter(Waiver.product_version == args['product_version'])
-        if args['username']:
-            query = query.filter(Waiver.username == args['username'])
-        if args['proxied_by']:
-            query = query.filter(Waiver.proxied_by == args['proxied_by'])
-        if args['since']:
-            since_start, since_end = args['since']
+        if args.results:
+            query = Waiver.by_results(query, args.results)
+        if args.product_version:
+            query = query.filter(Waiver.product_version == args.product_version)
+        if args.username:
+            query = query.filter(Waiver.username == args.username)
+        if args.proxied_by:
+            query = query.filter(Waiver.proxied_by == args.proxied_by)
+        if args.since:
+            since_start, since_end = parse_since(args.since)
             if since_start:
                 query = query.filter(Waiver.timestamp >= since_start)
             if since_end:
                 query = query.filter(Waiver.timestamp <= since_end)
-        if not args['include_obsolete']:
+        if not args.include_obsolete:
             query = _filter_out_obsolete_waivers(query)
 
         query = query.order_by(Waiver.timestamp.desc())
@@ -787,6 +655,7 @@ class ConfigResource(Resource):
 
 class PermissionsResource(Resource):
     @jsonp
+    @validate(query=GetPermissions)
     def get(self):
         """
         Returns the waiver permissions.
@@ -821,8 +690,8 @@ class PermissionsResource(Resource):
         :json string testcase: If specified, only permissions for given test case is returned.
         :statuscode 200: Permissions are returned.
         """
-        args = RP['get_permissions'].parse_args()
-        testcase = args['testcase']
+        args = GetPermissions.parse_obj(request.args)
+        testcase = args.testcase
         if testcase:
             return list(match_testcase_permissions(testcase, permissions()))
 

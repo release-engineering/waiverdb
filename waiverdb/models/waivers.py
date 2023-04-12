@@ -1,30 +1,32 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import datetime
+
+from typing import List
+
 from .base import db
 from sqlalchemy import or_, and_, false
+from .requests import TestSubject, TestResult
 
 
-def subject_dict_to_type_identifier(subject):
+def subject_dict_to_type_identifier(subject: TestSubject):
     """
     WaiverDB < 0.11 accepted an arbitrary dict for the 'subject'.
     Now we expect a specific type and identifier.
     This maps from the old style to the new, for backwards compatibility.
     """
     # handling the special cases...
-    if (subject.get('type') in ['koji_build', 'brew-build']
-            and 'item' in subject
-            and isinstance(subject['item'], str)):
-        return ('koji_build', subject['item'])
-    elif 'original_spec_nvr' in subject and isinstance(subject['original_spec_nvr'], str):
-        return ('koji_build', subject['original_spec_nvr'])
-    elif 'productmd.compose.id' in subject and isinstance(subject['productmd.compose.id'], str):
-        return ('compose', subject['productmd.compose.id'])
+    if subject.type in ['koji_build', 'brew-build'] and subject.item:
+        return 'koji_build', subject.item
+    elif subject.original_spec_nvr:
+        return 'koji_build', subject.original_spec_nvr
+    elif subject.productmd_compose_id:
+        return 'compose', subject.productmd_compose_id
     # then handling the general case...
-    elif 'item' in subject and isinstance(subject['item'], str):
-        return (subject.get('type'), subject['item'])
+    elif subject.item:
+        return subject.type, subject.item
     else:
-        raise ValueError('Subject type should be non empty string, actual value is: %r' % subject)
+        raise ValueError(f'Subject type should be non-empty string, actual value is: {subject}')
 
 
 def subject_type_identifier_to_dict(subject_type, subject_identifier):
@@ -37,8 +39,8 @@ def subject_type_identifier_to_dict(subject_type, subject_identifier):
     elif subject_type and isinstance(subject_type, str):
         return {'type': subject_type, 'item': subject_identifier}
     else:
-        raise ValueError(('Subject type should be non empty string, '
-                          'actual value is: %r') % subject_type)
+        raise ValueError('Subject type should be non-empty string, '
+                         f'actual value is: {subject_type}')
 
 
 class Waiver(db.Model):
@@ -76,7 +78,7 @@ class Waiver(db.Model):
                    self.testcase, self.scenario, self.username, self.product_version, self.waived))
 
     @classmethod
-    def by_results(cls, query, results):
+    def by_results(cls, query, results: List[TestResult]):
         """
         Filter ``query`` by matching with at least one filter in ``results``.
 
@@ -92,21 +94,20 @@ class Waiver(db.Model):
         """
         clauses = []
         for result in results:
-            subject = result.get('subject', None)
-            testcase = result.get('testcase', None)
-            if not subject and not testcase:
+            if not result.subject and not result.testcase:
                 continue
             inner_clauses = []
-            if subject:
+            if result.subject:
                 try:
-                    subject_type, subject_identifier = subject_dict_to_type_identifier(subject)
+                    subject_type, subject_identifier = \
+                        subject_dict_to_type_identifier(result.subject)
                 except ValueError:
                     inner_clauses.append(false())
                 else:
                     inner_clauses.append(cls.subject_type == subject_type)
                     inner_clauses.append(cls.subject_identifier == subject_identifier)
-            if testcase:
-                inner_clauses.append(cls.testcase == testcase)
+            if result.testcase:
+                inner_clauses.append(cls.testcase == result.testcase)
             clauses.append(and_(*inner_clauses))
 
         return query.filter(or_(*clauses))

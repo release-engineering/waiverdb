@@ -3,6 +3,7 @@
 import pytest
 
 from waiverdb.models.waivers import subject_dict_to_type_identifier
+from waiverdb.models.requests import TestSubject
 
 
 @pytest.mark.parametrize('subject,expected_type,expected_identifier', [
@@ -20,6 +21,7 @@ from waiverdb.models.waivers import subject_dict_to_type_identifier
      'compose', 'Fedora-Rawhide-20170508.n.0'),
 ])
 def test_subject_dict_to_type_identifier(subject, expected_type, expected_identifier):
-    subject_type, subject_identifier = subject_dict_to_type_identifier(subject)
+    ts = TestSubject.parse_obj(subject)
+    subject_type, subject_identifier = subject_dict_to_type_identifier(ts)
     assert subject_type == expected_type
     assert subject_identifier == expected_identifier
