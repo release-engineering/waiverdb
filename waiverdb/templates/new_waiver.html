@@ -5,6 +5,9 @@
 {% endblock %}
 
 {% block body %}
+    {% if warning %}
+    <div class="alert alert-danger" role="alert">{{ warning | safe }}</div>
+    {% endif %}
     <form method="post">
         <div class="mb-3">
             <label for="subject_type" class="form-label">Subject Type</label>

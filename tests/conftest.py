@@ -16,7 +16,7 @@ def app():
 
 
 @pytest.fixture
-def session(monkeypatch):
+def session(monkeypatch, app):
     """Patch Flask-SQLAlchemy to use a specific connection"""
     db.drop_all()
     db.create_all()
