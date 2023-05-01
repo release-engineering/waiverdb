@@ -71,7 +71,7 @@ fedora-messaging = "^3.3.0"
 
 # Tests
 flake8 = {version = "^5.0.4", optional = true}
-pytest = {version = "^7.2.2", optional = true}
+pytest = {version = "^7.3.1", optional = true}
 pytest-cov = {version = "^4.0.0", optional = true}
 mock = {version = "^5.0.0", optional = true}
 
