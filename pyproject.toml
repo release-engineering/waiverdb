@@ -38,7 +38,7 @@ include = [
 [tool.poetry.dependencies]
 python = ">=3.8,<3.10"
 
-flask = "^2.2.3"
+flask = "^2.2.5"
 flask-oidc = "^1.4.0"
 Flask-RESTful = "^0.3.9"
 Flask-SQLAlchemy = "^3.0.3"
@@ -50,7 +50,7 @@ gssapi = "^1.8.2"
 python-ldap = "^3.4.3"
 
 SQLAlchemy = "^1.4.45"
-psycopg2-binary = "^2.9.5"
+psycopg2-binary = "^2.9.6"
 
 gunicorn = "^20.1.0"
 requests = "^2.28.1"
@@ -71,12 +71,12 @@ fedora-messaging = "^3.3.0"
 
 # Tests
 flake8 = {version = "^5.0.4", optional = true}
-pytest = {version = "^7.2.2", optional = true}
+pytest = {version = "^7.3.1", optional = true}
 pytest-cov = {version = "^4.0.0", optional = true}
-mock = {version = "^5.0.0", optional = true}
+mock = {version = "^5.0.2", optional = true}
 
 # Documentation
-sphinx = {version = "^6.0.0", optional = true}
+sphinx = {version = "^7.0.0", optional = true}
 sphinxcontrib-httpdomain = {version = "^1.8.1", optional = true}
 markupsafe = {version = "==2.1.2", optional = true}
 # https://github.com/sphinx-contrib/httpdomain/issues/60
