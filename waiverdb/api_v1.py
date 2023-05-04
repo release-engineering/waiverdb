@@ -4,13 +4,22 @@ import datetime
 import logging
 
 import requests
-from flask import Blueprint, render_template, request, current_app, Response
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    escape,
+    render_template,
+    request,
+    url_for,
+)
 from flask_oidc import OpenIDConnect
 from flask_restful import Resource, Api, reqparse, marshal_with, marshal
 from werkzeug.exceptions import (
     BadRequest,
     Forbidden,
     ServiceUnavailable,
+    Unauthorized,
 )
 from sqlalchemy.sql.expression import func, and_, or_
 
@@ -132,6 +141,39 @@ def _filter_out_obsolete_waivers(query):
         Waiver.product_version,
     )
     return query.filter(Waiver.id.in_(subquery))
+
+
+def _verify_authorization(user, testcase):
+    if not permissions():
+        return True
+
+    ldap_host = current_app.config.get('LDAP_HOST')
+    ldap_searches = current_app.config.get('LDAP_SEARCHES')
+    if not ldap_searches:
+        ldap_base = current_app.config.get('LDAP_BASE')
+        if ldap_base:
+            ldap_search_string = current_app.config.get(
+                'LDAP_SEARCH_STRING', '(memberUid={user})'
+            )
+            ldap_searches = [{'BASE': ldap_base, 'SEARCH_STRING': ldap_search_string}]
+    return verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches)
+
+
+def _authorization_warning(request):
+    testcase = request.args.get("testcase")
+    if testcase:
+        user, _headers = waiverdb.auth.get_user(request)
+        try:
+            _verify_authorization(user, testcase)
+        except Unauthorized as e:
+            permissions_url = url_for('api_v1.permissionsresource', testcase=testcase)
+            return (
+                f"{escape(str(e))}<br>"
+                f"<a href={permissions_url}>See who has permission to"
+                f" waive {escape(testcase)} test case."
+                "</a>"
+            )
+    return None
 
 
 # RP contains request parsers (reqparse.RequestParser).
@@ -373,21 +415,6 @@ class WaiversResource(Resource):
 
         return result, 201, headers
 
-    def _verify_authorization(self, user, testcase):
-        if not permissions():
-            return True
-
-        ldap_host = current_app.config.get('LDAP_HOST')
-        ldap_searches = current_app.config.get('LDAP_SEARCHES')
-        if not ldap_searches:
-            ldap_base = current_app.config.get('LDAP_BASE')
-            if ldap_base:
-                ldap_search_string = current_app.config.get(
-                    'LDAP_SEARCH_STRING', '(memberUid={user})'
-                )
-                ldap_searches = [{'BASE': ldap_base, 'SEARCH_STRING': ldap_search_string}]
-        return verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches)
-
     def _create_waiver(self, args, user):
         proxied_by = None
         if args.get('username'):
@@ -444,7 +471,7 @@ class WaiversResource(Resource):
         if not args['testcase']:
             raise BadRequest({'testcase': 'Missing required parameter in the JSON body'})
 
-        self._verify_authorization(user, args['testcase'])
+        _verify_authorization(user, args['testcase'])
 
         # brew-build is an alias for koji_build
         if args['subject_type'] == 'brew-build':
@@ -482,7 +509,8 @@ class WaiversNewResource(WaiversResource):
 
         :statuscode 200: The HTML with the form is returned.
         """
-        html = render_template('new_waiver.html', request_args=request.args)
+        warning = _authorization_warning(request)
+        html = render_template('new_waiver.html', warning=warning, request_args=request.args)
         return Response(html, mimetype='text/html')
 
     @oidc.require_login

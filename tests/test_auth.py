@@ -8,6 +8,29 @@ import json
 from werkzeug.exceptions import Unauthorized
 import waiverdb.auth
 import flask_oidc
+from flask import g
+
+
+@pytest.fixture
+def oidc_token(app):
+    with mock.patch.object(flask_oidc.OpenIDConnect, '_get_token_info') as mocked:
+        mocked.return_value = {
+            'active': True, 'username': 'testuser', 'scope': 'openid waiverdb_scope'}
+        with app.app_context():
+            g.oidc_id_token = mocked()
+            yield g.oidc_id_token
+
+
+@pytest.fixture
+def verify_authorization():
+    with mock.patch("waiverdb.api_v1.verify_authorization") as mocked:
+        yield mocked
+
+
+@pytest.fixture
+def permissions():
+    with mock.patch("waiverdb.api_v1.permissions") as mocked:
+        yield mocked
 
 
 @pytest.mark.usefixtures('enable_kerberos')
@@ -64,12 +87,8 @@ class TestOIDCAuthentication(object):
             waiverdb.auth.get_user(request)
         assert self.auth_missing_error in str(excinfo.value)
 
-    @mock.patch.object(flask_oidc.OpenIDConnect, '_get_token_info')
-    def test_get_user_with_invalid_token(self, mocked_get_token, session):
-        # http://vsbattles.wikia.com/wiki/Son_Goku
-        name = 'Son Goku'
-        mocked_get_token.return_value = {'active': False, 'username': name,
-                                         'scope': 'openid waiverdb_scope'}
+    def test_get_user_with_invalid_token(self, oidc_token, session):
+        oidc_token["active"] = False
         headers = {'Authorization': 'Bearer invalid'}
         request = mock.MagicMock()
         request.headers.return_value = mock.MagicMock(spec_set=dict)
@@ -80,12 +99,7 @@ class TestOIDCAuthentication(object):
             waiverdb.auth.get_user(request)
         assert self.invalid_token_error in excinfo.value.get_description()
 
-    @mock.patch.object(flask_oidc.OpenIDConnect, '_get_token_info')
-    def test_get_user_good(self, mocked_get_token, session):
-        # http://vsbattles.wikia.com/wiki/Son_Goku
-        name = 'Son Goku'
-        mocked_get_token.return_value = {'active': True, 'username': name,
-                                         'scope': 'openid waiverdb_scope'}
+    def test_get_user_good(self, oidc_token, session):
         headers = {'Authorization': 'Bearer foobar'}
         request = mock.MagicMock()
         request.headers.return_value = mock.MagicMock(spec_set=dict)
@@ -93,7 +107,43 @@ class TestOIDCAuthentication(object):
         request.headers.__setitem__.side_effect = headers.__setitem__
         request.headers.__contains__.side_effect = headers.__contains__
         user, header = waiverdb.auth.get_user(request)
-        assert user == name
+        assert user == oidc_token["username"]
+
+    def test_warning_banner(
+        self,
+        verify_authorization,
+        permissions,
+        oidc_token,
+        session,
+        client,
+    ):
+        verify_authorization.side_effect = Unauthorized("Unauthorized")
+        permissions.return_value = [{"testcases": ["a.b.c"], "groups": []}]
+        headers = {'Authorization': 'Bearer foobar'}
+        r = client.get('/api/v1.0/waivers/new?testcase=a.b.c', headers=headers)
+        warning_banner = (
+            '<div class="alert alert-danger" role="alert">'
+            '401 Unauthorized: Unauthorized<br>'
+            '<a href=/api/v1.0/permissions?testcase=a.b.c>'
+            'See who has permission to waive a.b.c test case.</a></div>'
+        )
+        assert warning_banner in r.text
+        assert r.status_code == 200
+
+    def test_no_warning_banner(
+        self,
+        verify_authorization,
+        permissions,
+        oidc_token,
+        session,
+        client,
+    ):
+        verify_authorization.return_value = True
+        permissions.return_value = [{"testcases": ["a.b.c"], "groups": []}]
+        headers = {'Authorization': 'Bearer foobar'}
+        r = client.get('/api/v1.0/waivers/new?testcase=a.b.c', headers=headers)
+        assert "alert" not in r.text
+        assert r.status_code == 200
 
 
 @pytest.mark.usefixtures('enable_ssl')
@@ -112,15 +162,13 @@ class TestSSLAuthentication(object):
                in excinfo.value.get_description()
 
     def test_good_ssl_cert(self):
-        # http://vsbattles.wikia.com/wiki/Son_Goku
-        name = 'Son Goku'
         ssl = {
             'SSL_CLIENT_VERIFY': 'SUCCESS',
-            'SSL_CLIENT_S_DN': name
+            'SSL_CLIENT_S_DN': 'testuser',
         }
         request = mock.MagicMock(environ=ssl)
         user, header = waiverdb.auth.get_user(request)
-        assert user == name
+        assert user == 'testuser'
 
 
 @pytest.mark.usefixtures('enable_kerberos_oidc_fallback')
