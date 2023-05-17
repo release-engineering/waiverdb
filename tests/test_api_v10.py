@@ -424,6 +424,23 @@ def test_obsolete_waivers_are_excluded_by_default(client, session):
     assert res_data['data'][0]['waived'] == new_waiver.waived
 
 
+def test_obsolete_waivers_are_excluded_when_requested(client, session):
+    create_waiver(session, subject_type='koji_build',
+                  subject_identifier='glibc-2.26-27.fc27',
+                  testcase='testcase1', username='foo',
+                  product_version='foo-1')
+    new_waiver = create_waiver(session, subject_type='koji_build',
+                               subject_identifier='glibc-2.26-27.fc27',
+                               testcase='testcase1', username='foo',
+                               product_version='foo-1', waived=False)
+    r = client.get('/api/v1.0/waivers/?include_obsolete=0')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 200
+    assert len(res_data['data']) == 1
+    assert res_data['data'][0]['id'] == new_waiver.id
+    assert res_data['data'][0]['waived'] == new_waiver.waived
+
+
 def test_get_obsolete_waivers(client, session):
     old_waiver = create_waiver(session, subject_type='koji_build',
                                subject_identifier='glibc-2.26-27.fc27',
@@ -467,6 +484,23 @@ def test_obsolete_waivers_with_different_username(client, session):
                                subject_identifier='glibc-2.26-27.fc27',
                                testcase='testcase1', username='bar',
                                product_version='foo-1')
+    r = client.get('/api/v1.0/waivers/?include_obsolete=0')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 200
+    assert len(res_data['data']) == 2
+    assert res_data['data'][0]['id'] == new_waiver.id
+    assert res_data['data'][1]['id'] == old_waiver.id
+
+
+def test_obsolete_waivers_with_different_scenario(client, session):
+    old_waiver = create_waiver(session, subject_type='koji_build',
+                               subject_identifier='glibc-2.26-27.fc27',
+                               testcase='testcase1', username='foo',
+                               product_version='foo-1', scenario='scenario1')
+    new_waiver = create_waiver(session, subject_type='koji_build',
+                               subject_identifier='glibc-2.26-27.fc27',
+                               testcase='testcase1', username='foo',
+                               product_version='foo-1', scenario='scenario2')
     r = client.get('/api/v1.0/waivers/?include_obsolete=0')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 200
