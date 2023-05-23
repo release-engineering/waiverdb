@@ -8,6 +8,7 @@ from flask import (
     Response,
     current_app,
     escape,
+    redirect,
     render_template,
     request,
     url_for,
@@ -107,6 +108,16 @@ def _verify_authorization(user, testcase):
     return verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches)
 
 
+def _authorization_warning_from_exception(e: Unauthorized, testcase: str):
+    permissions_url = url_for('api_v1.permissionsresource', testcase=testcase)
+    return (
+        f"{escape(str(e))}<br>"
+        f"<a href={permissions_url}>See who has permission to"
+        f" waive {escape(testcase)} test case."
+        "</a>"
+    )
+
+
 def _authorization_warning(request):
     testcase = request.args.get("testcase")
     if testcase:
@@ -114,13 +125,7 @@ def _authorization_warning(request):
         try:
             _verify_authorization(user, testcase)
         except Unauthorized as e:
-            permissions_url = url_for('api_v1.permissionsresource', testcase=testcase)
-            return (
-                f"{escape(str(e))}<br>"
-                f"<a href={permissions_url}>See who has permission to"
-                f" waive {escape(testcase)} test case."
-                "</a>"
-            )
+            return _authorization_warning_from_exception(e, testcase)
     return None
 
 
@@ -378,19 +383,46 @@ class WaiversNewResource(WaiversResource):
 
         :statuscode 200: The HTML with the form is returned.
         """
-        warning = _authorization_warning(request)
-        html = render_template('new_waiver.html', warning=warning, request_args=request.args)
+        warning = request.args.get("error") or _authorization_warning(request)
+        new_waiver_id = request.args.get("new_waiver_id")
+        new_waiver_url = None
+        if new_waiver_id is not None:
+            new_waiver_url = url_for('api_v1.waiverresource', waiver_id=new_waiver_id)
+        html = render_template(
+            'new_waiver.html',
+            warning=warning,
+            error=request.args.get("error"),
+            new_waiver_url=new_waiver_url,
+            request_args=request.args,
+        )
         return Response(html, mimetype='text/html')
 
+
+class WaiversCreateResource(WaiversResource):
     @oidc.require_login
-    @validate(form=CreateWaiver)
-    @marshal_with(waiver_fields)
-    def post(self):
+    @validate()
+    def get(self, query: CreateWaiver):
         user = oidc.user_getfield(current_app.config["OIDC_USERNAME_FIELD"])
-        result = self._create_waiver(CreateWaiver.parse_obj(request.form), user)
+        try:
+            result = self._create_waiver(query, user)
+        except Unauthorized as e:
+            error = _authorization_warning_from_exception(e, query.testcase)
+            url = url_for(
+                "api_v1.waiversnewresource",
+                error=error,
+                **request.args,
+            )
+            return redirect(url)
+
         db.session.add(result)
         db.session.commit()
-        return result, 201
+
+        url = url_for(
+            "api_v1.waiversnewresource",
+            new_waiver_id=result.id,
+            **request.args,
+        )
+        return redirect(url)
 
 
 class WaiverResource(Resource):
@@ -708,6 +740,7 @@ class MonitorResource(Resource):
 # set up the Api resource routing here
 api.add_resource(WaiversResource, '/waivers/')
 api.add_resource(WaiversNewResource, '/waivers/new')
+api.add_resource(WaiversCreateResource, '/waivers/create')
 api.add_resource(WaiverResource, '/waivers/<int:waiver_id>')
 api.add_resource(FilteredWaiversResource, '/waivers/+filtered')
 api.add_resource(GetWaiversBySubjectsAndTestcases, '/waivers/+by-subjects-and-testcases')

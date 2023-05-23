@@ -8,7 +8,10 @@
     {% if warning %}
     <div class="alert alert-danger" role="alert">{{ warning | safe }}</div>
     {% endif %}
-    <form method="post">
+    {% if new_waiver_url %}
+    <div class="alert alert-success" role="alert"><a href="{{ new_waiver_url | safe }}">New waiver created.</a></div>
+    {% endif %}
+    <form method="get" action="{{ url_for('api_v1.waiverscreateresource') }}">
         <div class="mb-3">
             <label for="subject_type" class="form-label">Subject Type</label>
             <input type="text" class="form-control" name="subject_type"
