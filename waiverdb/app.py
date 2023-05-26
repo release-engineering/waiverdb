@@ -10,7 +10,7 @@ except ImportError:
 from flask import Flask, current_app, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
-from sqlalchemy import event
+from sqlalchemy import event, text
 from sqlalchemy.exc import ProgrammingError
 import requests
 
@@ -119,7 +119,8 @@ def create_app(config_obj=None):
     register_event_handlers(app)
 
     # initialize DB event listeners from the monitor module
-    app.before_first_request(db_hook_event_listeners)
+    with app.app_context():
+        db_hook_event_listeners()
 
     enable_cors(app)
 
@@ -135,12 +136,12 @@ def healthcheck():
     Returns a 200 response if the application is alive and able to serve requests.
     """
     try:
-        db.session.execute("SELECT 1 FROM waiver LIMIT 0").fetchall()
+        db.session.execute(text("SELECT 1 FROM waiver LIMIT 0")).fetchall()
     except ProgrammingError:
         current_app.logger.exception('Healthcheck failed on DB query.')
         raise RuntimeError('Unable to communicate with database.')
 
-    return ('Health check OK', 200, [('Content-Type', 'text/plain')])
+    return 'Health check OK', 200, [('Content-Type', 'text/plain')]
 
 
 @oidc.require_login
@@ -160,10 +161,7 @@ def register_event_handlers(app):
             attached as the ``session`` attribute.
     """
     if app.config['MESSAGE_BUS_PUBLISH']:
-        # A workaround for https://github.com/mitsuhiko/flask-sqlalchemy/pull/364
-        # can be removed after python-flask-sqlalchemy is upgraded to 2.2
-        from flask_sqlalchemy import SignallingSession
-        event.listen(SignallingSession, 'after_commit', publish_new_waiver)
+        event.listen(db.session, 'after_commit', publish_new_waiver)
 
 
 def favicon():

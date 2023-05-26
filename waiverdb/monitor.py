@@ -75,7 +75,7 @@ def db_hook_event_listeners(target=None):
         target = db.engine
 
     @event.listens_for(target, 'engine_connect')
-    def receive_engine_connect(conn, branch):
+    def receive_engine_connect(conn):
         db_engine_connect_counter.inc()
 
     @event.listens_for(target, 'handle_error')

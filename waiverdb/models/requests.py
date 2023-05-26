@@ -16,11 +16,13 @@ class TestSubject(BaseModel):
     item: Optional[str]
     original_spec_nvr: Optional[str]
     productmd_compose_id: Optional[str] = Field(alias='productmd.compose.id', default=None)
+    __test__ = False        # to tell the PyTest that this is not a test class
 
 
 class TestResult(BaseModel):
     testcase: str
     subject: TestSubject
+    __test__ = False        # to tell the PyTest that this is not a test class
 
 
 class CreateWaiver(BaseModel):

@@ -6,7 +6,8 @@ from __future__ import unicode_literals
 from mock import ANY, call, patch
 
 from waiverdb import app, config
-from flask_sqlalchemy import SignallingSession
+from waiverdb.models import db
+import sqlalchemy
 
 
 class DisabledMessagingConfig(config.Config):
@@ -36,4 +37,12 @@ def test_enabled_messaging_should_register_events(mock_listen):
     calls = [
         c for c in mock_listen.mock_calls if c == call(ANY, ANY, app.publish_new_waiver)
     ]
-    assert calls == [call(SignallingSession, "after_commit", app.publish_new_waiver)]
+    assert calls == [call(db.session, "after_commit", app.publish_new_waiver)]
+
+
+def test_sqlalchemy_version():
+    """
+    Tests whether SQLAlchemy version is 2
+    :return:
+    """
+    assert sqlalchemy.__version__.startswith('2')
