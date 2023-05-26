@@ -18,8 +18,8 @@ from sqlalchemy import event
 # Service-specific imports
 
 
-if not os.environ.get('prometheus_multiproc_dir'):
-    os.environ.setdefault('prometheus_multiproc_dir', tempfile.mkdtemp())
+if not os.environ.get('PROMETHEUS_MULTIPROC_DIR'):
+    os.environ.setdefault('PROMETHEUS_MULTIPROC_DIR', tempfile.mkdtemp())
 registry = CollectorRegistry()
 ProcessCollector(registry=registry)
 multiprocess.MultiProcessCollector(registry)
