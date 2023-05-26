@@ -428,7 +428,7 @@ class WaiversCreateResource(WaiversResource):
 class WaiverResource(Resource):
     @jsonp
     @marshal_with(waiver_fields)
-    def get(self, waiver_id):
+    def get(self, waiver_id) -> Waiver:
         """
         Get a single waiver by waiver ID.
 
@@ -438,7 +438,7 @@ class WaiverResource(Resource):
         :statuscode 404: No waiver exists with that ID.
         """
         try:
-            return Waiver.query.get_or_404(waiver_id)
+            return db.get_or_404(Waiver, waiver_id)
         except Exception as NotFound:
             raise type(NotFound)('Waiver not found')
 
