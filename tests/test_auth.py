@@ -10,12 +10,30 @@ import waiverdb.auth
 import flask_oidc
 from flask import g
 
+WAIVER_DATA = {
+    'subject_type': 'koji_build',
+    'subject_identifier': 'glibc-2.26-27.fc27',
+    'testcase': 'testcase1',
+    'product_version': 'fool-1',
+    'waived': True,
+    'comment': 'it broke',
+}
+WAIVER_PARAMS = '&'.join(
+    f'{k}={v}'
+    for k, v in WAIVER_DATA.items()
+    if isinstance(v, str)
+)
+
 
 @pytest.fixture
 def oidc_token(app):
     with mock.patch.object(flask_oidc.OpenIDConnect, '_get_token_info') as mocked:
         mocked.return_value = {
-            'active': True, 'username': 'testuser', 'scope': 'openid waiverdb_scope'}
+            'active': True,
+            'username': 'testuser',
+            'preferred_username': 'testuser',
+            'scope': 'openid waiverdb_scope',
+        }
         with app.app_context():
             g.oidc_id_token = mocked()
             yield g.oidc_id_token
@@ -35,17 +53,9 @@ def permissions():
 
 @pytest.mark.usefixtures('enable_kerberos')
 class TestGSSAPIAuthentication(object):
-    waiver_data = {
-        'subject': {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'},
-        'testcase': 'testcase1',
-        'product_version': 'fool-1',
-        'waived': True,
-        'comment': 'it broke',
-    }
-
     def test_unauthorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
-        r = client.post('/api/v1.0/waivers/', data=json.dumps(self.waiver_data),
+        r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
                         content_type='application/json')
         assert r.status_code == 401
         assert r.headers.get('www-authenticate') == 'Negotiate'
@@ -61,7 +71,7 @@ class TestGSSAPIAuthentication(object):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
         headers = {'Authorization':
                    'Negotiate %s' % b64encode(b"CTOKEN").decode()}
-        r = client.post('/api/v1.0/waivers/', data=json.dumps(self.waiver_data),
+        r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
                         content_type='application/json', headers=headers)
         assert r.status_code == 201
         assert r.headers.get('WWW-Authenticate') == \
@@ -72,7 +82,7 @@ class TestGSSAPIAuthentication(object):
     def test_invalid_token(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
         headers = {'Authorization': 'Negotiate INVALID'}
-        r = client.post('/api/v1.0/waivers/', data=json.dumps(self.waiver_data),
+        r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
                         content_type='application/json', headers=headers)
         assert r.status_code == 401
         assert r.json == {"message": "Invalid authentication token"}
@@ -146,6 +156,79 @@ class TestOIDCAuthentication(object):
         assert "alert" not in r.text
         assert r.status_code == 200
 
+    def test_new_waiver_banner(
+        self,
+        oidc_token,
+        session,
+        client,
+    ):
+        headers = {'Authorization': 'Bearer foobar'}
+        r = client.get('/api/v1.0/waivers/new?new_waiver_id=123', headers=headers)
+        banner = (
+            '<div class="alert alert-success" role="alert">'
+            '<a href="/api/v1.0/waivers/123">New waiver created.</a>'
+            '</div>'
+        )
+        assert banner in r.text
+        assert r.status_code == 200
+
+    def test_create_new_waiver(
+        self,
+        verify_authorization,
+        permissions,
+        oidc_token,
+        session,
+        client,
+    ):
+        verify_authorization.return_value = True
+        permissions.return_value = [{"testcases": ["a.b.c"], "groups": []}]
+        headers = {'Authorization': 'Bearer foobar'}
+        url = f'/api/v1.0/waivers/create?{WAIVER_PARAMS}'
+        r = client.get(
+            url,
+            headers=headers,
+            follow_redirects=True,
+        )
+        assert 'New waiver created.' in r.text
+        assert r.status_code == 200
+        assert r.request.base_url.endswith('/api/v1.0/waivers/new')
+        expected_args = {
+            k: v
+            for k, v in WAIVER_DATA.items()
+            if isinstance(v, str)
+        }
+        expected_args['new_waiver_id'] = '1'
+        assert dict(r.request.args) == expected_args
+
+    def test_create_new_waiver_unauthorized(
+        self,
+        verify_authorization,
+        permissions,
+        oidc_token,
+        session,
+        client,
+    ):
+        verify_authorization.side_effect = Unauthorized("Unauthorized")
+        permissions.return_value = [{"testcases": ["a.b.c"], "groups": []}]
+        headers = {'Authorization': 'Bearer foobar'}
+        url = f'/api/v1.0/waivers/create?{WAIVER_PARAMS}'
+        r = client.get(
+            url,
+            headers=headers,
+            follow_redirects=True,
+        )
+        assert '401 Unauthorized: Unauthorized' in r.text
+        assert 'New waiver created.' not in r.text
+        assert r.status_code == 200
+        assert r.request.base_url.endswith('/api/v1.0/waivers/new')
+        expected_args = {
+            k: v
+            for k, v in WAIVER_DATA.items()
+            if isinstance(v, str)
+        }
+        expected_args['error'] = mock.ANY
+        assert dict(r.request.args) == expected_args
+
 
 @pytest.mark.usefixtures('enable_ssl')
 class TestSSLAuthentication(object):
@@ -176,7 +259,7 @@ class TestSSLAuthentication(object):
 class TestKerberosWithFallbackAuthentication(TestGSSAPIAuthentication):
     def test_unauthorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
-        r = client.post('/api/v1.0/waivers/', data=json.dumps(self.waiver_data),
+        r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
                         content_type='application/json')
         assert r.status_code == 401
 
