@@ -66,7 +66,7 @@ requests-gssapi = "^1.2.3"
 prometheus_client = "^0.16.0"
 
 # Messaging
-fedora-messaging = "^3.3.0"
+fedora-messaging = "^3.4.1"
 "stomp.py" = "^8.1.0"
 
 # Tests
