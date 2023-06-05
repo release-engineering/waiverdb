@@ -23,6 +23,7 @@ from werkzeug.exceptions import (
     Unauthorized,
 )
 from sqlalchemy.sql.expression import func, and_, or_
+from typing import Dict, Any
 from waiverdb import __version__
 from waiverdb.authorization import match_testcase_permissions, verify_authorization
 from waiverdb.models import db
@@ -42,11 +43,11 @@ log = logging.getLogger(__name__)
 oidc = OpenIDConnect()
 
 
-def get_resultsdb_result(result_id):
-    response = requests_session.request('GET', '{0}/results/{1}'.format(
-        current_app.config['RESULTSDB_API_URL'], result_id),
-        headers={'Content-Type': 'application/json'},
-        timeout=60)
+def get_resultsdb_result(result_id: int) -> Dict[str, Any]:
+    response = requests_session.request(
+        'GET', f'{current_app.config["RESULTSDB_API_URL"]}/results/{result_id}',
+        headers={'Content-Type': 'application/json'}, timeout=60
+    )
     response.raise_for_status()
     return response.json()
 
