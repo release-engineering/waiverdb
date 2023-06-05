@@ -7,10 +7,6 @@ Revises: ce8a1351ecdc
 Create Date: 2018-04-24 16:21:42.017640
 """
 
-# revision identifiers, used by Alembic.
-revision = 'f6bc296ba966'
-down_revision = 'ce8a1351ecdc'
-
 from alembic import op
 from sqlalchemy import Column, Text, Integer, null
 # These are the "lightweight" SQL expression versions (not using metadata):
@@ -19,7 +15,12 @@ from waiverdb.models.base import EqualityComparableJSONType
 from waiverdb.models.waivers import subject_dict_to_type_identifier, \
     subject_type_identifier_to_dict
 
-def upgrade():
+# revision identifiers, used by Alembic.
+revision = 'f6bc296ba966'
+down_revision = 'ce8a1351ecdc'
+
+
+def upgrade() -> None:
     # Create the columns NULLable first, so that we can populate them
     op.add_column('waiver', Column('subject_identifier', Text, nullable=True))
     op.add_column('waiver', Column('subject_type', Text, nullable=True))
@@ -33,7 +34,7 @@ def upgrade():
 
     # Fill in values for the new columns
     connection = op.get_bind()
-    rows = connection.execute(select([waiver_table.c.id, waiver_table.c.subject]))
+    rows = connection.execute(select(waiver_table.c.id, waiver_table.c.subject))
     for waiver_id, subject in rows:
         try:
             subject_type, subject_identifier = subject_dict_to_type_identifier(subject)
@@ -62,7 +63,7 @@ def upgrade():
     op.alter_column('waiver', 'subject', nullable=True)
 
 
-def downgrade():
+def downgrade() -> None:
     # Lightweight table definition for producing queries:
     waiver_table = table('waiver',
                          column('id', type_=Integer),
@@ -73,7 +74,7 @@ def downgrade():
     # Fill in the old column for any waivers inserted since the upgrade
     connection = op.get_bind()
     rows = connection.execute(
-            select([waiver_table.c.id, waiver_table.c.subject_type, waiver_table.c.subject_identifier])
+            select(waiver_table.c.id, waiver_table.c.subject_type, waiver_table.c.subject_identifier)
             .where(waiver_table.c.subject.is_(null())))
     for waiver_id, subject_type, subject_identifier in rows:
         subject = subject_type_identifier_to_dict(subject_type, subject_identifier)
