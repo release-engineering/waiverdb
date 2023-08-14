@@ -544,8 +544,12 @@ class FilteredWaiversResource(Resource):
             clauses.append(and_(*inner_clauses))
         query = query.filter(or_(*clauses))
         if not args.include_obsolete:
-            subquery = db.session.query(func.max(Waiver.id))\
-                .group_by(Waiver.subject_type, Waiver.subject_identifier, Waiver.testcase)
+            subquery = db.session.query(func.max(Waiver.id)).group_by(
+                Waiver.subject_type,
+                Waiver.subject_identifier,
+                Waiver.testcase,
+                Waiver.scenario
+            )
             query = query.filter(Waiver.id.in_(subquery))
         return query.all()
 

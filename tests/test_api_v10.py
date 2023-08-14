@@ -676,6 +676,39 @@ def test_filtering_waivers_with_post(client, session):
     assert all(w['subject_identifier'].startswith('python2-2.7.14') for w in res_data['data'])
 
 
+def test_filtering_scenario_waivers_with_post(client, session):
+    filters = [{'subject_type': 'koji_build',
+                'subject_identifier': 'python2-2.7.14-1.fc27',
+                'testcase': 'case'}]
+    for i in range(1, 11):
+        create_waiver(session, subject_type='koji_build',
+                      subject_identifier='python2-2.7.14-1.fc27',
+                      testcase='case', username='person', scenario='scenario.%d' % i,
+                      product_version='fedora-27', comment='bla bla bla')
+    # Unrelated waiver which should not be included
+    create_waiver(session, subject_type='koji_build',
+                  subject_identifier='glibc-2.26-27.fc27',
+                  testcase='dist.rpmdeplint', username='person',
+                  product_version='fedora-27', comment='bla bla bla')
+    # looking for all waivers for this subject/testcase should find all 10
+    r = client.post('/api/v1.0/waivers/+filtered',
+                    data=json.dumps({'filters': filters}),
+                    content_type='application/json')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 200
+    assert len(res_data['data']) == 10
+    assert all(w['subject_identifier'].startswith('python2-2.7.14-1') for w in res_data['data'])
+    # now test finding waivers by scenario, should find only 1
+    filters[0]['scenario'] = 'scenario.5'
+    r = client.post('/api/v1.0/waivers/+filtered',
+                    data=json.dumps({'filters': filters}),
+                    content_type='application/json')
+    res_data = json.loads(r.get_data(as_text=True))
+    assert r.status_code == 200
+    assert len(res_data['data']) == 1
+    assert all(w['subject_identifier'].startswith('python2-2.7.14-1') for w in res_data['data'])
+
+
 def test_filtering_with_missing_filter(client, session):
     r = client.post('/api/v1.0/waivers/+filtered',
                     data=json.dumps({'somethingelse': 'what'}),
