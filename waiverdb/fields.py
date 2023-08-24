@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-from flask_restful import fields
+from flask_restx import fields
 
 from waiverdb.models.waivers import subject_type_identifier_to_dict
 
 
 class BackwardsCompatibleSubjectField(fields.Raw):
-    def output(self, key, obj):
+    def output(self, key, obj, **kwargs):
         waiver = obj
         return subject_type_identifier_to_dict(waiver.subject_type, waiver.subject_identifier)
 

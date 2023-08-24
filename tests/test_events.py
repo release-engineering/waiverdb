@@ -3,7 +3,7 @@
 """This module contains tests for :mod:`waiverdb.events`."""
 from __future__ import unicode_literals
 from fedora_messaging import api, testing
-from flask_restful import marshal
+from flask_restx import marshal
 from waiverdb.models import Waiver
 from waiverdb.fields import waiver_fields
 

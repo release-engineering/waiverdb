@@ -3,7 +3,7 @@
 import functools
 import stomp
 from flask import request, url_for, jsonify, current_app
-from flask_restful import marshal
+from flask_restx import marshal
 from waiverdb.fields import waiver_fields
 from werkzeug.exceptions import NotFound, HTTPException
 from contextlib import contextmanager

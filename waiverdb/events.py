@@ -12,7 +12,7 @@ using the :func:`sqlalchemy.event.listen` function.
 import logging
 import time
 
-from flask_restful import marshal
+from flask_restx import marshal
 import stomp
 import json
 import waiverdb.monitor as monitor

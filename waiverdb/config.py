@@ -18,9 +18,11 @@ class Config(object):
     SECRET_KEY = 'replace-me-with-something-random'  # nosec
 
     RESULTSDB_API_URL = 'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0'
-    # need to explicitly turn this off
-    # https://github.com/flask-restful/flask-restful/issues/449
-    ERROR_404_HELP = False
+
+    # Disable 404 error message with suggestions of other endpoints that
+    # closely match the requested endpoint.
+    RESTX_ERROR_404_HELP = False
+
     AUTH_METHOD = 'OIDC'  # Specify OIDC, Kerberos or SSL for authentication
     OIDC_USERNAME_FIELD = 'preferred_username'
     # Set this to True or False to enable publishing to a message bus
