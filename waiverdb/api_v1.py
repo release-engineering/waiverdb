@@ -15,7 +15,7 @@ from flask import (
 )
 from flask_oidc import OpenIDConnect
 from flask_pydantic import validate
-from flask_restful import Resource, Api, marshal_with, marshal
+from flask_restx import Resource, Api, marshal_with, marshal
 from werkzeug.exceptions import (
     BadRequest,
     Forbidden,
@@ -110,7 +110,7 @@ def _verify_authorization(user, testcase):
 
 
 def _authorization_warning_from_exception(e: Unauthorized, testcase: str):
-    permissions_url = url_for('api_v1.permissionsresource', testcase=testcase)
+    permissions_url = url_for('api_v1.permissions_resource', testcase=testcase)
     return (
         f"{escape(str(e))}<br>"
         f"<a href={permissions_url}>See who has permission to"
@@ -388,7 +388,7 @@ class WaiversNewResource(WaiversResource):
         new_waiver_id = request.args.get("new_waiver_id")
         new_waiver_url = None
         if new_waiver_id is not None:
-            new_waiver_url = url_for('api_v1.waiverresource', waiver_id=new_waiver_id)
+            new_waiver_url = url_for('api_v1.waiver_resource', waiver_id=new_waiver_id)
         html = render_template(
             'new_waiver.html',
             warning=warning,
@@ -409,7 +409,7 @@ class WaiversCreateResource(WaiversResource):
         except Unauthorized as e:
             error = _authorization_warning_from_exception(e, query.testcase)
             url = url_for(
-                "api_v1.waiversnewresource",
+                "api_v1.waivers_new_resource",
                 error=error,
                 **request.args,
             )
@@ -419,7 +419,7 @@ class WaiversCreateResource(WaiversResource):
         db.session.commit()
 
         url = url_for(
-            "api_v1.waiversnewresource",
+            "api_v1.waivers_new_resource",
             new_waiver_id=result.id,
             **request.args,
         )
