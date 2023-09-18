@@ -82,5 +82,6 @@ def verify_authorization(user, testcase, permissions, ldap_host, ldap_searches):
     if not group_membership:
         raise Unauthorized(f'Couldn\'t find user {user} in LDAP')
 
-    raise Unauthorized(('You are not authorized to submit a waiver '
-                        f'for the test case {testcase}'))
+    raise Unauthorized(
+        description=f'You are not authorized to submit a waiver for the test case {testcase}'
+    )
