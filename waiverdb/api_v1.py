@@ -112,8 +112,8 @@ def _verify_authorization(user, testcase):
 def _authorization_warning_from_exception(e: Unauthorized, testcase: str):
     permissions_url = url_for('api_v1.permissions_resource', testcase=testcase)
     return (
-        f"{escape(str(e))}<br>"
-        f"<a href={permissions_url}>See who has permission to"
+        f"{escape(str(e))}<br />"
+        f'<a href="{permissions_url}">See who has permission to'
         f" waive {escape(testcase)} test case."
         "</a>"
     )
@@ -384,52 +384,26 @@ class WaiversNewResource(WaiversResource):
 
         :statuscode 200: The HTML with the form is returned.
         """
-        warning = request.args.get("error") or _authorization_warning(request)
-        new_waiver_id = request.args.get("new_waiver_id")
-        new_waiver_url = None
-        if new_waiver_id is not None:
-            new_waiver_url = url_for('api_v1.waiver_resource', waiver_id=new_waiver_id)
-        html = render_template(
+        return Response(render_template(
             'new_waiver.html',
-            warning=warning,
-            error=request.args.get("error"),
-            new_waiver_url=new_waiver_url,
+            warning=_authorization_warning(request),
             request_args=request.args,
-        )
-        return Response(html, mimetype='text/html')
+        ), mimetype='text/html')
 
 
 class WaiversCreateResource(WaiversResource):
+    """
+    Deprecated, kept as a redirect for a backward compatibility
+    """
     @oidc.require_login
-    @validate()
-    def get(self, query: CreateWaiver):
-        user = oidc.user_getfield(current_app.config["OIDC_USERNAME_FIELD"])
-        try:
-            result = self._create_waiver(query, user)
-        except Unauthorized as e:
-            error = _authorization_warning_from_exception(e, query.testcase)
-            url = url_for(
-                "api_v1.waivers_new_resource",
-                error=error,
-                **request.args,
-            )
-            return redirect(url)
-
-        db.session.add(result)
-        db.session.commit()
-
-        url = url_for(
-            "api_v1.waivers_new_resource",
-            new_waiver_id=result.id,
-            **request.args,
-        )
-        return redirect(url)
+    def get(self):
+        return redirect(url_for("api_v1.waivers_new_resource", **request.args))
 
 
 class WaiverResource(Resource):
     @jsonp
     @marshal_with(waiver_fields)
-    def get(self, waiver_id) -> Waiver:
+    def get(self, waiver_id: int) -> Waiver:
         """
         Get a single waiver by waiver ID.
 

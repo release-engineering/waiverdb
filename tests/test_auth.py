@@ -133,11 +133,12 @@ class TestOIDCAuthentication(object):
         headers = {'Authorization': 'Bearer foobar'}
         r = client.get('/api/v1.0/waivers/new?testcase=a.b.c', headers=headers)
         warning_banner = (
-            '<div class="alert alert-danger" role="alert">'
-            '401 Unauthorized: Unauthorized<br>'
-            '<a href=/api/v1.0/permissions?testcase=a.b.c>'
+            '<div class="alert alert-danger" role="alert" id="other-error">'
+            '401 Unauthorized: Unauthorized<br />'
+            '<a href="/api/v1.0/permissions?testcase=a.b.c">'
             'See who has permission to waive a.b.c test case.</a></div>'
         )
+        assert 'other-error' in r.text
         assert warning_banner in r.text
         assert r.status_code == 200
 
@@ -153,25 +154,10 @@ class TestOIDCAuthentication(object):
         permissions.return_value = [{"testcases": ["a.b.c"], "groups": []}]
         headers = {'Authorization': 'Bearer foobar'}
         r = client.get('/api/v1.0/waivers/new?testcase=a.b.c', headers=headers)
-        assert "alert" not in r.text
+        assert "other-error" not in r.text
         assert r.status_code == 200
 
-    def test_new_waiver_banner(
-        self,
-        oidc_token,
-        session,
-        client,
-    ):
-        headers = {'Authorization': 'Bearer foobar'}
-        r = client.get('/api/v1.0/waivers/new?new_waiver_id=123', headers=headers)
-        banner = (
-            '<div class="alert alert-success" role="alert">'
-            '<a href="/api/v1.0/waivers/123">New waiver created.</a>'
-            '</div>'
-        )
-        assert banner in r.text
-        assert r.status_code == 200
-
+    # tests only redirect of deprecated resource
     def test_create_new_waiver(
         self,
         verify_authorization,
@@ -189,45 +175,14 @@ class TestOIDCAuthentication(object):
             headers=headers,
             follow_redirects=True,
         )
-        assert 'New waiver created.' in r.text
-        assert r.status_code == 200
         assert r.request.base_url.endswith('/api/v1.0/waivers/new')
         expected_args = {
             k: v
             for k, v in WAIVER_DATA.items()
             if isinstance(v, str)
         }
-        expected_args['new_waiver_id'] = '1'
         assert dict(r.request.args) == expected_args
-
-    def test_create_new_waiver_unauthorized(
-        self,
-        verify_authorization,
-        permissions,
-        oidc_token,
-        session,
-        client,
-    ):
-        verify_authorization.side_effect = Unauthorized("Unauthorized")
-        permissions.return_value = [{"testcases": ["a.b.c"], "groups": []}]
-        headers = {'Authorization': 'Bearer foobar'}
-        url = f'/api/v1.0/waivers/create?{WAIVER_PARAMS}'
-        r = client.get(
-            url,
-            headers=headers,
-            follow_redirects=True,
-        )
-        assert '401 Unauthorized: Unauthorized' in r.text
-        assert 'New waiver created.' not in r.text
-        assert r.status_code == 200
-        assert r.request.base_url.endswith('/api/v1.0/waivers/new')
-        expected_args = {
-            k: v
-            for k, v in WAIVER_DATA.items()
-            if isinstance(v, str)
-        }
-        expected_args['error'] = mock.ANY
-        assert dict(r.request.args) == expected_args
+        assert 'new_waiver_id' not in dict(r.request.args)
 
 
 @pytest.mark.usefixtures('enable_ssl')
