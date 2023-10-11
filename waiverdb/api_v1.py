@@ -24,6 +24,7 @@ from werkzeug.exceptions import (
 )
 from sqlalchemy.sql.expression import func, and_, or_
 from typing import Dict, Any
+
 from waiverdb import __version__
 from waiverdb.authorization import match_testcase_permissions, verify_authorization
 from waiverdb.models import db
@@ -52,12 +53,12 @@ def get_resultsdb_result(result_id: int) -> Dict[str, Any]:
     return response.json()
 
 
-def permissions():
+def permissions() -> list:
     """
     Return PERMISSIONS configuration.
     PERMISSION_MAPPING converted to the new format.
     """
-    permissions_config = current_app.config.get('PERMISSIONS')
+    permissions_config: list = current_app.config.get('PERMISSIONS', [])
     if permissions_config:
         return permissions_config
 
@@ -110,7 +111,7 @@ def _verify_authorization(user, testcase):
 
 
 def _authorization_warning_from_exception(e: Unauthorized, testcase: str):
-    permissions_url = url_for('api_v1.permissions_resource', testcase=testcase)
+    permissions_url = url_for('api_v1.permissions_resource', testcase=testcase, html='on')
     return (
         f"{escape(str(e))}<br />"
         f'<a href="{permissions_url}">See who has permission to'
@@ -704,10 +705,15 @@ class PermissionsResource(Resource):
         """
         args = GetPermissions.parse_obj(request.args)
         testcase = args.testcase
+        permissions_to_ret = permissions()
         if testcase:
-            return list(match_testcase_permissions(testcase, permissions()))
-
-        return permissions()
+            permissions_to_ret = list(match_testcase_permissions(testcase, permissions_to_ret))
+        if not args.html:
+            return permissions_to_ret
+        return Response(
+            render_template('permissions.html', permissions=permissions_to_ret),
+            mimetype='text/html'
+        )
 
 
 class MonitorResource(Resource):

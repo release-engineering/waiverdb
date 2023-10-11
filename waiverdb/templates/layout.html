@@ -48,9 +48,9 @@ $(document).ready(function () {
                 $("#result-text-error").removeClass("d-none");
                 let addition = "";
                 if(jqXHR.status === 401) {
-                    addition = `<a href="/api/v1.0/permissions?testcase=${testcaseName}">See who has permissions to waive ${testcaseName}</a>`;
+                    addition = `<a href="/api/v1.0/permissions?testcase=${testcaseName}&html=1" target="_blank">See who has permissions to waive ${testcaseName}</a>`;
                 }
-                $("#error-desc").text(`Creation failed, status: ${jqXHR.status} ${jqXHR.statusText} ${addition}`);
+                $("#error-desc").html(`Creation failed, status: ${jqXHR.status} ${jqXHR.statusText} ${addition}`);
                 $("#waiver-result").removeClass("alert-success d-none").addClass("alert-danger");
             }
         });
