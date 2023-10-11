@@ -95,6 +95,7 @@ class GetWaivers(BaseModel):
 
 class GetPermissions(BaseModel):
     testcase: Optional[str]
+    html: Optional[bool] = False
 
 
 class WaiverFilter(BaseModel):

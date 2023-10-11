@@ -135,7 +135,7 @@ class TestOIDCAuthentication(object):
         warning_banner = (
             '<div class="alert alert-danger" role="alert" id="other-error">'
             '401 Unauthorized: Unauthorized<br />'
-            '<a href="/api/v1.0/permissions?testcase=a.b.c">'
+            '<a href="/api/v1.0/permissions?testcase=a.b.c&html=on">'
             'See who has permission to waive a.b.c test case.</a></div>'
         )
         assert 'other-error' in r.text

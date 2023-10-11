@@ -892,6 +892,18 @@ def test_permissions_endpoint(client):
         assert r.status_code == 200
         assert r.json == config['PERMISSIONS'][0:1]
 
+        r = client.get('/api/v1.0/permissions?html=1')
+        assert r.status_code == 200
+        assert r.content_type.startswith('text/html')
+        assert f"<td>{config['PERMISSIONS'][0]['name']}</td>" in r.text
+        assert f"<td>{config['PERMISSIONS'][1]['name']}</td>" in r.text
+
+        r = client.get('/api/v1.0/permissions?testcase=greenwave-tests.test1&html=1')
+        assert r.status_code == 200
+        assert r.content_type.startswith('text/html')
+        assert f"<td>{config['PERMISSIONS'][0]['name']}</td>" not in r.text
+        assert f"<td>{config['PERMISSIONS'][1]['name']}</td>" in r.text
+
 
 def test_config_endpoint_superusers(client):
     config = {

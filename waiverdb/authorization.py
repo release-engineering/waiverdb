@@ -3,6 +3,7 @@
 import logging
 import re
 from fnmatch import fnmatch
+from typing import Any
 
 from werkzeug.exceptions import (
     BadGateway,
@@ -31,7 +32,7 @@ def get_group_membership(ldap, user, con, ldap_search):
         raise Unauthorized('Some error occurred initializing the LDAP connection.')
 
 
-def match_testcase_permissions(testcase, permissions):
+def match_testcase_permissions(testcase: str, permissions: list[dict[str, Any]]):
     for permission in permissions:
         if "testcases" in permission:
             testcase_match = any(
