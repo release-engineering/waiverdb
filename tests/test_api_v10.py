@@ -11,6 +11,7 @@ from stomp.exception import StompException
 from .utils import create_waiver
 from waiverdb import __version__
 from waiverdb.models import Waiver
+from waiverdb.api_v1 import get_resultsdb_result
 
 
 @pytest.fixture
@@ -35,6 +36,28 @@ def mocked_bodhi_user():
 def mocked_resultsdb():
     with patch('waiverdb.api_v1.get_resultsdb_result') as mocked_resultsdb:
         yield mocked_resultsdb
+
+
+def test_get_resultsdb_result():
+    test_id = 10
+    with patch('requests.Session.request') as req:
+        resp = Mock()
+        resp.json.return_value = {
+            'data': {
+                'type': ['koji_build'],
+                'item': ['somebuild'],
+                'scenario': ['somescenario'],
+            },
+            'testcase': {'name': 'sometest'}
+        }
+        req.return_value = resp
+        assert get_resultsdb_result(test_id) == resp.json.return_value
+        req.assert_called_with(
+            'GET',
+            f'https://taskotron.fedoraproject.org/resultsdb_api/api/v2.0/results/{test_id}',
+            headers={'Content-Type': 'application/json'},
+            timeout=60
+        )
 
 
 def test_create_waiver(mocked_user, client, session):
@@ -87,7 +110,7 @@ def test_create_waiver_with_subject(mocked_user, client, session):
 def test_create_waiver_with_result_id(mocked_user, mocked_resultsdb, client, session):
     mocked_resultsdb.return_value = {
         'data': {
-            'type': ['koji_build'],
+            'type': ['brew-build'],     # will be replaced by koji_build
             'item': ['somebuild'],
             'scenario': ['somescenario'],
         },
