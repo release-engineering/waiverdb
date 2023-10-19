@@ -19,7 +19,7 @@ services:
       - waiverdb-db
 
   waiverdb-db:
-    image: postgres:9.5.14
+    image: postgres:14.7-alpine
     restart: always
     env_file: ["docker/waiverdb-db.env"]
 
