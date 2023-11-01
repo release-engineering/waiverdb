@@ -65,6 +65,20 @@ tests = ["attrs[tests-no-zope]", "zope-interface"]
 tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
 
 [[package]]
+name = "authlib"
+version = "1.2.1"
+description = "The ultimate Python library in building OAuth and OpenID Connect servers and clients."
+optional = false
+python-versions = "*"
+files = [
+    {file = "Authlib-1.2.1-py2.py3-none-any.whl", hash = "sha256:c88984ea00149a90e3537c964327da930779afa4564e354edfd98410bea01911"},
+    {file = "Authlib-1.2.1.tar.gz", hash = "sha256:421f7c6b468d907ca2d9afede256f068f87e34d23dd221c07d13d4c234726afb"},
+]
+
+[package.dependencies]
+cryptography = ">=3.2"
+
+[[package]]
 name = "automat"
 version = "22.10.0"
 description = "Self-service finite-state machines for the programmer on the go."
@@ -599,19 +613,19 @@ Flask-SQLAlchemy = ">=1.0"
 
 [[package]]
 name = "flask-oidc"
-version = "1.4.0"
+version = "2.1.1"
 description = "OpenID Connect extension for Flask"
 optional = false
-python-versions = "*"
+python-versions = ">=3.8,<4.0"
 files = [
-    {file = "flask-oidc-1.4.0.tar.gz", hash = "sha256:0c12151139d47a562e1c5ae203fb9dbc759fe7474cc01e0238bef828ece58f4e"},
+    {file = "flask_oidc-2.1.1-py3-none-any.whl", hash = "sha256:379be8fa15c275a2cbbb0e179eb1e937d3c9cf0788f39bad047cdd99f40613b1"},
+    {file = "flask_oidc-2.1.1.tar.gz", hash = "sha256:9a283cf760f9d3053ef71280705fbefeb62d1baa0fdceb4a99784ab01ba8e307"},
 ]
 
 [package.dependencies]
-Flask = "*"
-itsdangerous = "*"
-oauth2client = "*"
-six = "*"
+authlib = ">=1.2.0,<2.0.0"
+flask = ">=2.0.0,<4.0.0"
+requests = ">=2.24.0,<3.0.0"
 
 [[package]]
 name = "flask-pydantic"
@@ -798,20 +812,6 @@ eventlet = ["eventlet (>=0.24.1)"]
 gevent = ["gevent (>=1.4.0)"]
 setproctitle = ["setproctitle"]
 tornado = ["tornado (>=0.2)"]
-
-[[package]]
-name = "httplib2"
-version = "0.22.0"
-description = "A comprehensive HTTP client library."
-optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
-files = [
-    {file = "httplib2-0.22.0-py3-none-any.whl", hash = "sha256:14ae0a53c1ba8f3d37e9e27cf37eabb0fb9980f435ba405d546948b009dd64dc"},
-    {file = "httplib2-0.22.0.tar.gz", hash = "sha256:d7a10bc5ef5ab08322488bde8c726eeee5c8618723fdb399597ec58f3d82df81"},
-]
-
-[package.dependencies]
-pyparsing = {version = ">=2.4.2,<3.0.0 || >3.0.0,<3.0.1 || >3.0.1,<3.0.2 || >3.0.2,<3.0.3 || >3.0.3,<4", markers = "python_version > \"3.0\""}
 
 [[package]]
 name = "hyperlink"
@@ -1092,24 +1092,6 @@ files = [
 build = ["blurb", "twine", "wheel"]
 docs = ["sphinx"]
 test = ["pytest", "pytest-cov"]
-
-[[package]]
-name = "oauth2client"
-version = "4.1.3"
-description = "OAuth 2.0 client library"
-optional = false
-python-versions = "*"
-files = [
-    {file = "oauth2client-4.1.3-py2.py3-none-any.whl", hash = "sha256:b8a81cc5d60e2d364f0b1b98f958dbd472887acaf1a5b05e21c28c31a2d6d3ac"},
-    {file = "oauth2client-4.1.3.tar.gz", hash = "sha256:d486741e451287f69568a4d26d70d9acd73a2bbfa275746c535b4209891cccc6"},
-]
-
-[package.dependencies]
-httplib2 = ">=0.9.1"
-pyasn1 = ">=0.1.7"
-pyasn1-modules = ">=0.0.5"
-rsa = ">=3.1.4"
-six = ">=1.6.1"
 
 [[package]]
 name = "openidc-client"
@@ -1403,20 +1385,6 @@ docs = ["sphinx (!=5.2.0,!=5.2.0.post0)", "sphinx-rtd-theme"]
 test = ["flaky", "pretend", "pytest (>=3.0.1)"]
 
 [[package]]
-name = "pyparsing"
-version = "3.1.1"
-description = "pyparsing module - Classes and methods to define and execute parsing grammars"
-optional = false
-python-versions = ">=3.6.8"
-files = [
-    {file = "pyparsing-3.1.1-py3-none-any.whl", hash = "sha256:32c7c0b711493c72ff18a981d24f28aaf9c1fb7ed5e9667c9e84e3db623bdbfb"},
-    {file = "pyparsing-3.1.1.tar.gz", hash = "sha256:ede28a1a32462f5a9705e07aea48001a08f7cf81a021585011deba701581a0db"},
-]
-
-[package.extras]
-diagrams = ["jinja2", "railroad-diagrams"]
-
-[[package]]
 name = "pytest"
 version = "7.4.2"
 description = "pytest: simple powerful testing with Python"
@@ -1650,20 +1618,6 @@ files = [
     {file = "rpds_py-0.10.3-pp39-pypy39_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:e8d0f0eca087630d58b8c662085529781fd5dc80f0a54eda42d5c9029f812599"},
     {file = "rpds_py-0.10.3.tar.gz", hash = "sha256:fcc1ebb7561a3e24a6588f7c6ded15d80aec22c66a070c757559b57b17ffd1cb"},
 ]
-
-[[package]]
-name = "rsa"
-version = "4.9"
-description = "Pure-Python RSA implementation"
-optional = false
-python-versions = ">=3.6,<4"
-files = [
-    {file = "rsa-4.9-py3-none-any.whl", hash = "sha256:90260d9058e514786967344d0ef75fa8727eed8a7d2e43ce9f4bcf1b536174f7"},
-    {file = "rsa-4.9.tar.gz", hash = "sha256:e38464a49c6c85d7f1351b0126661487a7e0a14a50f1675ec50eb34d4f20ef21"},
-]
-
-[package.dependencies]
-pyasn1 = ">=0.1.3"
 
 [[package]]
 name = "service-identity"
@@ -2257,4 +2211,4 @@ test = ["flake8", "mock", "pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.12"
-content-hash = "f11ce9d17b406490774f0964412cac7a5a62b76190e034bbf25146efec117cf6"
+content-hash = "99b8e33e7e8ad627ef417f9c8fb5da8d3a0c73d7a5538bfa386bd9e2cccb30c5"
