@@ -51,7 +51,7 @@ python-ldap = "^3.4.3"
 SQLAlchemy = "^2.0"
 psycopg2-binary = "^2.9.8"
 
-gunicorn = "^20.1.0"
+gunicorn = "^21.2.0"
 requests = "^2.31.0"
 python-dateutil = "^2.8.2"
 
@@ -62,7 +62,7 @@ openidc-client = "^0.6.0"
 requests-gssapi = "^1.2.3"
 
 # Monitoring
-prometheus_client = "^0.17.1"
+prometheus_client = "^0.18.0"
 
 # Messaging
 fedora-messaging = "^3.4.1"
