@@ -1,30 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="Web view on review-rot output.">
+{% extends "layout.html" %}
 
-        <link rel="icon" href="{{ url_for('favicon') }}" />
+{% block title %}
+    WaiverDB: Permissions
+{% endblock %}
 
-        <title>
-        {% block title %}
-        WaiverDB Permissions
-        {% endblock %}
-        </title>
+{% block scripts %}
+{% endblock %}
 
-        <!-- Bootstrap -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
-              integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
-    </head>
-
-    <body>
-        <div class="container">
-            <h1>
-                <img src="{{ url_for('favicon') }}" style="height: 64px" alt="Waiver DB" />
-                {{ self.title() }}
-            </h1>
+{% block body %}
             <table class="table table-striped">
                 <thead>
                     <tr>
@@ -57,6 +40,4 @@
                     {%- endfor %}
                 </tbody>
             </table>
-        </div>
-    </body>
-</html>
+{% endblock %}
