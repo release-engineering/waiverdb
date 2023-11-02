@@ -392,6 +392,14 @@ class WaiversNewResource(WaiversResource):
         ), mimetype='text/html')
 
 
+class WaiversJSResource(Resource):
+    """
+    Provides a JS for a new waiver form
+    """
+    def get(self):
+        return Response(render_template('new_waiver.js'), mimetype='application/javascript')
+
+
 class WaiversCreateResource(WaiversResource):
     """
     Deprecated, kept as a redirect for a backward compatibility
@@ -725,6 +733,7 @@ class MonitorResource(Resource):
 # set up the Api resource routing here
 api.add_resource(WaiversResource, '/waivers/')
 api.add_resource(WaiversNewResource, '/waivers/new')
+api.add_resource(WaiversJSResource, '/waivers/new/new_waiver.js')
 api.add_resource(WaiversCreateResource, '/waivers/create')
 api.add_resource(WaiverResource, '/waivers/<int:waiver_id>')
 api.add_resource(FilteredWaiversResource, '/waivers/+filtered')

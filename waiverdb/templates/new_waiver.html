@@ -4,6 +4,11 @@
     WaiverDB: Create a Waiver
 {% endblock %}
 
+{% block scripts %}
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs" crossorigin="anonymous"></script>
+        <script src="{{ url_for('api_v1.waivers_js_resource') }}"></script>
+{% endblock %}
+
 {% block body %}
     {% if warning %}
     <div class="alert alert-danger" role="alert" id="other-error">{{ warning | safe }}</div>
@@ -13,7 +18,7 @@
             Unable to create a waiver: <span id="error-desc"></span>
         </div>
         <div id="result-text-success" class="d-none">
-            <a id="result-link" href="#">New waiver created.</a>
+            <a id="result-link" href="#">New waiver</a> created. ID: <span id="new-waiver-id"></span>
         </div>
     </div>
     <form>
