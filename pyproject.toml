@@ -39,7 +39,7 @@ include = [
 python = ">=3.8,<3.12"
 
 flask = "^2.2.5"
-flask-oidc = "^1.4.0"
+flask-oidc = "^2.1.1"
 Flask-SQLAlchemy = "^3.1.1"
 Flask-Cors = "^4.0.0"
 Flask-Migrate = "^4.0.5"
