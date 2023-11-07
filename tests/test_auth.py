@@ -27,7 +27,7 @@ WAIVER_PARAMS = '&'.join(
 
 @pytest.fixture
 def oidc_token(app):
-    with mock.patch.object(flask_oidc.OpenIDConnect, '_get_token_info') as mocked:
+    with mock.patch.object(flask_oidc.IntrospectTokenValidator, 'introspect_token') as mocked:
         mocked.return_value = {
             'active': True,
             'username': 'testuser',
