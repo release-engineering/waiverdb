@@ -35,6 +35,8 @@ class Config(object):
     PERMISSIONS = []
     # Deprecated permission mapping
     PERMISSION_MAPPING = {}
+    OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = None
+    OTEL_EXPORTER_SERVICE_NAME = "waiverdb"
 
 
 class ProductionConfig(Config):
