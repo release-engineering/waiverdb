@@ -101,15 +101,14 @@ def create_app(config_obj=None) -> Flask:
     app.register_error_handler(requests.Timeout, json_error)
 
     populate_db_config(app)
-    if 'OIDC' in auth_methods(app):
-        oidc.init_app(app)
-        app.oidc = oidc
     # initialize logging
     init_logging(app)
     # initialize db
     db.init_app(app)
-
     init_session(app)
+    if 'OIDC' in auth_methods(app):
+        oidc.init_app(app)
+        app.oidc = oidc
 
     # initialize db migrations
     migrations_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
