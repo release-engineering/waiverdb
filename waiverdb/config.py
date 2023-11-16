@@ -38,6 +38,13 @@ class Config(object):
     OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = None
     OTEL_EXPORTER_SERVICE_NAME = "waiverdb"
 
+    SESSION_TYPE = "sqlalchemy"
+    SESSION_SQLALCHEMY_TABLE = "sessions"
+    SESSION_PERMANENT = True
+    SESSION_USE_SIGNER = True
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+
 
 class ProductionConfig(Config):
     DEBUG = False
