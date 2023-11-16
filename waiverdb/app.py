@@ -10,6 +10,7 @@ except ImportError:
 from flask import Flask, current_app, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_session import Session
 from sqlalchemy import event, text
 from sqlalchemy.exc import ProgrammingError
 import requests
@@ -84,7 +85,7 @@ def populate_db_config(app):
 
 
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
-def create_app(config_obj=None):
+def create_app(config_obj=None) -> Flask:
     app = Flask(__name__)
     if config_obj:
         app.config.from_object(config_obj)
@@ -107,6 +108,9 @@ def create_app(config_obj=None):
     init_logging(app)
     # initialize db
     db.init_app(app)
+
+    init_session(app)
+
     # initialize db migrations
     migrations_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                   'migrations')
@@ -125,6 +129,19 @@ def create_app(config_obj=None):
     enable_cors(app)
 
     return app
+
+
+def init_session(app: Flask) -> None:
+    app.config["SESSION_SQLALCHEMY"] = db
+    app.server_session = Session(app)
+    if app.config["SESSION_TYPE"] == "sqlalchemy":
+        import sqlalchemy
+
+        with app.app_context():
+            inspect = sqlalchemy.inspect(db.engine)
+            table = app.config["SESSION_SQLALCHEMY_TABLE"]
+            if not inspect.has_table(table):
+                db.create_all()
 
 
 def healthcheck():

@@ -36,6 +36,13 @@ class Config(object):
     # Deprecated permission mapping
     PERMISSION_MAPPING = {}
 
+    SESSION_TYPE = "sqlalchemy"
+    SESSION_SQLALCHEMY_TABLE = "sessions"
+    SESSION_PERMANENT = True
+    SESSION_USE_SIGNER = True
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+
 
 class ProductionConfig(Config):
     DEBUG = False
