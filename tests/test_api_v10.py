@@ -886,7 +886,7 @@ def test_permissions_endpoint(client):
                 "maintainers": ["alice@example.com"],
                 "_testcase_regex_pattern": "^kernel-qe",
                 "groups": ["devel", "qa"],
-                "users": ["alice@example.com"],
+                "users": ["alice", "bob"],
             },
             {
                 "name": "Greenwave Tests",
@@ -926,6 +926,12 @@ def test_permissions_endpoint(client):
         assert r.content_type.startswith('text/html')
         assert f"<td>{config['PERMISSIONS'][0]['name']}</td>" not in r.text
         assert f"<td>{config['PERMISSIONS'][1]['name']}</td>" in r.text
+
+        r = client.get('/api/v1.0/permissions?testcase=kernel-qe.test1&html=1')
+        assert r.status_code == 200
+        assert r.content_type.startswith('text/html')
+        assert "<ul><li>alice</li><li>bob</li></ul>" in r.text
+        assert "<ul><li>devel</li><li>qa</li></ul>" in r.text
 
 
 def test_config_endpoint_superusers(client):

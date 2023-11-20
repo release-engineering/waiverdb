@@ -14,28 +14,31 @@
                         <th>Name</th>
                         <th>Maintainers</th>
                         <th>Testcases</th>
-                        <th>Users/Groups</th>
+                        <th>Groups</th>
+                        <th>Users</th>
+                        <th>Description</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for p in permissions -%}
                     <tr>
                         <td>{{ p["name"] }}</td>
-                        <td>{{ p["maintainers"] | map("urlize") | join(" ") | safe }}</td>
-                        <td>{{ p["testcases"] | join("<br />") | replace('-', '&#8209;') | safe }}</td>
-                        <td>
-                            {% if p["groups"] | length > 0 -%}
-                            <span class="font-weight-bold">Groups:</span><br />
-                            {{ p["groups"] | join("<br />") | replace('-', '&#8209;') | safe }}
-                                {% if p["users"] | length > 0 -%}
-                                <br />
-                                {%- endif %}
-                            {%- endif %}
-                            {% if p["users"] | length > 0 -%}
-                            <span class="font-weight-bold">Users:</span><br />
-                            {{ p["users"] | join("<br />") | replace('-', '&#8209;') | safe }}
-                            {%- endif %}
-                        </td>
+                        <td><ul>
+                          {%- for maintainer in p["maintainers"] %}<li>{{ maintainer | urlize }}</li>{% endfor -%}
+                        </ul></td>
+                        <td><ul>
+                          {%- if p["_testcase_regex_pattern"] -%}
+                            <li>{{ p["_testcase_regex_pattern"] }}</li>
+                          {%- endif -%}
+                          {%- for testcase in p["testcases"] %}<li>{{ testcase }}</li>{% endfor -%}
+                        </ul></td>
+                        <td><ul>
+                          {%- for group in p["groups"] %}<li>{{ group }}</li>{% endfor -%}
+                        </ul></td>
+                        <td><ul>
+                          {%- for user in p["users"] %}<li>{{ user }}</li>{% endfor -%}
+                        </ul></td>
+                        <td>{{ p["description"] }}</td>
                     </tr>
                     {%- endfor %}
                 </tbody>
