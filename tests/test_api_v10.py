@@ -886,7 +886,7 @@ def test_permissions_endpoint(client):
                 "maintainers": ["alice@example.com"],
                 "_testcase_regex_pattern": "^kernel-qe",
                 "groups": ["devel", "qa"],
-                "users": ["alice@example.com"],
+                "users": ["alice"],
             },
             {
                 "name": "Greenwave Tests",
@@ -926,6 +926,33 @@ def test_permissions_endpoint(client):
         assert r.content_type.startswith('text/html')
         assert f"<td>{config['PERMISSIONS'][0]['name']}</td>" not in r.text
         assert f"<td>{config['PERMISSIONS'][1]['name']}</td>" in r.text
+
+
+def test_permissions_endpoint_include_following(client):
+    config = {
+        'PERMISSIONS': [
+            {
+                "name": "Security",
+                "testcases": ["security.*"],
+                "groups": ["security"],
+            },
+            {
+                "name": "Development",
+                "testcases": ["*"],
+                "groups": ["devel"],
+                "testcases_ignore": ["security.*"],
+            }
+        ]
+    }
+
+    with patch.dict(client.application.config, config):
+        r = client.get('/api/v1.0/permissions?testcase=security.test1')
+        assert r.status_code == 200, r.text
+        assert r.json == config['PERMISSIONS'][0:1]
+
+        r = client.get('/api/v1.0/permissions?testcase=security-not.test1')
+        assert r.status_code == 200, r.text
+        assert r.json == config['PERMISSIONS'][1:]
 
 
 def test_config_endpoint_superusers(client):
