@@ -16,6 +16,7 @@ import requests
 
 from waiverdb.events import publish_new_waiver
 from waiverdb.logger import init_logging
+from waiverdb.tracing import init_tracing
 from waiverdb.api_v1 import api_v1, oidc
 from waiverdb.models import db
 from waiverdb.utils import auth_methods, json_error
@@ -86,6 +87,7 @@ def populate_db_config(app):
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
 def create_app(config_obj=None):
     app = Flask(__name__)
+
     if config_obj:
         app.config.from_object(config_obj)
     else:
@@ -105,6 +107,8 @@ def create_app(config_obj=None):
         app.oidc = oidc
     # initialize logging
     init_logging(app)
+    # initialize tracing
+    init_tracing(app)
     # initialize db
     db.init_app(app)
     # initialize db migrations
