@@ -38,6 +38,12 @@ class Config(object):
     OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = None
     OTEL_EXPORTER_SERVICE_NAME = "waiverdb"
 
+    # Secure cookies
+    PERMANENT_SESSION_LIFETIME = 300
+    SESSION_COOKIE_NAME = "session"
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+
 
 class ProductionConfig(Config):
     DEBUG = False
