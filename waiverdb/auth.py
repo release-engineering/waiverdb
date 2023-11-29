@@ -3,6 +3,7 @@
 
 import base64
 import binascii
+
 import gssapi
 from flask import current_app, Response, g
 from werkzeug.exceptions import Unauthorized, Forbidden
@@ -68,14 +69,15 @@ def get_user_by_method(request, auth_method):
             raise Unauthorized(
                 f"Authorization headers must start with {OIDC_AUTH_HEADER_PREFIX}")
         token = token[len(OIDC_AUTH_HEADER_PREFIX):].strip()
-        required_scopes = [
-            'openid',
-            current_app.config['OIDC_REQUIRED_SCOPE'],
-        ]
-        validity = current_app.oidc.validate_token(token, required_scopes)
-        if validity is not True:
-            raise Unauthorized(validity)
-        user = g.oidc_token_info['username']
+        # required_scopes = [
+        #    'openid',
+        #    current_app.config['OIDC_REQUIRED_SCOPE'],
+        # ]
+        print(dir(current_app.oidc))
+        if not current_app.oidc.user_loggedin:
+            raise Unauthorized('User is not logged in')
+        user = g.oidc_id_token['username']
+        print(f"User info is {user}")
     elif auth_method == 'Kerberos':
         if 'Authorization' not in request.headers:
             response = Response('Unauthorized', 401, {'WWW-Authenticate': 'Negotiate'})

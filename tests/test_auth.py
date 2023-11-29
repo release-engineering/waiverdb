@@ -98,7 +98,7 @@ class TestOIDCAuthentication(object):
             waiverdb.auth.get_user(request)
         assert self.auth_missing_error in str(excinfo.value)
 
-    def test_get_user_with_invalid_token(self, oidc_token, session):
+    def test_get_user_with_invalid_token(self, oidc_token, session, app):
         oidc_token["active"] = False
         headers = {'Authorization': 'Bearer invalid'}
         request = mock.MagicMock()
@@ -106,18 +106,23 @@ class TestOIDCAuthentication(object):
         request.headers.__getitem__.side_effect = headers.__getitem__
         request.headers.__setitem__.side_effect = headers.__setitem__
         request.headers.__contains__.side_effect = headers.__contains__
-        with pytest.raises(Unauthorized) as excinfo:
-            waiverdb.auth.get_user(request)
+        with app.test_request_context():
+            with pytest.raises(Unauthorized) as excinfo:
+                waiverdb.auth.get_user(request)
+        print(excinfo.value.get_description())
+        print('vs')
+        print(self.invalid_token_error)
         assert self.invalid_token_error in excinfo.value.get_description()
 
-    def test_get_user_good(self, oidc_token, session):
+    def test_get_user_good(self, oidc_token, session, app):
         headers = {'Authorization': 'Bearer foobar'}
         request = mock.MagicMock()
         request.headers.return_value = mock.MagicMock(spec_set=dict)
         request.headers.__getitem__.side_effect = headers.__getitem__
         request.headers.__setitem__.side_effect = headers.__setitem__
         request.headers.__contains__.side_effect = headers.__contains__
-        user, header = waiverdb.auth.get_user(request)
+        with app.test_request_context():
+            user, header = waiverdb.auth.get_user(request)
         assert user == oidc_token["username"]
 
     def test_warning_banner(
