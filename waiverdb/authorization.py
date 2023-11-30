@@ -32,13 +32,17 @@ def get_group_membership(ldap, user, con, ldap_search):
         raise Unauthorized('Some error occurred initializing the LDAP connection.')
 
 
+def match_testcase(testcase: str, patterns: dict[str, Any]):
+    return any(fnmatch(testcase, pattern) for pattern in patterns)
+
+
 def match_testcase_permissions(testcase: str, permissions: list[dict[str, Any]]):
     for permission in permissions:
+        if match_testcase(testcase, permission.get("testcases_ignore", [])):
+            continue
+
         if "testcases" in permission:
-            testcase_match = any(
-                fnmatch(testcase, testcase_pattern)
-                for testcase_pattern in permission["testcases"]
-            )
+            testcase_match = match_testcase(testcase, permission["testcases"])
         elif "_testcase_regex_pattern" in permission:
             testcase_match = re.search(
                 permission["_testcase_regex_pattern"], testcase)

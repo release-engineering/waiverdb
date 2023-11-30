@@ -681,6 +681,18 @@ class PermissionsResource(Resource):
         """
         Returns the waiver permissions.
 
+        Each entry has "testcases" (list of glob patterns for matching test
+        case name) and "users" or "groups".
+
+        Optional "testcases_ignore" (similar to "testcases") allows to ignore a
+        permission entry on a matching test case name.
+
+        The full list of users and groups permitted to waive given test case is
+        constructed by iterating the permissions in order and adding "users"
+        and "groups" from each permission entry which has at least one pattern
+        in "testcases" matching the test case name and no matching pattern in
+        "testcases_ignore".
+
         **Sample response**:
 
         .. sourcecode:: none
@@ -696,8 +708,9 @@ class PermissionsResource(Resource):
                   "name": "kernel-qe",
                   "maintainers": ["alice@example.com"],
                   "testcases": ["kernel-qe.*"],
+                  "testcases_ignore": ["kernel-qe.unwaivable.*"],
                   "groups": ["devel", "qa"],
-                  "users": ["alice@example.com"]
+                  "users": ["alice@example.com"],
               },
               {
                   "name": "Greenwave Tests",
