@@ -7,7 +7,7 @@ import requests
 import json
 import configparser
 import re
-from xmlrpc import client
+from xmlrpc import client  # nosec
 
 from waiverdb import __version__
 

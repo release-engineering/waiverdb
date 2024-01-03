@@ -72,7 +72,7 @@ fedora-messaging = "^3.4.1"
 
 # Tests
 flake8 = {version = "^5.0.4", optional = true}
-pytest = {version = "^7.3.1", optional = true}
+pytest = {version = "^7.4.4", optional = true}
 pytest-cov = {version = "^4.0.0", optional = true}
 mock = {version = "^5.1.0", optional = true}
 tox = {version = "^4.11.4", optional = true}
@@ -80,9 +80,9 @@ tox = {version = "^4.11.4", optional = true}
 # Tracing
 opentelemetry-api = "^1.21.0"
 opentelemetry-exporter-otlp = "^1.21.0"
-opentelemetry-instrumentation-flask = "^0.42b0"
-opentelemetry-instrumentation-requests = "^0.42b0"
-opentelemetry-instrumentation-sqlalchemy = "^0.42b0"
+opentelemetry-instrumentation-flask = "^0.43b0"
+opentelemetry-instrumentation-requests = "^0.43b0"
+opentelemetry-instrumentation-sqlalchemy = "^0.43b0"
 
 # Documentation
 sphinx = {version = "^7.1.1", optional = true}
