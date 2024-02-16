@@ -107,10 +107,11 @@ def create_app(config_obj=None):
         app.oidc = oidc
     # initialize logging
     init_logging(app)
-    # initialize tracing
-    init_tracing(app)
     # initialize db
     db.init_app(app)
+    # initialize tracing
+    with app.app_context():
+        init_tracing(app, db.engine)
     # initialize db migrations
     migrations_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                                   'migrations')
