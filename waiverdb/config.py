@@ -9,8 +9,6 @@ class Config(object):
     """
     DEBUG = True
     DATABASE_URI = 'postgresql+psycopg2:///waiverdb'
-    # We configure logging explicitly, turn off the Flask-supplied log handler.
-    LOGGER_HANDLER_POLICY = 'never'
     HOST = '127.0.0.1'
     PORT = 5004
     PRODUCTION = False
@@ -43,6 +41,38 @@ class Config(object):
     SESSION_COOKIE_NAME = "session"
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = "Lax"
+
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'loggers': {
+            'waiverdb': {
+                'level': 'INFO',
+            },
+            # Skip printing tracebacks on frequent tracing connection issues
+            'opentelemetry.sdk.trace.export': {
+                'level': 'CRITICAL',
+            },
+        },
+        'handlers': {
+            'console': {
+                'formatter': 'bare',
+                'class': 'logging.StreamHandler',
+                'stream': 'ext://sys.stdout',
+                'level': 'DEBUG',
+            },
+        },
+        'formatters': {
+            'bare': {
+                # Drop timestamp and process ID, already included in Apache logs
+                'format': '[%(levelname)s] %(name)s: %(message)s',
+            }
+        },
+        'root': {
+            'level': 'INFO',
+            'handlers': ['console'],
+        },
+    }
 
 
 class ProductionConfig(Config):

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+import logging.config as logging_config
 import os
 
 try:
@@ -15,7 +16,6 @@ from sqlalchemy.exc import ProgrammingError
 import requests
 
 from waiverdb.events import publish_new_waiver
-from waiverdb.logger import init_logging
 from waiverdb.tracing import init_tracing
 from waiverdb.api_v1 import api_v1, oidc
 from waiverdb.models import db
@@ -95,6 +95,9 @@ def create_app(config_obj=None):
     if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':  # nosec
         raise Warning("You need to change the app.secret_key value for production")
 
+    log_config = app.config["LOGGING"]
+    logging_config.dictConfig(log_config)
+
     # register error handlers
     for code in default_exceptions.keys():
         app.register_error_handler(code, json_error)
@@ -105,8 +108,7 @@ def create_app(config_obj=None):
     if 'OIDC' in auth_methods(app):
         oidc.init_app(app)
         app.oidc = oidc
-    # initialize logging
-    init_logging(app)
+
     # initialize db
     db.init_app(app)
     # initialize tracing
