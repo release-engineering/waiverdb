@@ -81,7 +81,6 @@ tox = {version = "^4.11.4", optional = true}
 opentelemetry-api = "^1.21.0"
 opentelemetry-exporter-otlp = "^1.21.0"
 opentelemetry-instrumentation-flask = "^0.43b0"
-opentelemetry-instrumentation-requests = "^0.43b0"
 opentelemetry-instrumentation-sqlalchemy = "^0.43b0"
 
 # Documentation
