@@ -12,9 +12,12 @@ docs-on-pagure
 /rpmbuild-output/
 *.src.rpm
 .tox
+.venv
 dist
 .ropeproject
 .pytest_cache/
 docker/home/
 .idea
 .coverage
+# __version__.py generated via hatch-vcs
+/waiverdb/__version__.py

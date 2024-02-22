@@ -66,3 +66,6 @@ exec:
 
 sudo:
 	$(PODMAN) exec -u root waiverdb_$(SERVICE)_1 bash -c '$(CMD)'
+
+update-requirements:
+	uv pip compile --generate-hashes requirements.in -o requirements.txt

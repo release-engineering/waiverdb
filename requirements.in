@@ -1,0 +1,41 @@
+flask
+flask-oidc
+Flask-SQLAlchemy
+Flask-Cors
+Flask-Migrate
+itsdangerous
+# Werkzeug>=3.0.0 causes a problem with OIDC callback (returns 500)
+Werkzeug<3.0.0
+
+gssapi
+python-ldap
+
+SQLAlchemy
+psycopg2-binary
+
+gunicorn
+requests
+python-dateutil
+
+# CLI
+click
+configparser
+openidc-client
+requests-gssapi
+
+# Monitoring
+prometheus_client
+
+# Messaging
+fedora-messaging
+stomp.py
+
+# Tracing
+opentelemetry-api
+opentelemetry-exporter-otlp
+opentelemetry-instrumentation-flask
+opentelemetry-instrumentation-sqlalchemy
+
+pydantic
+Flask-Pydantic
+flask-restx

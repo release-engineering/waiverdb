@@ -18,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install system dependencies
         uses: nick-invision/retry@v2
@@ -35,11 +35,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install poetry tox tox-gh-actions
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv venv
+          uv pip install tox tox-uv
 
       - name: Test with tox
-        run: tox -e py
+        run: .venv/bin/tox run -e py
 
       - name: Run coveralls-python
         env:
@@ -58,7 +59,7 @@ jobs:
           python-version: "3.8"
 
       - name: Test building documentation with tox
-        run: tox -e docs
+        run: .venv/bin/tox run -e docs
 
   coveralls-finish:
     name: Finish coveralls-python
@@ -90,15 +91,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install tox
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          uv venv
+          uv pip install tox tox-uv
 
       - name: Test '${{ matrix.tox_env }}' with tox
-        run: tox -e ${{ matrix.tox_env }}
+        run: .venv/bin/tox run -e ${{ matrix.tox_env }}
 
   hadolint:
     name: Hadolint
@@ -134,15 +136,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry tox tox-gh-actions podman-compose
-
-      - name: Update the Application Version
-        run: poetry version "$(./get-version.sh)"
+          python-version: "3.12"
 
       - name: Get image tag from git branch
         id: get-image-tag

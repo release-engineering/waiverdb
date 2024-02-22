@@ -20,18 +20,28 @@ Install packages required by pip to compile some python packages::
 
     $ sudo dnf install swig openssl-devel cpp gcc
 
+Install ``uv`` Python package installer and resolver::
+
+    $ curl -LsSf https://astral.sh/uv/install.sh | sh
+    $ export PATH=$HOME/.cargo/bin:$PATH
+
 Install dependencies in a virtual environment::
 
-    $ poetry install
+    $ uv venv
+    $ uv pip install -r requirements.txt "waiverdb @ ."
 
-Run the server::
+Run the development server::
 
     $ cp conf/settings.py.example conf/settings.py
-    $ DEV=true poetry run waiverdb run -h localhost -p 5004 --debugger
+    $ PYTHONPATH=. DEV=true .venv/bin/python waiverdb/manage.py run -h localhost -p 5004 --debugger
+
+Run the installed version::
+
+    $ .venv/bin/waiverdb run -h localhost -p 5004
 
 Migrate the db::
 
-    $ DEV=true poetry run waiverdb db upgrade
+    $ DEV=true .venv/bin/waiverdb db upgrade
 
 The server is now running at on `localhost port 5004`_. Consult the
 :ref:`rest-api` for available API calls. All data is stored inside

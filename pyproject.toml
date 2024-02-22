@@ -1,9 +1,8 @@
-[tool.poetry]
+[project]
 name = "waiverdb"
-version = "1.4.0"
 description = "An engine for storing waivers against test results"
 authors = [
-  "Red Hat, Inc. and others"
+    {name = "Red Hat, Inc. and others"}
 ]
 license = "GPL-2.0-or-later"
 readme = "README.md"
@@ -35,78 +34,36 @@ include = [
     "waiverdb/templates/*.html",
 ]
 
-[tool.poetry.dependencies]
-python = ">=3.8,<3.13"
+requires-python = ">=3.8,<3.13"
 
-flask = "^2.2.5"
-flask-oidc = "^1.4.0"
-Flask-SQLAlchemy = "^3.1.1"
-Flask-Cors = "^4.0.0"
-Flask-Migrate = "^4.0.5"
-itsdangerous = {version = "==2.0.1", optional = true}
-# causes a problem with OIDC callback (returns 500)
-Werkzeug = {version = "<3.0.0", optional = true}
+dynamic = ["dependencies", "version"]
 
-gssapi = "^1.8.3"
-python-ldap = "^3.4.3"
-
-SQLAlchemy = "^2.0"
-psycopg2-binary = "^2.9.8"
-
-gunicorn = "^21.2.0"
-requests = "^2.31.0"
-python-dateutil = "^2.8.2"
-
-# CLI
-click = "^8.1.7"
-configparser = "^6.0.0"
-openidc-client = "^0.6.0"
-requests-gssapi = "^1.2.3"
-
-# Monitoring
-prometheus_client = "^0.19.0"
-
-# Messaging
-fedora-messaging = "^3.4.1"
-"stomp.py" = "^8.1.0"
-
-# Tests
-flake8 = {version = "^5.0.4", optional = true}
-pytest = {version = "^8.0.0", optional = true}
-pytest-cov = {version = "^4.0.0", optional = true}
-mock = {version = "^5.1.0", optional = true}
-tox = {version = "^4.11.4", optional = true}
-
-# Tracing
-opentelemetry-api = "^1.21.0"
-opentelemetry-exporter-otlp = "^1.21.0"
-opentelemetry-instrumentation-flask = "^0.43b0"
-opentelemetry-instrumentation-sqlalchemy = "^0.43b0"
-
-# Documentation
-sphinx = {version = "^7.1.1", optional = true}
-sphinxcontrib-httpdomain = {version = "^1.8.1", optional = true}
-markupsafe = {version = "==2.1.5", optional = true}
-pydantic = "^1.10.14"
-Flask-Pydantic = "^0.11.0"
-flask-restx = "^1.1.0"
-
-[tool.poetry.extras]
+[project.optional-dependencies]
 test = [
-    "flake8",
-    "pytest",
-    "pytest-cov",
-    "mock",
-]
-docs = [
-    "sphinx",
-    "sphinxcontrib-httpdomain",
+  "pytest==8.0.0",
+  "pytest-cov==4.0.0",
+  "mock==5.1.0",
 ]
 
-[tool.poetry.scripts]
+docs = [
+  "sphinx==7.1.1",
+  "sphinxcontrib-httpdomain==1.8.1",
+  "markupsafe==2.1.5",
+]
+
+[project.scripts]
 waiverdb-cli = "waiverdb.cli:cli"
 waiverdb = "waiverdb.manage:cli"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling", "hatch-requirements-txt", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "waiverdb/__version__.py"
+
+[tool.hatch.metadata.hooks.requirements_txt]
+files = ["requirements.txt"]

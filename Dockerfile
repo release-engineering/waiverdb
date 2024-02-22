@@ -1,4 +1,4 @@
-FROM registry.fedoraproject.org/fedora:38 as builder
+FROM registry.fedoraproject.org/fedora:39 as builder
 
 # hadolint ignore=DL3033,DL4006,SC2039,SC3040
 RUN set -exo pipefail \
@@ -10,14 +10,15 @@ RUN set -exo pipefail \
         --disablerepo=* \
         --enablerepo=fedora,updates \
         gcc \
+        git-core \
         krb5-devel \
         openldap-devel \
-        python3 \
         python3-devel \
+        which \
     # install runtime dependencies
     && yum install -y \
         --installroot=/mnt/rootfs \
-        --releasever=38 \
+        --releasever=39 \
         --setopt install_weak_deps=false \
         --nodocs \
         --disablerepo=* \
@@ -27,16 +28,14 @@ RUN set -exo pipefail \
         python3 \
     && yum --installroot=/mnt/rootfs clean all \
     && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum.* \
-    # https://python-poetry.org/docs/master/#installing-with-the-official-installer
-    && curl -sSL https://install.python-poetry.org | python3 - \
-    && python3 -m venv /venv
+    # https://github.com/astral-sh/uv?tab=readme-ov-file#getting-started
+    && curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ENV \
     PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
     PYTHONFAULTHANDLER=1 \
-    PYTHONHASHSEED=random \
     PYTHONUNBUFFERED=1
 
 WORKDIR /build
@@ -44,13 +43,10 @@ COPY . .
 
 # hadolint ignore=SC1091
 RUN set -ex \
-    && export PATH=/root/.local/bin:$PATH \
-    && . /venv/bin/activate \
-    && pip install --no-cache-dir -r requirements.txt \
-    && poetry build --format=wheel \
-    && version=$(poetry version --short) \
-    && pip install --no-cache-dir dist/waiverdb-"$version"-py3*.whl \
-    && deactivate \
+    && export PATH=/root/.cargo/bin:$PATH \
+    && export VIRTUAL_ENV=/venv \
+    && uv venv /venv \
+    && uv pip install --upgrade --strict --no-deps -r requirements.txt "waiverdb @ ." \
     && mv /venv /mnt/rootfs \
     && mkdir -p /mnt/rootfs/app /etc/waiverdb \
     && cp -v docker/docker-entrypoint.sh /mnt/rootfs/app/entrypoint.sh \
