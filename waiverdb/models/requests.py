@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: LGPL-2.0-or-later
-from typing import List, Optional, Tuple, Union
+from typing import Annotated, List, Optional, Tuple, Union
 from datetime import datetime
 
-from pydantic import BaseModel, Field, root_validator, conlist, constr
+from pydantic import BaseModel, Field, StringConstraints, RootModel, conlist, model_validator
 from werkzeug.exceptions import BadRequest
 
 
@@ -12,9 +12,9 @@ SUBJECT_CONFLICTS_WITH = ("subject_identifier", "subject_type")
 
 # WaiverDB < 0.11 compatibility
 class TestSubject(BaseModel):
-    type: Optional[str]
-    item: Optional[str]
-    original_spec_nvr: Optional[str]
+    type: Optional[str] = None
+    item: Optional[str] = None
+    original_spec_nvr: Optional[str] = None
     productmd_compose_id: Optional[str] = Field(alias='productmd.compose.id', default=None)
     __test__ = False        # to tell the PyTest that this is not a test class
 
@@ -26,101 +26,100 @@ class TestResult(BaseModel):
 
 
 class CreateWaiver(BaseModel):
-    subject_type: Optional[str]
-    subject_identifier: Optional[str]
-    testcase: Optional[str]
-    subject: Optional[TestSubject]
-    result_id: Optional[int]
+    subject_type: Optional[str] = None
+    subject_identifier: Optional[str] = None
+    testcase: Optional[str] = None
+    subject: Optional[TestSubject] = None
+    result_id: Optional[int] = None
     waived: bool = True
-    product_version: constr(min_length=1)
-    comment: constr(min_length=1)
+    product_version: Annotated[str, StringConstraints(min_length=1)]
+    comment: Annotated[str, StringConstraints(min_length=1)]
     username: Optional[str] = None
     scenario: Optional[str] = None
 
-    @root_validator
-    def result_id_must_not_conflict(cls, values):
-        if values.get("result_id") is None:
-            if values.get("testcase") is None:
+    @model_validator(mode='after')
+    def result_id_must_not_conflict(self):
+        if self.result_id is None:
+            if self.testcase is None:
                 raise ValueError("Argument testcase is missing")
-            return values
-        if all(values.get(x) is None for x in RESULT_ID_CONFLICTS_WITH):
-            return values
+            return self
+        if all(getattr(self, x) is None for x in RESULT_ID_CONFLICTS_WITH):
+            return self
         raise ValueError(
             "result_id argument should not be used together with arguments: "
             f"{', '.join(RESULT_ID_CONFLICTS_WITH)}"
         )
 
-    @root_validator
-    def subject_must_not_conflict(cls, values):
-        if values.get("subject") is None:
-            return values
-        if all(values.get(x) is None for x in SUBJECT_CONFLICTS_WITH):
-            return values
+    @model_validator(mode='after')
+    def subject_must_not_conflict(self):
+        if self.subject is None:
+            return self
+        if all(getattr(self, x) is None for x in SUBJECT_CONFLICTS_WITH):
+            return self
         raise ValueError(
             "subject argument should not be used together with arguments: "
             f"{', '.join(SUBJECT_CONFLICTS_WITH)}"
         )
 
-    @root_validator
-    def subject_must_be_defined(cls, values):
-        if values.get("result_id") is not None:
-            return values
-        if values.get("subject") is not None:
-            return values
-        if all(values.get(x) is not None for x in SUBJECT_CONFLICTS_WITH):
-            return values
+    @model_validator(mode='after')
+    def subject_must_be_defined(self):
+        if self.result_id is not None:
+            return self
+        if self.subject is not None:
+            return self
+        if all(getattr(self, x) is not None for x in SUBJECT_CONFLICTS_WITH):
+            return self
         raise ValueError(
             "subject must be defined using result_id or subject or both "
             f"{', '.join(SUBJECT_CONFLICTS_WITH)}"
         )
 
 
-class CreateWaiverList(BaseModel):
-    __root__: Union[conlist(CreateWaiver, min_items=1), CreateWaiver]
+CreateWaiverList = RootModel[Union[CreateWaiver, conlist(CreateWaiver, min_length=1)]]
 
 
 class GetWaivers(BaseModel):
-    subject_type: Optional[str]
-    subject_identifier: Optional[str]
-    testcase: Optional[str]
-    product_version: Optional[str]
-    username: Optional[str]
+    subject_type: Optional[str] = None
+    subject_identifier: Optional[str] = None
+    testcase: Optional[str] = None
+    product_version: Optional[str] = None
+    username: Optional[str] = None
     include_obsolete: bool = False
     scenario: Optional[str] = None
-    since: Optional[str]
+    since: Optional[str] = None
     page: int = 1
     limit: int = 10
-    proxied_by: Optional[str]
+    proxied_by: Optional[str] = None
 
 
 class GetPermissions(BaseModel):
-    testcase: Optional[str]
+    testcase: Optional[str] = None
     html: Optional[bool] = False
 
 
 class WaiverFilter(BaseModel):
-    subject_type: Optional[str]
-    subject_identifier: Optional[str]
-    testcase: Optional[str]
-    scenario: Optional[str]
-    product_version: Optional[str]
-    username: Optional[str]
-    proxied_by: Optional[str]
-    since: Optional[str]
+    subject_type: Optional[str] = None
+    subject_identifier: Optional[str] = None
+    testcase: Optional[str] = None
+    scenario: Optional[str] = None
+    product_version: Optional[str] = None
+    username: Optional[str] = None
+    proxied_by: Optional[str] = None
+    since: Optional[str] = None
 
 
 class FilterWaivers(BaseModel):
-    filters: conlist(WaiverFilter, min_items=1)
+    filters: conlist(WaiverFilter, min_length=1)
     include_obsolete: bool = False
 
 
 class GetWaiversBySubjectAndTestcase(BaseModel):
-    results: Optional[List[TestResult]]
-    testcase: Optional[str]
-    product_version: Optional[str]
-    username: Optional[str]
-    proxied_by: Optional[str]
-    since: Optional[str]
+    results: Optional[List[TestResult]] = None
+    testcase: Optional[str] = None
+    product_version: Optional[str] = None
+    username: Optional[str] = None
+    proxied_by: Optional[str] = None
+    since: Optional[str] = None
     include_obsolete: bool = False
 
 

@@ -21,6 +21,8 @@ class Config(object):
     # closely match the requested endpoint.
     RESTX_ERROR_404_HELP = False
 
+    FLASK_PYDANTIC_VALIDATION_ERROR_RAISE = True
+
     AUTH_METHOD = 'OIDC'  # Specify OIDC, Kerberos or SSL for authentication
     OIDC_USERNAME_FIELD = 'preferred_username'
     # Set this to True or False to enable publishing to a message bus

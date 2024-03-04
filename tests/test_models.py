@@ -21,7 +21,7 @@ from waiverdb.models.requests import TestSubject
      'compose', 'Fedora-Rawhide-20170508.n.0'),
 ])
 def test_subject_dict_to_type_identifier(subject, expected_type, expected_identifier):
-    ts = TestSubject.parse_obj(subject)
+    ts = TestSubject.model_validate(subject)
     subject_type, subject_identifier = subject_dict_to_type_identifier(ts)
     assert subject_type == expected_type
     assert subject_identifier == expected_identifier

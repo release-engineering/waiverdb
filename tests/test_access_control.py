@@ -60,7 +60,7 @@ class TestAccessControl(object):
         r = client.post('/api/v1.0/waivers/', data=json.dumps(self.data),
                         content_type='application/json', headers=self.headers)
         res_data = json.loads(r.get_data(as_text=True))
-        assert r.status_code == 500
+        assert r.status_code == 500, r.text
         assert res_data['message'] == ('LDAP_HOST and LDAP_SEARCHES also need to be defined '
                                        'if PERMISSIONS is defined.')
 

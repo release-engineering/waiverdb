@@ -5,7 +5,7 @@ import json
 
 import pytest
 from requests import ConnectionError, HTTPError
-from mock import patch, Mock
+from mock import patch, ANY, Mock
 from stomp.exception import StompException
 
 from .utils import create_waiver
@@ -96,7 +96,7 @@ def test_create_waiver_with_subject(mocked_user, client, session):
     r = client.post('/api/v1.0/waivers/', data=json.dumps(data),
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
-    assert r.status_code == 201
+    assert r.status_code == 201, r.text
     assert res_data['username'] == 'foo'
     assert res_data['subject'] == {'type': 'koji_build', 'item': 'glibc-2.26-27.fc27'}
     assert res_data['subject_type'] == 'koji_build'
@@ -179,21 +179,20 @@ def test_create_waiver_without_comment(mocked_user, client, session):
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    bp = res_data['validation_error']['body_params']
+    bp = res_data['validation_error']
     assert {
-        'loc': ['__root__'],
-        'msg': 'value is not a valid list',
-        'type': 'type_error.list'
+        'msg': 'Input should be a valid list',
+        'type': 'list_type',
+        'loc': [ANY],
+        'input': ANY,
+        'url': ANY,
     } in bp
     assert {
-        'loc': ['__root__', 'comment'],
-        'msg': 'field required',
-        'type': 'value_error.missing'
-    } in bp
-    assert {
-        'loc': ['__root__', '__root__'],
-        'msg': 'Argument testcase is missing',
-        'type': 'value_error'
+        'msg': 'Field required',
+        'type': 'missing',
+        'loc': [ANY, 'comment'],
+        'input': ANY,
+        'url': ANY,
     } in bp
 
 
@@ -249,16 +248,13 @@ def test_create_waiver_with_no_testcase(mocked_user, client):
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    bp = res_data['validation_error']['body_params']
+    bp = res_data['validation_error']
     assert {
-        'loc': ['__root__'],
-        'msg': 'value is not a valid list',
-        'type': 'type_error.list'
-    } in bp
-    assert {
-        'loc': ['__root__', '__root__'],
-        'msg': 'Argument testcase is missing',
-        'type': 'value_error'
+        'msg': 'Value error, Argument testcase is missing',
+        'type': 'value_error',
+        'loc': ANY,
+        'input': ANY,
+        'url': ANY,
     } in bp
 
 
@@ -271,33 +267,13 @@ def test_create_waiver_with_malformed_subject(mocked_user, client):
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    bp = res_data['validation_error']['body_params']
+    bp = res_data['validation_error']
     assert {
-        'loc': ['__root__'],
-        'msg': 'value is not a valid list',
-        'type': 'type_error.list'
-    } in bp
-    assert {
-        'loc': ['__root__', 'subject'],
-        'msg': 'value is not a valid dict',
-        'type': 'type_error.dict'
-    } in bp
-    assert {
-        'loc': ['__root__', 'product_version'],
-        'msg': 'field required', 'type': 'value_error.missing'
-    } in bp
-    assert {
-        'loc': ['__root__', 'comment'],
-        'msg': 'field required',
-        'type': 'value_error.missing'
-    } in bp
-    assert {
-        'loc': ['__root__', '__root__'],
-        'msg': (
-            'subject must be defined using result_id or subject '
-            'or both subject_identifier, subject_type'
-        ),
-        'type': 'value_error'
+        'msg': 'Input should be a valid dictionary or instance of TestSubject',
+        'type': 'model_type',
+        'loc': [ANY, 'subject'],
+        'input': ANY,
+        'url': ANY,
     } in bp
 
 
@@ -738,8 +714,14 @@ def test_filtering_with_missing_filter(client, session):
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    bp = res_data['validation_error']['body_params']
-    assert {'loc': ['filters'], 'msg': 'field required', 'type': 'value_error.missing'} in bp
+    bp = res_data['validation_error']
+    assert {
+        'loc': ['filters'],
+        'msg': 'Field required',
+        'type': 'missing',
+        'input': ANY,
+        'url': ANY,
+    } in bp
 
 
 def test_waivers_by_subjects_and_testcases(client, session):
@@ -774,9 +756,9 @@ def test_waivers_by_subjects_and_testcases(client, session):
 
 
 @pytest.mark.parametrize("results,expected_error_message,excepted_error_type", [
-    ([{'item': {'subject.test1': 'subject1'}}], 'field required', 'value_error.missing'),
-    ([{'subject': 'subject1'}], 'value is not a valid dict', 'type_error.dict'),
-    ([{}], 'field required', 'value_error.missing')
+    ([{'item': {'subject.test1': 'subject1'}}], 'Field required', 'missing'),
+    ([{'subject': 'subject1'}], 'value is not a valid dict', 'dict_type'),
+    ([{}], 'Field required', 'missing')
 ])
 def test_waivers_by_subjects_and_testcases_with_bad_results_parameter(
         client, session, results, expected_error_message, excepted_error_type
@@ -786,16 +768,20 @@ def test_waivers_by_subjects_and_testcases_with_bad_results_parameter(
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    bp = res_data['validation_error']['body_params']
+    bp = res_data['validation_error']
     assert {
         'loc': ['results', 0, 'testcase'],
-        'type': 'value_error.missing',
-        'msg': 'field required'
+        'type': 'missing',
+        'msg': 'Field required',
+        'input': ANY,
+        'url': ANY,
     } in bp
     assert {
         'loc': ['results', 0, 'subject'],
         'type': excepted_error_type,
-        'msg': expected_error_message
+        'msg': expected_error_message,
+        'input': ANY,
+        'url': ANY,
     }
 
 
@@ -836,7 +822,14 @@ def test_waivers_by_subjects_and_testcases_with_malformed_since(client, session)
                     content_type='application/json')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
-    assert res_data['message']['since'] == "Invalid isoformat string: '123'"
+    bp = res_data['validation_error']
+    assert {
+        'msg': 'Input should be a valid string',
+        'type': 'string_type',
+        'loc': ['since'],
+        'input': ANY,
+        'url': ANY,
+    } in bp
 
     data = {'since': 'asdf'}
     r = client.post('/api/v1.0/waivers/+by-subjects-and-testcases', data=json.dumps(data),
