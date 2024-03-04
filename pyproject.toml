@@ -87,7 +87,7 @@ opentelemetry-instrumentation-sqlalchemy = "^0.44b0"
 sphinx = {version = "^7.1.1", optional = true}
 sphinxcontrib-httpdomain = {version = "^1.8.1", optional = true}
 markupsafe = {version = "==2.1.5", optional = true}
-pydantic = "^1.10.14"
+pydantic = "^2.6.3"
 Flask-Pydantic = "^0.11.0"
 flask-restx = "^1.1.0"
 
