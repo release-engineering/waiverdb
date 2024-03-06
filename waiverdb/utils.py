@@ -4,9 +4,14 @@ import functools
 import stomp
 from flask import request, url_for, jsonify, current_app
 from flask_restx import marshal
+from flask_pydantic.exceptions import ValidationError
 from waiverdb.fields import waiver_fields
 from werkzeug.exceptions import NotFound, HTTPException
 from contextlib import contextmanager
+
+VALIDATION_KEYS = frozenset({
+    "input", "loc", "msg", "type", "url"
+})
 
 
 def json_collection(query, page=1, limit=10):
@@ -56,6 +61,24 @@ def json_error(error):
         response = jsonify(message=str(error))
         response.status_code = 500
 
+    return response
+
+
+def handle_validation_error(error: ValidationError):
+    errors = (
+        error.body_params
+        or error.form_params
+        or error.path_params
+        or error.query_params
+    )
+    # Keep only interesting stuff and remove objects potentially
+    # unserializable in JSON.
+    err = [
+        {k: v for k, v in e.items() if k in VALIDATION_KEYS}
+        for e in errors
+    ]
+    response = jsonify({"validation_error": err})
+    response.status_code = 400
     return response
 
 

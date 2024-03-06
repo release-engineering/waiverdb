@@ -11,6 +11,7 @@ except ImportError:
 from flask import Flask, current_app, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
+from flask_pydantic.exceptions import ValidationError
 from sqlalchemy import event, text
 from sqlalchemy.exc import ProgrammingError
 import requests
@@ -19,7 +20,7 @@ from waiverdb.events import publish_new_waiver
 from waiverdb.tracing import init_tracing
 from waiverdb.api_v1 import api_v1, oidc
 from waiverdb.models import db
-from waiverdb.utils import auth_methods, json_error
+from waiverdb.utils import auth_methods, handle_validation_error, json_error
 from werkzeug.exceptions import default_exceptions
 from waiverdb.monitor import db_hook_event_listeners
 
@@ -103,6 +104,7 @@ def create_app(config_obj=None):
         app.register_error_handler(code, json_error)
     app.register_error_handler(requests.ConnectionError, json_error)
     app.register_error_handler(requests.Timeout, json_error)
+    app.register_error_handler(ValidationError, handle_validation_error)
 
     populate_db_config(app)
     if 'OIDC' in auth_methods(app):

@@ -133,8 +133,8 @@ def _authorization_warning(request):
 
 class WaiversResource(Resource):
     @jsonp
-    @validate(query=GetWaivers)
-    def get(self):
+    @validate()
+    def get(self, query: GetWaivers):
         """
         Get waiver records.
 
@@ -188,40 +188,38 @@ class WaiversResource(Resource):
         :statuscode 400: The request was malformed and could not be processed.
         """
 
-        args = GetWaivers.parse_obj(request.args)
+        q = Waiver.query.order_by(Waiver.timestamp.desc())
 
-        query = Waiver.query.order_by(Waiver.timestamp.desc())
-
-        if args.subject_type:
-            query = query.filter(Waiver.subject_type == args.subject_type)
-        if args.subject_identifier:
-            query = query.filter(Waiver.subject_identifier == args.subject_identifier)
-        if args.testcase:
-            query = query.filter(Waiver.testcase == args.testcase)
-        if args.scenario:
-            query = query.filter(Waiver.scenario == args.scenario)
-        if args.product_version:
-            query = query.filter(Waiver.product_version == args.product_version)
-        if args.username:
-            query = query.filter(Waiver.username == args.username)
-        if args.proxied_by:
-            query = query.filter(Waiver.proxied_by == args.proxied_by)
-        if args.since:
-            since_start, since_end = parse_since(args.since)
+        if query.subject_type:
+            q = q.filter(Waiver.subject_type == query.subject_type)
+        if query.subject_identifier:
+            q = q.filter(Waiver.subject_identifier == query.subject_identifier)
+        if query.testcase:
+            q = q.filter(Waiver.testcase == query.testcase)
+        if query.scenario:
+            q = q.filter(Waiver.scenario == query.scenario)
+        if query.product_version:
+            q = q.filter(Waiver.product_version == query.product_version)
+        if query.username:
+            q = q.filter(Waiver.username == query.username)
+        if query.proxied_by:
+            q = q.filter(Waiver.proxied_by == query.proxied_by)
+        if query.since:
+            since_start, since_end = parse_since(query.since)
             if since_start:
-                query = query.filter(Waiver.timestamp >= since_start)
+                q = q.filter(Waiver.timestamp >= since_start)
             if since_end:
-                query = query.filter(Waiver.timestamp <= since_end)
-        if not args.include_obsolete:
-            query = _filter_out_obsolete_waivers(query)
+                q = q.filter(Waiver.timestamp <= since_end)
+        if not query.include_obsolete:
+            q = _filter_out_obsolete_waivers(q)
 
-        query = query.order_by(Waiver.timestamp.desc())
-        return json_collection(query, args.page, args.limit)
+        q = q.order_by(Waiver.timestamp.desc())
+        return json_collection(q, query.page, query.limit)
 
     @jsonp
-    @validate(body=CreateWaiverList)
+    @validate()
     @marshal_with(waiver_fields)
-    def post(self):
+    def post(self, body: CreateWaiverList):
         """
         Create a new waiver or multiple waivers.
 
@@ -290,14 +288,11 @@ class WaiversResource(Resource):
         """
 
         user, headers = waiverdb.auth.get_user(request)
-        data = request.get_json(force=True)
-
-        data = CreateWaiverList.parse_obj(data).__root__
-        if isinstance(data, list):
-            result = [self._create_waiver(sub_data, user) for sub_data in data]
+        if isinstance(body.root, list):
+            result = [self._create_waiver(sub_data, user) for sub_data in body.root]
             db.session.add_all(result)
         else:
-            result = self._create_waiver(data, user)
+            result = self._create_waiver(body.root, user)
             db.session.add(result)
 
         db.session.commit()
@@ -428,9 +423,9 @@ class WaiverResource(Resource):
 
 
 class FilteredWaiversResource(Resource):
-    @validate(body=FilterWaivers)
+    @validate()
     @marshal_with(waiver_fields, envelope='data')
-    def post(self):
+    def post(self, body: FilterWaivers):
         """
         Get waiver records, filtered by some criteria.
 
@@ -498,11 +493,10 @@ class FilteredWaiversResource(Resource):
         :statuscode 200: Returns matching waivers, if any.
         :statuscode 400: The request was malformed (invalid filter critera).
         """
-        args = FilterWaivers.parse_obj(request.get_json(force=True))
         query = Waiver.query.order_by(Waiver.timestamp.desc())
         clauses = []
         filter_: WaiverFilter
-        for filter_ in args.filters:
+        for filter_ in body.filters:
             inner_clauses = []
             if filter_.subject_type:
                 inner_clauses.append(Waiver.subject_type == filter_.subject_type)
@@ -526,7 +520,7 @@ class FilteredWaiversResource(Resource):
                     inner_clauses.append(Waiver.timestamp <= since_end)
             clauses.append(and_(*inner_clauses))
         query = query.filter(or_(*clauses))
-        if not args.include_obsolete:
+        if not body.include_obsolete:
             subquery = db.session.query(func.max(Waiver.id)).group_by(
                 Waiver.subject_type,
                 Waiver.subject_identifier,
@@ -539,8 +533,8 @@ class FilteredWaiversResource(Resource):
 
 class GetWaiversBySubjectsAndTestcases(Resource):
     @jsonp
-    @validate(body=GetWaiversBySubjectAndTestcase)
-    def post(self):
+    @validate()
+    def post(self, body: GetWaiversBySubjectAndTestcase):
         """
         **Deprecated.** Use :http:post:`/api/v1.0/waivers/+filtered` instead.
 
@@ -586,24 +580,22 @@ class GetWaiversBySubjectsAndTestcases(Resource):
                 ]
            }
         """
-        data = request.get_json(force=True)
-        args = GetWaiversBySubjectAndTestcase.parse_obj(data)
         query = Waiver.query.order_by(Waiver.timestamp.desc())
-        if args.results:
-            query = Waiver.by_results(query, args.results)
-        if args.product_version:
-            query = query.filter(Waiver.product_version == args.product_version)
-        if args.username:
-            query = query.filter(Waiver.username == args.username)
-        if args.proxied_by:
-            query = query.filter(Waiver.proxied_by == args.proxied_by)
-        if args.since:
-            since_start, since_end = parse_since(args.since)
+        if body.results:
+            query = Waiver.by_results(query, body.results)
+        if body.product_version:
+            query = query.filter(Waiver.product_version == body.product_version)
+        if body.username:
+            query = query.filter(Waiver.username == body.username)
+        if body.proxied_by:
+            query = query.filter(Waiver.proxied_by == body.proxied_by)
+        if body.since:
+            since_start, since_end = parse_since(body.since)
             if since_start:
                 query = query.filter(Waiver.timestamp >= since_start)
             if since_end:
                 query = query.filter(Waiver.timestamp <= since_end)
-        if not args.include_obsolete:
+        if not body.include_obsolete:
             query = _filter_out_obsolete_waivers(query)
 
         query = query.order_by(Waiver.timestamp.desc())
@@ -676,8 +668,8 @@ class ConfigResource(Resource):
 
 class PermissionsResource(Resource):
     @jsonp
-    @validate(query=GetPermissions)
-    def get(self):
+    @validate()
+    def get(self, query: GetPermissions):
         """
         Returns the waiver permissions.
 
@@ -724,12 +716,11 @@ class PermissionsResource(Resource):
         :json string testcase: If specified, only permissions for given test case is returned.
         :statuscode 200: Permissions are returned.
         """
-        args = GetPermissions.parse_obj(request.args)
-        testcase = args.testcase
+        testcase = query.testcase
         permissions_to_ret = permissions()
         if testcase:
             permissions_to_ret = list(match_testcase_permissions(testcase, permissions_to_ret))
-        if not args.html:
+        if not query.html:
             return permissions_to_ret
         return Response(
             render_template('permissions.html', permissions=permissions_to_ret),
