@@ -88,6 +88,7 @@ def populate_db_config(app):
 
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
 def create_app(config_obj=None):
+    sess = Session()
     app = Flask(__name__)
 
     if config_obj:

@@ -66,8 +66,6 @@ def get_oidc_userinfo(field):
         )
         raise Unauthorized("Failed to retrieve username")
     return fields[field]
-
-
 def get_user_by_method(request, auth_method):
     user = None
     headers = dict()
