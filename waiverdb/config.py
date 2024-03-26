@@ -45,6 +45,9 @@ class Config(object):
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = "Lax"
 
+    # Call error handlers
+    PROPAGATE_EXCEPTIONS = True
+
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,

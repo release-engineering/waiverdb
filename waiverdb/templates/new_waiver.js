@@ -27,10 +27,10 @@ $(document).ready(function () {
                 $("#result-text-success").addClass("d-none");
                 $("#result-text-error").removeClass("d-none");
                 let addition = "";
-                if(jqXHR.status === 401) {
-                    addition = `<a href="{{ url_for('api_v1.permissions_resource', html='1')}}&testcase=${encodeURIComponent(testcaseName)}" target="_blank">See who has permissions to waive ${testcaseName}</a>`;
+                if(jqXHR.status === 403) {
+                    addition = ` | <a href="{{ url_for('api_v1.permissions_resource', html='1')}}&testcase=${encodeURIComponent(testcaseName)}" target="_blank">See who has permissions to waive ${testcaseName}</a>`;
                 }
-                $("#error-desc").html(`Creation failed, status: ${jqXHR.status} ${jqXHR.statusText} ${addition}`);
+                $("#error-desc").html(`${jqXHR.responseJSON.message}${addition}`);
                 $("#waiver-result").removeClass("alert-success d-none").addClass("alert-danger");
             }
         });

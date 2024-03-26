@@ -74,6 +74,10 @@ pytest = {version = "^8.2.0", optional = true}
 pytest-cov = {version = "^5.0.0", optional = true}
 mock = {version = "^5.1.0", optional = true}
 
+# Functional Tests
+selenium = "^4.19.0"
+pytest-selenium = "^4.1.0"
+
 # Tracing
 opentelemetry-api = "^1.25.0"
 opentelemetry-exporter-otlp = "^1.25.0"
@@ -93,6 +97,10 @@ test = [
     "pytest",
     "pytest-cov",
     "mock",
+]
+functional-test = [
+    "selenium",
+    "pytest-selenium",
 ]
 docs = [
     "sphinx",

@@ -169,3 +169,17 @@ jobs:
           image: ${{ steps.build-image.outputs.image }}
           tags: ${{ steps.build-image.outputs.tags }}
           registry: ${{ secrets.REGISTRY_USER && env.REGISTRY || env.GH_REGISTRY }}
+
+      - name: Install docker-compose
+        run: |
+          echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_20.04/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list &&
+          curl -L "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_20.04/Release.key" | sudo apt-key add - &&
+          sudo apt-get -y update &&
+          sudo apt-get -y install firefox &&
+          sudo apt-get -y -o Dpkg::Options::="--force-overwrite" install podman
+
+      - name: Test Image
+        run: |
+          podman-compose up -d &&
+          tox -e functional -- --no-cov functional-tests &&
+          podman-compose down
