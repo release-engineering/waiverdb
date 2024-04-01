@@ -584,27 +584,26 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "fedora-messaging"
-version = "3.4.1"
+version = "3.5.0"
 description = "A set of tools for using Fedora's messaging infrastructure"
 optional = false
-python-versions = "*"
+python-versions = "<4.0,>=3.8"
 files = [
-    {file = "fedora_messaging-3.4.1-py3-none-any.whl", hash = "sha256:b523138b14be42740d0ab831807fea2211f19a9727e526ba9211fb33b1204440"},
-    {file = "fedora_messaging-3.4.1.tar.gz", hash = "sha256:a73655642a32069423bab1f53e84a1c6fc2cba1e1599d059ffc737fd52ac36c9"},
+    {file = "fedora_messaging-3.5.0-py3-none-any.whl", hash = "sha256:47edb6951f979e0c0646905dcda1f6decff65b115eb98eed94cbc54e4eb6c6b5"},
+    {file = "fedora_messaging-3.5.0.tar.gz", hash = "sha256:5b4f3c8c6d5f4c78d0a76563c01b49aefffd12a30fa0cf043fe5facc2c12b939"},
 ]
 
 [package.dependencies]
-blinker = "*"
-click = "*"
-crochet = "*"
-jsonschema = "*"
-pika = ">=1.0.1"
-PyOpenSSL = "*"
-pytz = "*"
-service-identity = "*"
-setuptools = "*"
-tomli = {version = "*", markers = "python_version < \"3.11\""}
-Twisted = "*"
+blinker = ">=1.5,<2.0"
+click = ">=8.1.3,<9.0.0"
+crochet = ">=1.12.0"
+jsonschema = ">=4.17.3,<5.0.0"
+pika = ">=1.3.0,<2.0.0"
+pyopenssl = ">=21.0.0"
+pytz = ">=2023.3"
+service-identity = ">=21.1.0"
+tomli = ">=2.0.1,<3.0.0"
+twisted = ">=22.4.0"
 
 [[package]]
 name = "filelock"
@@ -2830,4 +2829,4 @@ test = ["flake8", "mock", "pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.13"
-content-hash = "18920276966c390fa52f2ef5dd36b4daa2c9b7f98134264181ecffcc2dcded1a"
+content-hash = "774324a2ef1c4eb3b61f846f9a3efb1eb6006f256a9f19282236e69f179e4ef7"
