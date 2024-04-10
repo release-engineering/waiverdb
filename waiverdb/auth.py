@@ -4,7 +4,7 @@
 import base64
 import binascii
 import gssapi
-from flask import current_app, Response, g
+from flask import current_app, g, Response, session
 from werkzeug.exceptions import Unauthorized, Forbidden
 
 from waiverdb.utils import auth_methods
@@ -49,33 +49,30 @@ def get_user(request):
 
     if len(methods) > 1:
         auth_header = request.headers.get("Authorization", "").strip()
-        if "OIDC" in methods and auth_header.startswith(OIDC_AUTH_HEADER_PREFIX):
-            return get_user_by_method(request, "OIDC")
         if "Kerberos" in methods and not auth_header.startswith(OIDC_AUTH_HEADER_PREFIX):
             return get_user_by_method(request, "Kerberos")
+        if "OIDC" in methods:
+            return get_user_by_method(request, "OIDC")
 
     return get_user_by_method(request, methods[0])
+
+
+def get_oidc_userinfo(field):
+    fields = getattr(g, "authlib_server_oauth2_token", None) \
+        or session.get("oidc_auth_profile", {})
+    if field not in fields:
+        current_app.logger.error(
+            "User info field %r is unavailable; available are: %s", field, fields.keys()
+        )
+        raise Unauthorized("Failed to retrieve username")
+    return fields[field]
 
 
 def get_user_by_method(request, auth_method):
     user = None
     headers = dict()
     if auth_method == 'OIDC':
-        if 'Authorization' not in request.headers:
-            raise Unauthorized("No 'Authorization' header found.")
-        token = request.headers.get("Authorization").strip()
-        if not token.startswith(OIDC_AUTH_HEADER_PREFIX):
-            raise Unauthorized(
-                f"Authorization headers must start with {OIDC_AUTH_HEADER_PREFIX}")
-        token = token[len(OIDC_AUTH_HEADER_PREFIX):].strip()
-        required_scopes = [
-            'openid',
-            current_app.config['OIDC_REQUIRED_SCOPE'],
-        ]
-        validity = current_app.oidc.validate_token(token, required_scopes)
-        if validity is not True:
-            raise Unauthorized(validity)
-        user = g.oidc_token_info['username']
+        user = get_oidc_userinfo(current_app.config['OIDC_USERNAME_FIELD'])
     elif auth_method == 'Kerberos':
         if 'Authorization' not in request.headers:
             response = Response('Unauthorized', 401, {'WWW-Authenticate': 'Negotiate'})

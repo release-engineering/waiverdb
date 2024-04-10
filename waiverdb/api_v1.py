@@ -98,7 +98,7 @@ def _filter_out_obsolete_waivers(query):
 
 def _verify_authorization(user, testcase):
     if not permissions():
-        return True
+        return
 
     ldap_host = current_app.config.get('LDAP_HOST')
     ldap_searches = current_app.config.get('LDAP_SEARCHES')
@@ -107,10 +107,10 @@ def _verify_authorization(user, testcase):
         if ldap_base:
             ldap_search_string = current_app.config.get('LDAP_SEARCH_STRING', '(memberUid={user})')
             ldap_searches = [{'BASE': ldap_base, 'SEARCH_STRING': ldap_search_string}]
-    return verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches)
+    verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches)
 
 
-def _authorization_warning_from_exception(e: Unauthorized, testcase: str):
+def _authorization_warning_from_exception(e: Forbidden | Unauthorized, testcase: str):
     permissions_url = url_for('api_v1.permissions_resource', testcase=testcase, html='on')
     return (
         f"{escape(str(e))}<br />"
@@ -123,10 +123,10 @@ def _authorization_warning_from_exception(e: Unauthorized, testcase: str):
 def _authorization_warning(request):
     testcase = request.args.get("testcase")
     if testcase:
-        user, _headers = waiverdb.auth.get_user(request)
         try:
+            user, _headers = waiverdb.auth.get_user(request)
             _verify_authorization(user, testcase)
-        except Unauthorized as e:
+        except (Forbidden, Unauthorized) as e:
             return _authorization_warning_from_exception(e, testcase)
     return None
 
@@ -385,6 +385,16 @@ class WaiversNewResource(WaiversResource):
             warning=_authorization_warning(request),
             request_args=request.args,
         ), mimetype='text/html')
+
+    @oidc.accept_token()
+    @validate()
+    @marshal_with(waiver_fields)
+    def post(self, body: CreateWaiver):
+        user, headers = waiverdb.auth.get_user(request)
+        result = self._create_waiver(body, user)
+        db.session.add(result)
+        db.session.commit()
+        return result, 201, headers
 
 
 class WaiversJSResource(Resource):

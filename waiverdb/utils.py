@@ -6,7 +6,7 @@ from flask import request, url_for, jsonify, current_app
 from flask_restx import marshal
 from flask_pydantic.exceptions import ValidationError
 from waiverdb.fields import waiver_fields
-from werkzeug.exceptions import NotFound, HTTPException
+from werkzeug.exceptions import BadRequest, NotFound, HTTPException
 from contextlib import contextmanager
 
 VALIDATION_KEYS = frozenset({
@@ -52,12 +52,15 @@ def json_error(error):
     :return: JSON error response.
 
     """
+    if not isinstance(error, (BadRequest, NotFound)):
+        current_app.logger.warning("%s: %s", type(error).__name__, error)
+
     if isinstance(error, HTTPException):
         response = jsonify(message=error.description)
-        response.status_code = error.code
+        if error.code is not None:
+            response.status_code = error.code
     else:
         # Could be ConnectionError or Timeout
-        current_app.logger.exception('Returning 500 to user.')
         response = jsonify(message=str(error))
         response.status_code = 500
 

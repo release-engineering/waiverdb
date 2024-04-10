@@ -5,10 +5,9 @@ import pytest
 import gssapi  # noqa
 import mock
 import json
-from werkzeug.exceptions import Unauthorized
+from werkzeug.exceptions import Forbidden, Unauthorized
 import waiverdb.auth
-import flask_oidc
-from flask import g
+from flask import session
 
 WAIVER_DATA = {
     'subject_type': 'koji_build',
@@ -27,16 +26,15 @@ WAIVER_PARAMS = '&'.join(
 
 @pytest.fixture
 def oidc_token(app):
-    with mock.patch.object(flask_oidc.OpenIDConnect, '_get_token_info') as mocked:
-        mocked.return_value = {
-            'active': True,
-            'username': 'testuser',
-            'preferred_username': 'testuser',
-            'scope': 'openid waiverdb_scope',
-        }
-        with app.app_context():
-            g.oidc_id_token = mocked()
-            yield g.oidc_id_token
+    with app.test_request_context('/api/v1.0/waivers/new'):
+        with mock.patch.object(session, 'oidc_auth_token') as mocked:
+            mocked.return_value = {
+                'active': True,
+                'username': 'testuser',
+                'preferred_username': 'testuser',
+                'scope': 'openid waiverdb_scope',
+            }
+            yield mocked()
 
 
 @pytest.fixture
@@ -67,7 +65,7 @@ class TestGSSAPIAuthentication(object):
     @mock.patch.multiple("gssapi.Credentials",
                          __init__=mock.Mock(return_value=None),
                          __new__=mock.Mock(return_value=None))
-    def test_authorized(self, client, monkeypatch):
+    def test_authorized(self, client, monkeypatch, session):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
         headers = {'Authorization':
                    'Negotiate %s' % b64encode(b"CTOKEN").decode()}
@@ -128,13 +126,13 @@ class TestOIDCAuthentication(object):
         session,
         client,
     ):
-        verify_authorization.side_effect = Unauthorized("Unauthorized")
+        verify_authorization.side_effect = Forbidden("Forbidden")
         permissions.return_value = [{"testcases": ["a.b.c"], "groups": []}]
         headers = {'Authorization': 'Bearer foobar'}
         r = client.get('/api/v1.0/waivers/new?testcase=a.b.c', headers=headers)
         warning_banner = (
             '<div class="alert alert-danger" role="alert" id="other-error">'
-            '401 Unauthorized: Unauthorized<br />'
+            '403 Forbidden: Forbidden<br />'
             '<a href="/api/v1.0/permissions?testcase=a.b.c&html=on">'
             'See who has permission to waive a.b.c test case.</a></div>'
         )
