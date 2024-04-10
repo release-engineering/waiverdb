@@ -24,6 +24,7 @@ class Config(object):
     FLASK_PYDANTIC_VALIDATION_ERROR_RAISE = True
 
     AUTH_METHOD = 'OIDC'  # Specify OIDC, Kerberos or SSL for authentication
+    OIDC_SCOPES = 'openid'
     OIDC_USERNAME_FIELD = 'preferred_username'
     # Set this to True or False to enable publishing to a message bus
     MESSAGE_BUS_PUBLISH = True
@@ -91,7 +92,6 @@ class DevelopmentConfig(Config):
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'conf',
         'client_secrets.json'
     )
-    OIDC_REQUIRED_SCOPE = 'https://waiverdb.fedoraproject.org/oidc/create-waiver'
     OIDC_RESOURCE_SERVER_ONLY = True
 
 
@@ -106,7 +106,6 @@ class TestingConfig(Config):
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tests',
         'client_secrets.json'
     )
-    OIDC_REQUIRED_SCOPE = 'waiverdb_scope'
     OIDC_RESOURCE_SERVER_ONLY = True
     SUPERUSERS = ['bodhi']
 

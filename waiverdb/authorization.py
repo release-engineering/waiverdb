@@ -7,6 +7,7 @@ from typing import Any
 
 from werkzeug.exceptions import (
     BadGateway,
+    Forbidden,
     InternalServerError,
     Unauthorized,
 )
@@ -54,39 +55,37 @@ def match_testcase_permissions(testcase: str, permissions: list[dict[str, Any]])
 
 
 def verify_authorization(user, testcase, permissions, ldap_host, ldap_searches):
-    if not (ldap_host and ldap_searches):
-        raise InternalServerError(('LDAP_HOST and LDAP_SEARCHES also need to be defined '
-                                   'if PERMISSIONS is defined.'))
-
     allowed_groups = []
     for permission in match_testcase_permissions(testcase, permissions):
         if user in permission.get('users', []):
-            return True
+            return
         allowed_groups += permission.get('groups', [])
 
-    try:
+    detail = ""
+    if ldap_host and ldap_searches:
         import ldap
-    except ImportError:
-        raise InternalServerError(('If PERMISSIONS is defined, '
-                                   'python-ldap needs to be installed.'))
 
-    try:
-        con = ldap.initialize(ldap_host)
-    except ldap.LDAPError:
-        log.exception('Some error occurred initializing the LDAP connection.')
-        raise Unauthorized('Some error occurred initializing the LDAP connection.')
-    group_membership = set()
+        try:
+            con = ldap.initialize(ldap_host)
+        except ldap.LDAPError:
+            log.exception('Some error occurred initializing the LDAP connection.')
+            raise Unauthorized('Some error occurred initializing the LDAP connection.')
 
-    for cur_ldap_search in ldap_searches:
-        group_membership.update(
-            get_group_membership(ldap, user, con, cur_ldap_search)
+        group_membership = set()
+
+        for cur_ldap_search in ldap_searches:
+            group_membership.update(
+                get_group_membership(ldap, user, con, cur_ldap_search)
+            )
+            if group_membership & set(allowed_groups):
+                return
+
+        if not group_membership:
+            detail = "; failed to find the user in LDAP"
+
+    raise Forbidden(
+        description=(
+            f"User {user} is not authorized to submit results for the test case {testcase}"
+            + detail
         )
-        if group_membership & set(allowed_groups):
-            return True
-
-    if not group_membership:
-        raise Unauthorized(f'Couldn\'t find user {user} in LDAP')
-
-    raise Unauthorized(
-        description=f'You are not authorized to submit a waiver for the test case {testcase}'
     )

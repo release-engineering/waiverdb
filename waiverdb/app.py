@@ -99,7 +99,6 @@ def create_app(config_obj=None):
     log_config = app.config["LOGGING"]
     logging_config.dictConfig(log_config)
 
-    # register error handlers
     for code in default_exceptions.keys():
         app.register_error_handler(code, json_error)
     app.register_error_handler(requests.ConnectionError, json_error)
@@ -110,6 +109,8 @@ def create_app(config_obj=None):
     if 'OIDC' in auth_methods(app):
         oidc.init_app(app)
         app.oidc = oidc
+    else:
+        app.logger.warning('No OpenID Connect support')
 
     # initialize db
     db.init_app(app)

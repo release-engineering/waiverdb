@@ -60,9 +60,10 @@ class TestAccessControl(object):
         r = client.post('/api/v1.0/waivers/', data=json.dumps(self.data),
                         content_type='application/json', headers=self.headers)
         res_data = json.loads(r.get_data(as_text=True))
-        assert r.status_code == 500, r.text
-        assert res_data['message'] == ('LDAP_HOST and LDAP_SEARCHES also need to be defined '
-                                       'if PERMISSIONS is defined.')
+        assert r.status_code == 403, r.text
+        assert res_data['message'] == (
+            "User foo is not authorized to submit results for the test case testcase1.functional"
+        )
 
     @pytest.mark.usefixtures('enable_ldap_host')
     def test_ldap_host_defined_base_not(self, client, session):
@@ -90,8 +91,11 @@ class TestAccessControl(object):
         r = client.post('/api/v1.0/waivers/', data=json.dumps(self.data),
                         content_type='application/json', headers=self.headers)
         res_data = json.loads(r.get_data(as_text=True))
-        assert r.status_code == 401
-        assert res_data['message'] == "Couldn't find user foo in LDAP"
+        assert r.status_code == 403
+        assert res_data['message'] == (
+            "User foo is not authorized to submit results for the test case testcase1.functional"
+            "; failed to find the user in LDAP"
+        )
 
     @pytest.mark.usefixtures('enable_ldap_host')
     @pytest.mark.usefixtures('enable_ldap_base')
@@ -140,9 +144,10 @@ class TestAccessControl(object):
         r = client.post('/api/v1.0/waivers/', data=json.dumps(self.data),
                         content_type='application/json', headers=self.headers)
         res_data = json.loads(r.get_data(as_text=True))
-        assert r.status_code == 401
-        assert res_data['message'] == ("You are not authorized to submit a waiver "
-                                       "for the test case testcase3")
+        assert r.status_code == 403
+        assert res_data['message'] == (
+            "User foo is not authorized to submit results for the test case testcase3"
+        )
 
     @pytest.mark.usefixtures('enable_ldap_host')
     @pytest.mark.usefixtures('enable_ldap_base')
@@ -155,9 +160,10 @@ class TestAccessControl(object):
         r = client.post('/api/v1.0/waivers/', data=json.dumps(self.data),
                         content_type='application/json', headers=self.headers)
         res_data = json.loads(r.get_data(as_text=True))
-        assert r.status_code == 401
-        assert res_data['message'] == ("You are not authorized to submit a waiver "
-                                       "for the test case testcase3")
+        assert r.status_code == 403
+        assert res_data['message'] == (
+            "User foo is not authorized to submit results for the test case testcase3"
+        )
 
     @pytest.mark.usefixtures('enable_ldap_host')
     @pytest.mark.usefixtures('enable_ldap_base')
