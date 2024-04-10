@@ -12,6 +12,7 @@ from flask import Flask, current_app, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_pydantic.exceptions import ValidationError
+from flask_session import Session
 from sqlalchemy import event, text
 from sqlalchemy.exc import ProgrammingError
 import requests
@@ -99,7 +100,6 @@ def create_app(config_obj=None):
     log_config = app.config["LOGGING"]
     logging_config.dictConfig(log_config)
 
-    # register error handlers
     for code in default_exceptions.keys():
         app.register_error_handler(code, json_error)
     app.register_error_handler(requests.ConnectionError, json_error)
@@ -110,9 +110,14 @@ def create_app(config_obj=None):
     if 'OIDC' in auth_methods(app):
         oidc.init_app(app)
         app.oidc = oidc
+    else:
+        app.logger.warning('No OpenID Connect support')
 
     # initialize db
     db.init_app(app)
+    # initialize session
+    app.config["SESSION_SQLALCHEMY"] = db
+    Session(app)
     # initialize tracing
     with app.app_context():
         init_tracing(app, db.engine)
