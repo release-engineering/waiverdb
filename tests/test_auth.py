@@ -7,8 +7,7 @@ import mock
 import json
 from werkzeug.exceptions import Forbidden, Unauthorized
 import waiverdb.auth
-import flask_oidc
-from flask import g
+from flask import g, session
 
 WAIVER_DATA = {
     'subject_type': 'koji_build',
@@ -27,16 +26,15 @@ WAIVER_PARAMS = '&'.join(
 
 @pytest.fixture
 def oidc_token(app):
-    with mock.patch.object(flask_oidc.OpenIDConnect, '_get_token_info') as mocked:
-        mocked.return_value = {
-            'active': True,
-            'username': 'testuser',
-            'preferred_username': 'testuser',
-            'scope': 'openid waiverdb_scope',
-        }
-        with app.app_context():
-            g.oidc_id_token = mocked()
-            yield g.oidc_id_token
+    with app.test_request_context('/api/v1.0/waivers/new'):
+        with mock.patch.object(session, 'oidc_auth_token') as mocked:
+            mocked.return_value = {
+                'active': True,
+                'username': 'testuser',
+                'preferred_username': 'testuser',
+                'scope': 'openid waiverdb_scope',
+            }
+            yield mocked()
 
 
 @pytest.fixture
