@@ -40,8 +40,6 @@ def _send_stomp_message(session):
             _log.debug('Publishing a message for %r', row)
             msg = json.dumps(marshal(row, waiver_fields))
             kwargs = dict(body=msg, headers={}, destination=stomp_configs['destination'])
-            if stomp.__version__[0] < 4:
-                kwargs['message'] = kwargs.pop('body')  # On EL7, different sig.
             try:
                 conn.send(**kwargs)
                 monitor.messaging_tx_sent_ok_counter.inc()
