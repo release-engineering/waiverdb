@@ -43,7 +43,7 @@ flask-oidc = "^1.4.0"
 Flask-SQLAlchemy = "^3.1.1"
 Flask-Cors = "^4.0.0"
 Flask-Migrate = "^4.0.5"
-itsdangerous = {version = "==2.0.1", optional = true}
+itsdangerous = {version = "==2.2.0", optional = true}
 # causes a problem with OIDC callback (returns 500)
 Werkzeug = {version = "<3.0.0", optional = true}
 
