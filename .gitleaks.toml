@@ -1,0 +1,6 @@
+[allowlist]
+regexes = [
+    '  # nosec',
+    '"client_secret": "qgz8Bzjg6nO7JWCXoB0o8L49KfI5atLF"',
+    'waiverdb:waiverdb@waiverdb-db:5433/waiverdb',
+]
