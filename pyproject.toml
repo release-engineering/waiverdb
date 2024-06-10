@@ -59,7 +59,7 @@ python-dateutil = "^2.9.0"
 
 # CLI
 click = "^8.1.7"
-configparser = "^6.0.0"
+configparser = "^7.0.0"
 openidc-client = "^0.6.0"
 requests-gssapi = "^1.2.3"
 
