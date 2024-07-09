@@ -24,7 +24,7 @@ class EnabledMessagedConfig(config.Config):
 
 @patch("waiverdb.app.event.listen")
 def test_disabled_messaging_should_not_register_events(mock_listen):
-    app.create_app(DisabledMessagingConfig)
+    app.create_app(DisabledMessagingConfig, create_session=False)
     calls = [
         c for c in mock_listen.mock_calls if c == call(ANY, ANY, app.publish_new_waiver)
     ]
@@ -33,7 +33,7 @@ def test_disabled_messaging_should_not_register_events(mock_listen):
 
 @patch("waiverdb.app.event.listen")
 def test_enabled_messaging_should_register_events(mock_listen):
-    app.create_app(EnabledMessagedConfig)
+    app.create_app(EnabledMessagedConfig, create_session=False)
     calls = [
         c for c in mock_listen.mock_calls if c == call(ANY, ANY, app.publish_new_waiver)
     ]

@@ -7,7 +7,7 @@ def test_oidc_login(selenium, waiverdb, keycloak, login):
     login()
     assert selenium.current_url == login_url
 
-    expected_content = '{"email":"noreply@example.com","token":"ey' 
+    expected_content = '{"email":"noreply@example.com","token":"ey'
     assert expected_content in selenium.page_source
 
     # No login required the second time

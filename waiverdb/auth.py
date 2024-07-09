@@ -4,7 +4,7 @@
 import base64
 import binascii
 import gssapi
-from flask import current_app, g, Response, session
+from flask import current_app, Request, Response, session
 from werkzeug.exceptions import Unauthorized, Forbidden
 
 from waiverdb.utils import auth_methods
@@ -42,31 +42,34 @@ def process_gssapi_request(token):
         raise Forbidden("Authentication failed")
 
 
-def get_user(request):
+def get_user(request: Request) -> tuple[str, dict[str, str]]:
     methods = auth_methods(current_app)
-    if not methods:
-        raise Unauthorized("Authenticated user required")
 
-    if len(methods) > 1:
-        auth_header = request.headers.get("Authorization", "").strip()
-        if "Kerberos" in methods and not auth_header.startswith(OIDC_AUTH_HEADER_PREFIX):
-            return get_user_by_method(request, "Kerberos")
-        if "OIDC" in methods:
-            return get_user_by_method(request, "OIDC")
+    exceptions = []
 
-    return get_user_by_method(request, methods[0])
+    for method in methods:
+        try:
+            return get_user_by_method(request, method)
+        except Unauthorized as e:
+            exceptions.append(e)
+            continue
+
+    if exceptions:
+        raise exceptions[0]
+    raise Unauthorized("Authenticated user required. No methods specified.")
 
 
-def get_oidc_userinfo(field):
-    fields = getattr(g, "authlib_server_oauth2_token", None) \
-        or session.get("oidc_auth_profile", {})
+def get_oidc_userinfo(field: str) -> str:
+    fields = session.get("oidc_auth_profile", {})
     if field not in fields:
         current_app.logger.error(
             "User info field %r is unavailable; available are: %s", field, fields.keys()
         )
         raise Unauthorized("Failed to retrieve username")
     return fields[field]
-def get_user_by_method(request, auth_method):
+
+
+def get_user_by_method(request: Request, auth_method: str) -> tuple[str, dict[str, str]]:
     user = None
     headers = dict()
     if auth_method == 'OIDC':
@@ -101,5 +104,5 @@ def get_user_by_method(request, auth_method):
             raise Unauthorized(response=response)
         user = request.authorization.username
     else:
-        raise Unauthorized("Authenticated user required")
+        raise Unauthorized(f"Unsupported authentication method {auth_method}")
     return user, headers
