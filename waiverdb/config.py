@@ -26,6 +26,7 @@ class Config(object):
     AUTH_METHOD = 'OIDC'  # Specify OIDC, Kerberos or SSL for authentication
     OIDC_SCOPES = 'openid'
     OIDC_USERNAME_FIELD = 'preferred_username'
+    OIDC_CALLBACK_ROUTE = '/oidc_callback'
     # Set this to True or False to enable publishing to a message bus
     MESSAGE_BUS_PUBLISH = True
     # Specify fedmsg or stomp for publishing messages
