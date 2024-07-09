@@ -9,7 +9,7 @@ from waiverdb.models import db
 
 def create_waiver_app():
     from waiverdb.app import create_app  # noqa: F401
-    return create_app()
+    return create_app(create_session=False)
 
 
 @click.group(cls=FlaskGroup, create_app=create_waiver_app)
