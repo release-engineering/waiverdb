@@ -87,8 +87,7 @@ def populate_db_config(app):
 
 
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
-def create_app(config_obj=None):
-    sess = Session()
+def create_app(config_obj=None, create_session=True):
     app = Flask(__name__)
 
     if config_obj:
@@ -118,7 +117,8 @@ def create_app(config_obj=None):
     db.init_app(app)
     # initialize session
     app.config["SESSION_SQLALCHEMY"] = db
-    Session(app)
+    if create_session:
+        Session(app)
     # initialize tracing
     with app.app_context():
         init_tracing(app, db.engine)
