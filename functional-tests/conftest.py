@@ -6,6 +6,18 @@ from pytest import fixture
 
 
 @fixture
+def chrome_options(chrome_options):
+    chrome_options.add_argument('--headless')
+    return chrome_options
+
+
+@fixture
+def firefox_options(firefox_options):
+    firefox_options.add_argument("--headless")
+    return firefox_options
+
+
+@fixture
 def selenium(selenium):
     selenium.delete_all_cookies()
     return selenium

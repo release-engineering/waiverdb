@@ -33,7 +33,7 @@ from waiverdb.models.requests import (
     GetWaivers, CreateWaiver, FilterWaivers, GetWaiversBySubjectAndTestcase, GetPermissions,
     parse_since, WaiverFilter, CreateWaiverList
 )
-from waiverdb.utils import json_collection, json_error, jsonp
+from waiverdb.utils import json_collection, jsonp
 from waiverdb.fields import waiver_fields
 import waiverdb.auth
 

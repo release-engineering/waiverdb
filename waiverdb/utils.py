@@ -2,7 +2,7 @@
 
 import functools
 import stomp
-from flask import request, url_for, jsonify, current_app
+from flask import request, url_for, jsonify, current_app, Flask
 from flask_restx import marshal
 from flask_pydantic.exceptions import ValidationError
 from waiverdb.fields import waiver_fields
@@ -147,7 +147,7 @@ def stomp_connection():
                            'but STOMP_CONFIGS is not configured')
 
 
-def auth_methods(app):
+def auth_methods(app: Flask) -> list[str]:
     methods = app.config.get('AUTH_METHODS')
     if methods:
         return methods
