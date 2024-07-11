@@ -53,7 +53,7 @@ def get_resultsdb_result(result_id: int) -> Dict[str, Any]:
     return response.json()
 
 
-def permissions() -> list:
+def permissions() -> list[dict[str, Any]]:
     """
     Return PERMISSIONS configuration.
     PERMISSION_MAPPING converted to the new format.
