@@ -4,14 +4,16 @@ from datetime import datetime, timedelta
 import json
 
 import pytest
+from flask import request
 from requests import ConnectionError, HTTPError
 from mock import patch, ANY, Mock
 from stomp.exception import StompException
+from werkzeug.exceptions import Forbidden, Unauthorized
 
 from .utils import create_waiver
 from waiverdb import __version__
 from waiverdb.models import Waiver
-from waiverdb.api_v1 import get_resultsdb_result
+from waiverdb.api_v1 import get_resultsdb_result, _authorization_warning
 
 
 @pytest.fixture
@@ -36,6 +38,40 @@ def mocked_bodhi_user():
 def mocked_resultsdb():
     with patch('waiverdb.api_v1.get_resultsdb_result') as mocked_resultsdb:
         yield mocked_resultsdb
+
+
+class TestAuthorizationWarning:
+    @patch('waiverdb.api_v1._verify_authorization')
+    def test_user_authorized(self, mock_verify_auth, mocked_user, app):
+        with app.test_request_context('/api/v1.0/waivers/new?testcase=testcase_1'):
+            response = _authorization_warning(request)
+            assert response is None
+
+    @patch('waiverdb.auth.get_user', side_effect=Unauthorized('Unauthorized'))
+    def test_user_unauthorized(self, mock_get_user, app):
+        with app.test_request_context('/api/v1.0/waivers/new?testcase=testcase_1'):
+            response = _authorization_warning(request)
+            assert 'Unauthorized' in response
+            assert 'See who has permission' in response
+
+    @patch('waiverdb.api_v1._verify_authorization', side_effect=Forbidden('Forbidden'))
+    def test_user_forbidden(self, mock_verify_auth, mocked_user, app):
+        with app.test_request_context('/api/v1.0/waivers/new?testcase=testcase_1'):
+            response = _authorization_warning(request)
+            assert 'Forbidden' in response
+            assert 'See who has permission' in response
+
+    @patch('waiverdb.api_v1._verify_authorization', side_effect=Unauthorized('Unauthorized'))
+    def test_user_unauthorized_verify_auth(self, mock_verify_auth, mocked_user, app):
+        with app.test_request_context('/api/v1.0/waivers/new?testcase=testcase_1'):
+            response = _authorization_warning(request)
+            assert 'Unauthorized' in response
+            assert 'See who has permission' in response
+
+    def test_no_testcase(self, app):
+        with app.test_request_context('/api/v1.0/waivers/new'):
+            response = _authorization_warning(request)
+            assert response is None
 
 
 def test_get_resultsdb_result():
