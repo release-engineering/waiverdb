@@ -25,15 +25,27 @@ WAIVER_PARAMS = '&'.join(
 
 
 @pytest.fixture
-def oidc_token(app):
+def oidc_auth_profile(app):
     with app.test_request_context('/api/v1.0/waivers/new'):
         with mock.patch.dict(session, {'oidc_auth_profile': {
             'active': True,
             'username': 'testuser',
-            'preferred_username': 'testuser',
+            'preferred_username': 'testuser_preferred',
             'scope': 'openid waiverdb_scope',
         }, 'oidc_auth_token': {}}) as mocked:
             yield mocked['oidc_auth_profile']
+
+
+@pytest.fixture
+def oidc_token(app):
+    with app.test_request_context('/api/v1.0/waivers/new'):
+        with mock.patch.dict(session, {'oidc_auth_token': {
+            'active': True,
+            'username': 'testuser',
+            'preferred_username': 'testuser_preferred',
+            'scope': 'openid waiverdb_scope',
+        }, 'oidc_auth_profile': {}}) as mocked:
+            yield mocked['oidc_auth_token']
 
 
 @pytest.fixture
@@ -93,13 +105,17 @@ class TestOIDCAuthentication(object):
                 waiverdb.auth.get_user(request)
         assert "Authenticated user required. No methods specified." in str(excinfo.value)
 
-    def test_get_user_without_token(self, app):
+    def test_get_user_without_profile(self, app):
         with app.test_request_context('/api/v1.0/waivers/new'):
             with pytest.raises(Unauthorized) as excinfo:
                 waiverdb.auth.get_user(request)
         assert self.auth_missing_error in str(excinfo.value)
 
-    def test_get_user_good(self, oidc_token):
+    def test_get_user_good_profile(self, oidc_auth_profile):
+        user, header = waiverdb.auth.get_user(request)
+        assert user == oidc_auth_profile["preferred_username"]
+
+    def test_get_user_good_token(self, oidc_token):
         user, header = waiverdb.auth.get_user(request)
         assert user == oidc_token["username"]
 

@@ -73,7 +73,12 @@ def get_user_by_method(request: Request, auth_method: str) -> tuple[str, dict[st
     user = None
     headers = dict()
     if auth_method == 'OIDC':
-        user = get_oidc_userinfo(current_app.config['OIDC_USERNAME_FIELD'])
+        try:
+            user = get_oidc_userinfo(current_app.config['OIDC_USERNAME_FIELD'])
+        except Unauthorized:
+            user = session.get("oidc_auth_token", {}).get("username")
+            if not user:
+                raise Unauthorized("Failed to retrieve username")
     elif auth_method == 'Kerberos':
         if 'Authorization' not in request.headers:
             response = Response('Unauthorized', 401, {'WWW-Authenticate': 'Negotiate'})
