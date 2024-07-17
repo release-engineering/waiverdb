@@ -4,7 +4,7 @@
 import base64
 import binascii
 import gssapi
-from flask import current_app, Request, Response, session
+from flask import current_app, Request, Response, session, g
 from werkzeug.exceptions import Unauthorized, Forbidden
 
 from waiverdb.utils import auth_methods
@@ -60,7 +60,8 @@ def get_user(request: Request) -> tuple[str, dict[str, str]]:
 
 
 def get_oidc_userinfo(field: str) -> str:
-    fields = session.get("oidc_auth_profile", {})
+    fields = getattr(g, "authlib_server_oauth2_token", None) \
+        or session.get("oidc_auth_profile", {})
     if field not in fields:
         current_app.logger.error(
             "User info field %r is unavailable; available are: %s", field, fields.keys()
