@@ -12,6 +12,8 @@ from flask import (
     render_template,
     request,
     url_for,
+    session,
+    g,
 )
 from flask_oidc import OpenIDConnect
 from flask_pydantic import validate
@@ -744,6 +746,25 @@ class MonitorResource(Resource):
         return MonitorAPI().get()
 
 
+class AuthTestResource(Resource):
+    @oidc.accept_token()
+    def get(self):
+        ret_val = {}
+        try:
+            ret_val['get_user_result'], ret_val['get_user_result_headers'] = (
+                waiverdb.auth.get_user(request)
+            )
+        except Exception as e:
+            ret_val['get_user_result'] = f"Got exception: {e}"
+            ret_val['get_user_result_headers'] = []
+        ret_val['session_oidc_token'] = session.get("oidc_auth_token", {})
+        ret_val['session_oidc_profile'] = session.get("oidc_auth_profile", {})
+        ret_val['g_authlib_server_oauth2_token'] = getattr(g, "authlib_server_oauth2_token", None)
+        ret_val['session_scope'] = list(session.keys())
+        ret_val['g_scope'] = dir(g)
+        return ret_val
+
+
 # set up the Api resource routing here
 api.add_resource(WaiversResource, '/waivers/')
 api.add_resource(WaiversNewResource, '/waivers/new')
@@ -756,3 +777,4 @@ api.add_resource(AboutResource, '/about', strict_slashes=False)
 api.add_resource(ConfigResource, '/config', strict_slashes=False)
 api.add_resource(PermissionsResource, '/permissions', strict_slashes=False)
 api.add_resource(MonitorResource, '/metrics')
+api.add_resource(AuthTestResource, '/test_auth')
