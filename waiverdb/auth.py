@@ -4,13 +4,14 @@
 import base64
 import binascii
 import gssapi
-from flask import current_app, Request, Response, session
+import requests
+from flask import current_app, Request, Response, session, g
+from typing import Any
 from werkzeug.exceptions import Unauthorized, Forbidden
-from authlib.oauth2.base import OAuth2Error
 
 from waiverdb.utils import auth_methods
 
-OIDC_AUTH_HEADER_PREFIX = "Bearer "
+OIDC_AUTH_HEADER_PREFIX = "Bearer"
 
 
 # Inspired by https://github.com/mkomitee/flask-kerberos/blob/master/flask_kerberos.py
@@ -60,13 +61,10 @@ def get_user(request: Request) -> tuple[str, dict[str, str]]:
     raise Unauthorized("Authenticated user required. No methods specified.")
 
 
-def get_oidc_userinfo(field: str) -> str:
+def get_oidc_userinfo(field: str, request: Request) -> str:
     fields = session.get("oidc_auth_profile", {})
-    if not fields:
-        try:
-            fields = current_app.oidc.accept_token.acquire_token()
-        except OAuth2Error as e:
-            raise Unauthorized(f"OIDC authentication failed: {e}")
+    if not fields and "Authorization" in request.headers:
+        fields = get_oidc_token(request)
 
     if field not in fields:
         current_app.logger.error(
@@ -75,6 +73,38 @@ def get_oidc_userinfo(field: str) -> str:
         raise Unauthorized("Failed to retrieve username")
 
     return fields[field]
+
+
+def get_oidc_token(request: Request) -> dict[str, Any]:
+    try:
+        token_type, token_str = request.headers["Authorization"].split(None, maxsplit=1)
+        if token_type != OIDC_AUTH_HEADER_PREFIX:
+            raise Unauthorized(f"Token type {token_type} is unsupported")
+        introspection_ep = current_app.oidc.oauth.oidc.load_server_metadata().get(
+            "introspection_endpoint"
+        )
+        body = {
+            'token': token_str,
+            'client_id': current_app.config["OIDC_CLIENT_ID"],
+            'client_secret': current_app.config["OIDC_CLIENT_SECRET"],
+        }
+        response = requests.post(
+            introspection_ep, params=body,
+            headers={'Content-type': 'application/x-www-form-urlencoded'},
+            timeout=5
+        )
+        response.raise_for_status()
+        token = response.json()
+        g.our_auth_token = token
+    except Exception as e:
+        raise Unauthorized(f"OIDC token authentication failed: {e}")
+    try:
+        if token.get("active"):
+            return token
+        else:
+            raise Unauthorized("active key not found in token")
+    except AttributeError:
+        raise Unauthorized(f"token has no keys (type is {type(token).__name__})")
 
 
 def get_user_by_method(request: Request, auth_method: str) -> tuple[str, dict[str, str]]:
