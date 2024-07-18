@@ -747,7 +747,6 @@ class MonitorResource(Resource):
 
 
 class AuthTestResource(Resource):
-    @oidc.accept_token()
     def get(self):
         ret_val = {}
         try:
@@ -760,8 +759,8 @@ class AuthTestResource(Resource):
         ret_val['session_oidc_token'] = session.get("oidc_auth_token", {})
         ret_val['session_oidc_profile'] = session.get("oidc_auth_profile", {})
         ret_val['g_authlib_server_oauth2_token'] = getattr(g, "authlib_server_oauth2_token", None)
-        ret_val['session_scope'] = list(session.keys())
-        ret_val['g_scope'] = dir(g)
+        ret_val['g_our_auth_token'] = getattr(g, "our_auth_token", None)
+
         return ret_val
 
 

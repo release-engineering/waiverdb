@@ -4,6 +4,7 @@
 import base64
 import binascii
 import gssapi
+from authlib.oauth2 import OAuth2Error
 from flask import current_app, Request, Response, session, g
 from werkzeug.exceptions import Unauthorized, Forbidden
 
@@ -60,8 +61,7 @@ def get_user(request: Request) -> tuple[str, dict[str, str]]:
 
 
 def get_oidc_userinfo(field: str) -> str:
-    fields = getattr(g, "authlib_server_oauth2_token", None) \
-        or session.get("oidc_auth_profile", {})
+    fields = session.get("oidc_auth_profile", {})
     if field not in fields:
         current_app.logger.error(
             "User info field %r is unavailable; available are: %s", field, fields.keys()
@@ -70,11 +70,34 @@ def get_oidc_userinfo(field: str) -> str:
     return fields[field]
 
 
+def get_token_userinfo(request: Request, field: str) -> str:
+    try:
+        validator, token_str = current_app.oidc.accept_token.parse_request_authorization(request)
+        token = validator.authenticate_token(token_str)
+    except OAuth2Error as e:
+        raise Unauthorized(f"OIDC token authentication failed: {e}")
+    g.our_auth_token = token
+    try:
+        if token.get("active"):
+            return token[field]
+        else:
+            raise Unauthorized("active key not found in token")
+    except KeyError:
+        raise Unauthorized(f"field {field} not found in token")
+
+
 def get_user_by_method(request: Request, auth_method: str) -> tuple[str, dict[str, str]]:
     user = None
     headers = dict()
     if auth_method == 'OIDC':
-        user = get_oidc_userinfo(current_app.config['OIDC_USERNAME_FIELD'])
+        try:
+            user = get_oidc_userinfo(current_app.config['OIDC_USERNAME_FIELD'])
+        except Unauthorized as u_exception:
+            # fallback to check the token:
+            if 'Authorization' in request.headers:
+                user = get_token_userinfo(request, current_app.config['OIDC_USERNAME_FIELD'])
+            else:
+                raise u_exception
     elif auth_method == 'Kerberos':
         if 'Authorization' not in request.headers:
             response = Response('Unauthorized', 401, {'WWW-Authenticate': 'Negotiate'})
