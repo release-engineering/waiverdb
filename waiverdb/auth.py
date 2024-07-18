@@ -4,7 +4,7 @@
 import base64
 import binascii
 import gssapi
-from authlib.oauth2 import OAuth2Error
+import requests
 from flask import current_app, Request, Response, session, g
 from werkzeug.exceptions import Unauthorized, Forbidden
 
@@ -72,16 +72,31 @@ def get_oidc_userinfo(field: str) -> str:
 
 def get_token_userinfo(request: Request, field: str) -> str:
     try:
-        validator, token_str = current_app.oidc.accept_token.parse_request_authorization(request)
-        token = validator.authenticate_token(token_str)
-    except OAuth2Error as e:
+        token_type, token_str = request.headers["Authorization"].split(None, maxsplit=1)
+        if token_type != "Bearer":
+            raise Unauthorized(f"Token type {token_type} is unsupported")
+        introspection_ep = g._oidc_auth.load_server_metadata().get("introspection_endpoint")
+        body = {
+            'token': token_str,
+            'client_id': current_app.config["OIDC_CLIENT_ID"],
+            'client_secret': current_app.config["OIDC_CLIENT_SECRET"],
+        }
+        response = requests.post(
+            introspection_ep, params=body,
+            headers={'Content-type': 'application/x-www-form-urlencoded'}
+        )
+        response.raise_for_status()
+        token = response.json()
+        g.our_auth_token = token
+    except Exception as e:
         raise Unauthorized(f"OIDC token authentication failed: {e}")
-    g.our_auth_token = token
     try:
         if token.get("active"):
             return token[field]
         else:
             raise Unauthorized("active key not found in token")
+    except AttributeError:
+        raise Unauthorized(f"token has no keys (type is {type(token).__name__})")
     except KeyError:
         raise Unauthorized(f"field {field} not found in token")
 
