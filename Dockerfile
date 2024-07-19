@@ -10,6 +10,7 @@ RUN set -exo pipefail \
         --disablerepo=* \
         --enablerepo=fedora,updates \
         gcc \
+        git-core \
         krb5-devel \
         openldap-devel \
         python3 \
