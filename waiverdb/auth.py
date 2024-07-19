@@ -4,8 +4,9 @@
 import base64
 import binascii
 import gssapi
-from flask import current_app, Request, Response, session, g
+from flask import current_app, Request, Response, session
 from werkzeug.exceptions import Unauthorized, Forbidden
+from authlib.oauth2.base import OAuth2Error
 
 from waiverdb.utils import auth_methods
 
@@ -60,13 +61,19 @@ def get_user(request: Request) -> tuple[str, dict[str, str]]:
 
 
 def get_oidc_userinfo(field: str) -> str:
-    fields = getattr(g, "authlib_server_oauth2_token", None) \
-        or session.get("oidc_auth_profile", {})
+    fields = session.get("oidc_auth_profile", {})
+    if not fields:
+        try:
+            fields = current_app.oidc.accept_token.acquire_token()
+        except OAuth2Error as e:
+            raise Unauthorized(f"OIDC authentication failed: {e}")
+
     if field not in fields:
         current_app.logger.error(
             "User info field %r is unavailable; available are: %s", field, fields.keys()
         )
         raise Unauthorized("Failed to retrieve username")
+
     return fields[field]
 
 

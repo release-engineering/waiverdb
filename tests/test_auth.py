@@ -84,7 +84,7 @@ class TestGSSAPIAuthentication(object):
 
 
 class TestOIDCAuthentication(object):
-    auth_missing_error = "401 Unauthorized: Failed to retrieve username"
+    auth_missing_error = "401 Unauthorized: OIDC authentication failed: "
 
     def test_get_user_no_auth_methods(self):
         with mock.patch('waiverdb.auth.auth_methods') as mocked:

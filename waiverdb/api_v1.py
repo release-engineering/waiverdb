@@ -386,7 +386,6 @@ class WaiversNewResource(WaiversResource):
             request_args=request.args,
         ), mimetype='text/html')
 
-    @oidc.accept_token()
     @validate()
     @marshal_with(waiver_fields)
     def post(self, body: CreateWaiver):
