@@ -38,6 +38,12 @@ include = [
 [tool.poetry.dependencies]
 python = ">=3.8,<3.13"
 
+# https://github.com/lepture/authlib/pull/662
+# fix authlib to use correct auth method for token introspection
+# fixes submitting waivers with Bodhi. remove this when there is
+# a fixed stable authlib release
+authlib = {git = "https://github.com/AdamWill/authlib.git", branch = "oauth2-fix-introspect-endpoint"}
+
 flask = "^2.2.5"
 flask-oidc = "^2.2.0"
 flask-session = ">=0.6.0"
