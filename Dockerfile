@@ -1,24 +1,23 @@
-FROM registry.fedoraproject.org/fedora:40 as builder
+FROM quay.io/fedora/python-312:20241120@sha256:aedc5b00a981c671a5dab3c1885f89398b2bf633264542635e3fc3096a56538a AS builder
 
-# hadolint ignore=DL3033,DL4006,SC2039,SC3040
+# builder should use root to install/create all files
+USER root
+
+# hadolint ignore=DL3033,DL3041,DL4006,SC2039,SC3040
 RUN set -exo pipefail \
     && mkdir -p /mnt/rootfs \
     # install builder dependencies
-    && yum install -y \
+    && dnf install -y \
         --setopt install_weak_deps=false \
         --nodocs \
         --disablerepo=* \
         --enablerepo=fedora,updates \
-        gcc \
-        git-core \
         krb5-devel \
         openldap-devel \
-        python3 \
-        python3-devel \
     # install runtime dependencies
-    && yum install -y \
+    && dnf install -y \
         --installroot=/mnt/rootfs \
-        --releasever=40 \
+        --releasever=/ \
         --setopt install_weak_deps=false \
         --nodocs \
         --disablerepo=* \
@@ -26,10 +25,9 @@ RUN set -exo pipefail \
         krb5-libs \
         openldap \
         python3 \
-    && yum --installroot=/mnt/rootfs clean all \
-    && rm -rf /mnt/rootfs/var/cache/* /mnt/rootfs/var/log/dnf* /mnt/rootfs/var/log/yum.* \
+    && dnf --installroot=/mnt/rootfs clean all \
     # https://python-poetry.org/docs/master/#installing-with-the-official-installer
-    && curl -sSL https://install.python-poetry.org | python3 - \
+    && curl -sSL --proto "=https" https://install.python-poetry.org | python3 - \
     && python3 -m venv /venv
 
 ENV \
@@ -41,22 +39,34 @@ ENV \
     PYTHONUNBUFFERED=1
 
 WORKDIR /build
-COPY . .
+
+# Copy only specific files to avoid accidentally including any generated files
+# or secrets.
+COPY waiverdb ./waiverdb
+COPY conf ./conf
+COPY docker ./docker
+COPY \
+    pyproject.toml \
+    poetry.lock \
+    README.md \
+    ./
 
 # hadolint ignore=SC1091
 RUN set -ex \
-    && export PATH=/root/.local/bin:$PATH \
+    && export PATH=/root/.local/bin:"$PATH" \
     && . /venv/bin/activate \
-    && pip install --no-cache-dir -r requirements.txt \
     && poetry build --format=wheel \
     && version=$(poetry version --short) \
     && pip install --no-cache-dir dist/waiverdb-"$version"-py3*.whl \
     && deactivate \
     && mv /venv /mnt/rootfs \
-    && mkdir -p /mnt/rootfs/app /etc/waiverdb \
+    && mkdir -p /mnt/rootfs/app /mnt/rootfs/etc/waiverdb \
     && cp -v docker/docker-entrypoint.sh /mnt/rootfs/app/entrypoint.sh \
-    && cp conf/settings.py.example /etc/waiverdb/settings.py \
-    && cp conf/client.conf.example /etc/waiverdb/client.conf
+    && cp conf/settings.py.example /mnt/rootfs/etc/waiverdb/settings.py \
+    && cp conf/client.conf.example /mnt/rootfs/etc/waiverdb/client.conf
+
+# This is just to satisfy linters
+USER 1001
 
 # --- Final image
 FROM scratch
