@@ -30,7 +30,7 @@ services:
       retries: 30
 
   waiverdb-db:
-    image: postgres:14.7-alpine
+    image: postgres:14.7-alpine@sha256:07985c5c5e01ee550b30c67a2cf806f8b08b32f74e3f24c4cbef31305ef5776d
     restart: always
     env_file: ["docker/waiverdb-db.env"]
     healthcheck:
@@ -38,7 +38,7 @@ services:
       test: "pg_isready -U postgres"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0.2
+    image: quay.io/keycloak/keycloak:24.0.2@sha256:b8a3f00fc433f2999bc304b73df331e2005037e8f5673f644f9c0eacd5fbe048
     ports:
       - 127.0.0.1:5004:5004
       - 127.0.0.1:8080:8080
