@@ -3,7 +3,7 @@
 from fedora_messaging import message
 
 
-SCHEMA_URL = "http://fedoraproject.org/message-schema/"
+SCHEMA_URL = "https://fedoraproject.org/message-schema/"
 
 WAIVERDB_MESSAGE_SCHEMA = {
     "type": "object",

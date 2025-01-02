@@ -1,6 +1,6 @@
 import os
 
-DATABASE_URI = 'postgresql+psycopg2://waiverdb:waiverdb@waiverdb-db:5433/waiverdb'
+DATABASE_URI = 'postgresql+psycopg2://waiverdb:waiverdb@waiverdb-db:5433/waiverdb'  # NOSONAR
 
 if os.getenv('TEST') == 'true':
     DATABASE_URI += '_test'
@@ -10,7 +10,7 @@ PORT = 5004
 AUTH_METHOD = 'dummy'
 MESSAGE_BUS_PUBLISH = False
 SUPERUSERS = ['dummy']
-RESULTSDB_API_URL = 'http://resultsdb:5001/api/v2.0'
+RESULTSDB_API_URL = 'http://resultsdb:5001/api/v2.0'  # NOSONAR
 
 AUTH_METHODS = ['OIDC']
 OIDC_CLIENT_SECRETS = '/etc/secret/client_secrets.json'

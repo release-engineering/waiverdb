@@ -13,7 +13,7 @@ class WaiverDBMessageV1(WaiverDBMessage):
 
     body_schema = {
         "id": SCHEMA_URL + topic,
-        "$schema": "http://json-schema.org/draft-04/schema#",
+        "$schema": "https://json-schema.org/draft-04/schema#",
         "description": "Schema for waiverdb messages",
         "type": "object",
         "properties": {
