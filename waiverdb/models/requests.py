@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: LGPL-2.0-or-later
+import annotated_types
 from typing import Annotated, List, Optional, Tuple, Union
 from datetime import datetime
 
-from pydantic import BaseModel, Field, StringConstraints, RootModel, conlist, model_validator
+from pydantic import BaseModel, Field, StringConstraints, RootModel, model_validator
 from werkzeug.exceptions import BadRequest
 
 
@@ -75,7 +76,7 @@ class CreateWaiver(BaseModel):
         )
 
 
-CreateWaiverList = RootModel[Union[CreateWaiver, conlist(CreateWaiver, min_length=1)]]
+CreateWaiverList = RootModel[Union[CreateWaiver, List[CreateWaiver]]]
 
 
 class GetWaivers(BaseModel):
@@ -109,7 +110,7 @@ class WaiverFilter(BaseModel):
 
 
 class FilterWaivers(BaseModel):
-    filters: conlist(WaiverFilter, min_length=1)
+    filters: Annotated[List[WaiverFilter], annotated_types.Len(min_length=1)]
     include_obsolete: bool = False
 
 
