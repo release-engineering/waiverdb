@@ -7,7 +7,6 @@ from flask import (
     Blueprint,
     Response,
     current_app,
-    escape,
     redirect,
     render_template,
     request,
@@ -16,6 +15,7 @@ from flask import (
 from flask_oidc import OpenIDConnect
 from flask_pydantic import validate
 from flask_restx import Resource, Api, marshal_with, marshal
+from markupsafe import escape
 from werkzeug.exceptions import (
     BadRequest,
     Forbidden,
