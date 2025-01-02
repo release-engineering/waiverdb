@@ -13,6 +13,7 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_pydantic.exceptions import ValidationError
 from flask_session import Session
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import event, text
 from sqlalchemy.exc import ProgrammingError
 import requests
@@ -24,6 +25,8 @@ from waiverdb.models import db
 from waiverdb.utils import auth_methods, handle_validation_error, json_error
 from werkzeug.exceptions import default_exceptions
 from waiverdb.monitor import db_hook_event_listeners
+
+csrf = CSRFProtect()
 
 
 def enable_cors(app):
@@ -89,6 +92,7 @@ def populate_db_config(app):
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
 def create_app(config_obj=None, create_session=True):
     app = Flask(__name__)
+    csrf.init_app(app)
 
     if config_obj:
         app.config.from_object(config_obj)

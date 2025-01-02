@@ -18,3 +18,5 @@ dist
 docker/home/
 .idea
 .coverage
+coverage.xml
+report.xml
