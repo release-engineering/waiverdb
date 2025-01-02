@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 import json
 
 import pytest
@@ -13,6 +13,7 @@ from werkzeug.exceptions import Forbidden, Unauthorized
 from .utils import create_waiver
 from waiverdb import __version__
 from waiverdb.models import Waiver
+from waiverdb.models.waivers import utcnow_naive
 from waiverdb.api_v1 import get_resultsdb_result, _authorization_warning
 
 
@@ -608,9 +609,10 @@ def test_filtering_waivers_by_username(client, session):
 
 
 def test_filtering_waivers_by_since(client, session):
-    before1 = (datetime.utcnow() - timedelta(seconds=100)).isoformat()
-    before2 = (datetime.utcnow() - timedelta(seconds=99)).isoformat()
-    after = (datetime.utcnow() + timedelta(seconds=100)).isoformat()
+    now = utcnow_naive()
+    before1 = (now - timedelta(seconds=100)).isoformat()
+    before2 = (now - timedelta(seconds=99)).isoformat()
+    after = (now + timedelta(seconds=100)).isoformat()
     create_waiver(session, subject_type='koji_build', subject_identifier='glibc-2.26-27.fc27',
                   testcase='testcase1', username='foo', product_version='foo-1')
     r = client.get(f'/api/v1.0/waivers/?since={before1}')
@@ -639,19 +641,20 @@ def test_filtering_waivers_by_since(client, session):
 
 
 def test_filtering_waivers_by_malformed_since(client, session):
+    now = utcnow_naive()
     r = client.get('/api/v1.0/waivers/?since=123')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
     assert res_data['message']['since'] == \
         "Invalid isoformat string: '123'"
 
-    r = client.get(f'/api/v1.0/waivers/?since={datetime.utcnow().isoformat()},badend')
+    r = client.get(f'/api/v1.0/waivers/?since={now.isoformat()},badend')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
     assert res_data['message']['since'] == \
         "Invalid isoformat string: 'badend'"
 
-    r = client.get(f'/api/v1.0/waivers/?since={datetime.utcnow().isoformat()},too,many,commas')
+    r = client.get(f'/api/v1.0/waivers/?since={now.isoformat()},too,many,commas')
     res_data = json.loads(r.get_data(as_text=True))
     assert r.status_code == 400
     assert res_data['message']['since'] == \

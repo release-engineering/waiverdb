@@ -9,6 +9,11 @@ from sqlalchemy import or_, and_, false
 from .requests import TestSubject, TestResult
 
 
+def utcnow_naive():
+    """Returns current UTC date/time without the timezone info."""
+    return datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+
+
 def subject_dict_to_type_identifier(subject: TestSubject):
     """
     WaiverDB < 0.11 accepted an arbitrary dict for the 'subject'.
@@ -54,7 +59,7 @@ class Waiver(db.Model):
     waived = db.Column(db.Boolean, nullable=False, default=False)
     scenario = db.Column(db.String(255), nullable=True)
     comment = db.Column(db.Text)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=utcnow_naive)
     __table_args__ = (
         db.Index('ix_waiver_subject_type_identifier', subject_type, subject_identifier),
     )
