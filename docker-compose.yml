@@ -22,7 +22,7 @@ services:
     healthcheck: &dev-healthcheck
       test: >-
         /code/docker/docker-entrypoint.sh python -c 'import requests;
-        requests.get("http://127.0.0.1:8080/health/live").raise_for_status();
+        requests.get("http://127.0.0.1:8080").raise_for_status();
         requests.get("http://127.0.0.1:5004/healthcheck").raise_for_status();
         '
       interval: 1s
@@ -30,7 +30,7 @@ services:
       retries: 30
 
   waiverdb-db:
-    image: postgres:14.7-alpine@sha256:07985c5c5e01ee550b30c67a2cf806f8b08b32f74e3f24c4cbef31305ef5776d
+    image: postgres:17.2-alpine@sha256:d37d2c160d34430877c802e5adc22824a2ad453499db9bab1a2ceb2be6c1a46f
     restart: always
     env_file: ["docker/waiverdb-db.env"]
     healthcheck:
@@ -38,16 +38,15 @@ services:
       test: "pg_isready -U postgres"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0.2@sha256:b8a3f00fc433f2999bc304b73df331e2005037e8f5673f644f9c0eacd5fbe048
+    image: quay.io/keycloak/keycloak:26.0.7@sha256:4388e2379b7e870a447adbe7b80bd61f5fbf04e925832b19669fda4957f05a81
     ports:
       - 127.0.0.1:5004:5004
       - 127.0.0.1:8080:8080
     environment:
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
     command:
       - start-dev
-      - --health-enabled=true
       - --import-realm
     volumes:
       - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro,z
