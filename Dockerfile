@@ -1,4 +1,4 @@
-FROM quay.io/fedora/python-312:20250101@sha256:30e9dd44032e041c4967ec7d20f35929e6c5de30cd6afe0f575f9786e9c90723 AS builder
+FROM quay.io/fedora/python-313:20250101@sha256:dc3b9cf6de0ce9dca8b7eda0b353f7cfa15887e0bfe2015b2100f7d1aa368293 AS builder
 
 # builder should use root to install/create all files
 USER root
@@ -6,18 +6,10 @@ USER root
 # hadolint ignore=DL3033,DL3041,DL4006,SC2039,SC3040
 RUN set -exo pipefail \
     && mkdir -p /mnt/rootfs \
-    # install builder dependencies
-    && dnf install -y \
-        --setopt install_weak_deps=false \
-        --nodocs \
-        --disablerepo=* \
-        --enablerepo=fedora,updates \
-        krb5-devel \
-        openldap-devel \
     # install runtime dependencies
     && dnf install -y \
         --installroot=/mnt/rootfs \
-        --releasever=/ \
+        --use-host-config \
         --setopt install_weak_deps=false \
         --nodocs \
         --disablerepo=* \
@@ -98,5 +90,11 @@ WORKDIR /app
 
 USER 1001
 EXPOSE 8080
+
+# Validate virtual environment
+RUN /app/entrypoint.sh python -c 'import waiverdb' \
+    && /app/entrypoint.sh gunicorn --version \
+    && /app/entrypoint.sh waiverdb --help
+
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--access-logfile", "-", "--enable-stdio-inheritance", "waiverdb.wsgi:app"]
