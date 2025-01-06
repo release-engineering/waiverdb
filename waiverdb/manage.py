@@ -4,15 +4,11 @@ import time
 import click
 from flask.cli import FlaskGroup
 from sqlalchemy.exc import OperationalError
+from waiverdb.app import create_app
 from waiverdb.models import db
 
 
-def create_waiver_app():
-    from waiverdb.app import create_app  # noqa: F401
-    return create_app(create_session=False)
-
-
-@click.group(cls=FlaskGroup, create_app=create_waiver_app)
+@click.group(cls=FlaskGroup, create_app=create_app)
 def cli():
     pass
 

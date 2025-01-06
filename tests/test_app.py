@@ -11,29 +11,33 @@ import sqlalchemy
 
 
 class DisabledMessagingConfig(config.Config):
+    SESSION_SQLALCHEMY_TABLE = "sessions-disabled-messaging"
+    DATABASE_URI = 'sqlite:///:memory:'
     MESSAGE_BUS_PUBLISH = False
     AUTH_METHOD = None
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 
 class EnabledMessagedConfig(config.Config):
+    SESSION_SQLALCHEMY_TABLE = "sessions-enabled-messaging"
+    DATABASE_URI = 'sqlite:///:memory:'
     MESSAGE_BUS_PUBLISH = True
     AUTH_METHOD = None
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 
-@patch("waiverdb.app.event.listen")
+@patch("waiverdb.app.sqlalchemy.event.listen")
 def test_disabled_messaging_should_not_register_events(mock_listen):
-    app.create_app(DisabledMessagingConfig, create_session=False)
+    app.create_app(DisabledMessagingConfig)
     calls = [
         c for c in mock_listen.mock_calls if c == call(ANY, ANY, app.publish_new_waiver)
     ]
     assert calls == []
 
 
-@patch("waiverdb.app.event.listen")
+@patch("waiverdb.app.sqlalchemy.event.listen")
 def test_enabled_messaging_should_register_events(mock_listen):
-    app.create_app(EnabledMessagedConfig, create_session=False)
+    app.create_app(EnabledMessagedConfig)
     calls = [
         c for c in mock_listen.mock_calls if c == call(ANY, ANY, app.publish_new_waiver)
     ]
