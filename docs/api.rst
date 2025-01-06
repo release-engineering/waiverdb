@@ -10,6 +10,6 @@ WavierDB offers a HTTP REST API.
 REST API
 ========
 
-.. autoflask:: waiverdb.app:create_app(config_obj='waiverdb.config.DevelopmentConfig',create_session=False)
+.. autoflask:: waiverdb.app:create_app(config_obj='waiverdb.config.TestingConfig')
     :undoc-static:
     :order: path

@@ -8,13 +8,13 @@ try:
 except ImportError:
     from urlparse import urlparse, urlunsplit
 
+import sqlalchemy
 from flask import Flask, current_app, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_pydantic.exceptions import ValidationError
 from flask_session import Session
 from flask_wtf.csrf import CSRFProtect
-from sqlalchemy import event, text
 from sqlalchemy.exc import ProgrammingError
 import requests
 
@@ -90,7 +90,7 @@ def populate_db_config(app):
 
 
 # applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
-def create_app(config_obj=None, create_session=True):
+def create_app(config_obj=None):
     app = Flask(__name__)
     csrf.init_app(app)
 
@@ -120,9 +120,7 @@ def create_app(config_obj=None, create_session=True):
     # initialize db
     db.init_app(app)
     # initialize session
-    app.config["SESSION_SQLALCHEMY"] = db
-    if create_session:
-        Session(app)
+    init_session(app)
     # initialize tracing
     with app.app_context():
         init_tracing(app, db.engine)
@@ -146,6 +144,17 @@ def create_app(config_obj=None, create_session=True):
     return app
 
 
+def init_session(app):
+    app.config["SESSION_SQLALCHEMY"] = db
+    app.server_session = Session(app)
+    if app.config["SESSION_TYPE"] == "sqlalchemy":
+        with app.app_context():
+            inspect = sqlalchemy.inspect(db.engine)
+            table = app.config["SESSION_SQLALCHEMY_TABLE"]
+            if not inspect.has_table(table):
+                db.create_all()
+
+
 def healthcheck():
     """
     Request handler for performing an application-level health check. This is
@@ -155,7 +164,7 @@ def healthcheck():
     Returns a 200 response if the application is alive and able to serve requests.
     """
     try:
-        db.session.execute(text("SELECT 1 FROM waiver LIMIT 0")).fetchall()
+        db.session.execute(sqlalchemy.text("SELECT 1 FROM waiver LIMIT 0")).fetchall()
     except ProgrammingError:
         current_app.logger.exception('Healthcheck failed on DB query.')
         raise RuntimeError('Unable to communicate with database.')
@@ -180,7 +189,7 @@ def register_event_handlers(app):
             attached as the ``session`` attribute.
     """
     if app.config['MESSAGE_BUS_PUBLISH']:
-        event.listen(db.session, 'after_commit', publish_new_waiver)
+        sqlalchemy.event.listen(db.session, 'after_commit', publish_new_waiver)
 
 
 def favicon():
