@@ -5,7 +5,7 @@ import base64
 import binascii
 import gssapi
 from flask import current_app, Request, Response, session
-from werkzeug.exceptions import Unauthorized, Forbidden
+from werkzeug.exceptions import Unauthorized
 from authlib.oauth2.base import OAuth2Error
 
 from waiverdb.utils import auth_methods
@@ -29,7 +29,7 @@ def process_gssapi_request(token):
         if not sc.complete:
             current_app.logger.error(
                 'Multiple GSSAPI round trips not supported')
-            raise Forbidden("Attempted multiple GSSAPI round trips")
+            raise Unauthorized("Attempted multiple GSSAPI round trips")
 
         current_app.logger.debug('Completed GSSAPI negotiation')
 
@@ -40,23 +40,31 @@ def process_gssapi_request(token):
         current_app.logger.exception(
             'Unable to authenticate: failed to %s: %s' %
             (stage, e.gen_message()))
-        raise Forbidden("Authentication failed")
+        raise Unauthorized("Authentication failed")
 
 
 def get_user(request: Request) -> tuple[str, dict[str, str]]:
     methods = auth_methods(current_app)
 
-    exceptions = []
+    response = None
+    error = ""
 
     for method in methods:
         try:
             return get_user_by_method(request, method)
         except Unauthorized as e:
-            exceptions.append(e)
-            continue
+            message = f"Authentication method {method} failed: {e}"
+            current_app.logger.info(message)
+            error += f"\n- {message}"
+            if response is None and e.response is not None:
+                response = e
 
-    if exceptions:
-        raise exceptions[0]
+    if response is not None:
+        raise response
+
+    if error:
+        raise Unauthorized(f"Authentication failed:{error}")
+
     raise Unauthorized("Authenticated user required. No methods specified.")
 
 

@@ -50,6 +50,8 @@ def permissions():
 
 @pytest.mark.usefixtures('enable_kerberos')
 class TestGSSAPIAuthentication(object):
+    invalid_token_error = ""
+
     def test_unauthorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
         r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
@@ -80,7 +82,14 @@ class TestGSSAPIAuthentication(object):
         r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
                         content_type='application/json', headers=headers)
         assert r.status_code == 401
-        assert r.json == {"message": "Invalid authentication token"}
+        assert r.json == {
+            "message": (
+                "Authentication failed:"
+                "\n- Authentication method Kerberos failed:"
+                " 401 Unauthorized: Invalid authentication token"
+                f"{self.invalid_token_error}"
+            )
+        }
 
 
 class TestOIDCAuthentication(object):
@@ -161,6 +170,11 @@ class TestSSLAuthentication(object):
 
 @pytest.mark.usefixtures('enable_kerberos_oidc_fallback')
 class TestKerberosWithFallbackAuthentication(TestGSSAPIAuthentication):
+    invalid_token_error = (
+        "\n- Authentication method OIDC failed:"
+        " 401 Unauthorized: OIDC authentication failed: unsupported_token_type: "
+    )
+
     def test_unauthorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
         r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
