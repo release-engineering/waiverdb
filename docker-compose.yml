@@ -30,7 +30,7 @@ services:
       retries: 30
 
   waiverdb-db:
-    image: postgres:17.2-alpine@sha256:c06885332d687650faea9901660ab39a6361565b39e5e5c320ef56bd3cfa7733
+    image: postgres:17.2-alpine@sha256:0bcc5bbbb2aa9c9b4c6505845918c7eb55d783cf5c1f434fac33012579fb149d
     restart: always
     env_file: ["docker/waiverdb-db.env"]
     healthcheck:
