@@ -183,13 +183,10 @@ jobs:
           tags: ${{ steps.build-image.outputs.tags }}
           registry: ${{ secrets.REGISTRY_USER && env.REGISTRY || env.GH_REGISTRY }}
 
-      - name: Install docker-compose
+      - name: Install Chromium for functional tests
         run: |
-          echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_20.04/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list &&
-          curl -L "https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_20.04/Release.key" | sudo apt-key add - &&
           sudo apt-get -y update &&
-          sudo apt-get -y install chromium-browser &&
-          sudo apt-get -y -o Dpkg::Options::="--force-overwrite" install podman
+          sudo apt-get -y install chromium-browser
 
       - name: Test Image
         run: |
