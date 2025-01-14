@@ -36,7 +36,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.13,<3.14"
+python = ">=3.12,<3.14"
 
 # https://github.com/lepture/authlib/pull/662
 # fix authlib to use correct auth method for token introspection
