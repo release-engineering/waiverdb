@@ -3,6 +3,10 @@
 import os
 
 from pytest import fixture
+from selenium.webdriver.support.expected_conditions import url_to_be
+from selenium.webdriver.support.wait import WebDriverWait
+
+LOGIN_TIMEOUT_SECONDS = 10
 
 
 @fixture
@@ -34,9 +38,12 @@ def keycloak():
 
 
 @fixture
-def login(selenium):
-    def wrapped():
+def login(selenium, keycloak):
+    def wrapped(login_url):
+        selenium.get(login_url)
+        assert selenium.current_url.startswith(keycloak)
         selenium.find_element("id", "username").send_keys("admin")
         selenium.find_element("id", "password").send_keys("admin")
         selenium.find_element("name", "login").click()
+        WebDriverWait(selenium, LOGIN_TIMEOUT_SECONDS).until(url_to_be(login_url))
     yield wrapped

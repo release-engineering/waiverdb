@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: GPL-2.0+
-def test_oidc_login(selenium, waiverdb, keycloak, login):
+import re
+
+
+def test_oidc_login(selenium, waiverdb, login):
     login_url = f"{waiverdb}/auth/oidclogin"
+    # JSON can be represented in web browser in a formatted way
+    expected_content = re.compile('email.*"noreply@example.com".*token.*"ey')
 
-    selenium.get(login_url)
-    assert selenium.current_url.startswith(keycloak)
-    login()
-    assert selenium.current_url == login_url
-
-    expected_content = '{"email":"noreply@example.com","token":"ey'
-    assert expected_content in selenium.page_source
+    login(login_url)
+    assert expected_content.search(selenium.page_source)
 
     # No login required the second time
     selenium.get(login_url)
-    assert expected_content in selenium.page_source
+    assert expected_content.search(selenium.page_source)
