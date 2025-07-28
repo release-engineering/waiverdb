@@ -1,4 +1,4 @@
-FROM quay.io/fedora/python-313:20250702@sha256:5016d9efc70e99363a10205f33ffc6276a8fa7106f692678cacc3478505ee472 AS builder
+FROM quay.io/fedora/python-313:20250723@sha256:4ee7895f3fc412fad0928861c6a9e027b494eb372a37b7b6333cb7303f8ba06e AS builder
 
 # builder should use root to install/create all files
 USER root
