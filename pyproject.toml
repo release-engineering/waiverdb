@@ -67,7 +67,7 @@ openidc-client = "^0.6.0"
 requests-gssapi = "^1.2.3"
 
 # Monitoring
-prometheus_client = "^0.22.0"
+prometheus_client = "^0.23.0"
 
 # Messaging
 fedora-messaging = "^3.4.1"
