@@ -1,15 +1,94 @@
-[tool.poetry]
+[project]
 name = "waiverdb"
 version = "1.4.0"
 description = "An engine for storing waivers against test results"
 authors = [
-  "Red Hat, Inc. and others"
+  {name = "Red Hat, Inc. and others"}
 ]
-license = "GPL-2.0-or-later"
+license = {text = "GPL-2.0-or-later"}
 readme = "README.md"
-repository = "https://github.com/release-engineering/waiverdb"
-homepage = "https://waiverdb.readthedocs.io/"
+requires-python = ">=3.12,<3.14"
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 
+dependencies = [
+    # https://github.com/lepture/authlib/pull/662
+    # fix authlib to use correct auth method for token introspection
+    # fixes submitting waivers with Bodhi.
+    "authlib>=1.5.0",
+    "flask>=3.1.0",
+    "flask-oidc>=2.2.2",
+    "flask-session>=0.8.0",
+    "Flask-SQLAlchemy>=3.1.1",
+    "Flask-Cors>=6.0.0",
+    "Flask-Migrate>=4.0.7",
+    "gssapi>=1.8.3",
+    "python-ldap>=3.4.3",
+    "SQLAlchemy>=2.0",
+    "psycopg2-binary>=2.9.8",
+    "gunicorn>=23.0.0",
+    "requests>=2.32.0",
+    "python-dateutil>=2.9.0",
+    # CLI
+    "click>=8.1.7",
+    "configparser>=7.1.0",
+    "openidc-client>=0.6.0",
+    "requests-gssapi>=1.2.3",
+    # Monitoring
+    "prometheus_client>=0.23.0",
+    # Messaging
+    "fedora-messaging>=3.4.1",
+    "stomp.py>=8.1.0",
+    # Functional Tests
+    "selenium>=4.24.0",
+    "pytest-selenium>=4.1.0",
+    # Tracing
+    "opentelemetry-api>=1.25.0",
+    "opentelemetry-exporter-otlp>=1.25.0",
+    "opentelemetry-instrumentation-flask>=0.46b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.46b0",
+    "pydantic>=2.9.2",
+    "Flask-Pydantic>=0.13.0",
+    "flask-restx>=1.3.0",
+    "flask-wtf>=1.2.2",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.3.3",
+    "pytest-cov>=7.0.0",
+    "mock>=5.1.0",
+]
+functional-test = [
+    "selenium>=4.24.0",
+    "pytest-selenium>=4.1.0",
+]
+docs = [
+    "sphinx>=8.0.0",
+    "sphinxcontrib-httpdomain>=1.8.1",
+    "markupsafe==3.0.3",
+]
+
+[project.scripts]
+waiverdb-cli = "waiverdb.cli:cli"
+waiverdb = "waiverdb.manage:cli"
+
+[project.urls]
+Homepage = "https://waiverdb.readthedocs.io/"
+Repository = "https://github.com/release-engineering/waiverdb"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["waiverdb"]
+
+[tool.hatch.build.targets.sdist]
 include = [
     "COPYING",
     "README.md",
@@ -34,88 +113,3 @@ include = [
     "waiverdb/static/*",
     "waiverdb/templates/*.html",
 ]
-
-[tool.poetry.dependencies]
-python = ">=3.12,<3.14"
-
-# https://github.com/lepture/authlib/pull/662
-# fix authlib to use correct auth method for token introspection
-# fixes submitting waivers with Bodhi.
-authlib = "^1.5.0"
-
-flask = "^3.1.0"
-flask-oidc = "^2.2.2"
-flask-session = ">=0.8.0"
-Flask-SQLAlchemy = "^3.1.1"
-Flask-Cors = "^6.0.0"
-Flask-Migrate = "^4.0.7"
-
-gssapi = "^1.8.3"
-python-ldap = "^3.4.3"
-
-SQLAlchemy = "^2.0"
-psycopg2-binary = "^2.9.8"
-
-gunicorn = "^23.0.0"
-requests = "^2.32.0"
-python-dateutil = "^2.9.0"
-
-# CLI
-click = "^8.1.7"
-configparser = "^7.1.0"
-openidc-client = "^0.6.0"
-requests-gssapi = "^1.2.3"
-
-# Monitoring
-prometheus_client = "^0.23.0"
-
-# Messaging
-fedora-messaging = "^3.4.1"
-"stomp.py" = "^8.1.0"
-
-# Tests
-pytest = {version = "^8.3.3", optional = true}
-pytest-cov = {version = "^7.0.0", optional = true}
-mock = {version = "^5.1.0", optional = true}
-
-# Functional Tests
-selenium = "^4.24.0"
-pytest-selenium = "^4.1.0"
-
-# Tracing
-opentelemetry-api = "^1.25.0"
-opentelemetry-exporter-otlp = "^1.25.0"
-opentelemetry-instrumentation-flask = "^0.46b0"
-opentelemetry-instrumentation-sqlalchemy = "^0.46b0"
-
-# Documentation
-sphinx = {version = "^8.0.0", optional = true}
-sphinxcontrib-httpdomain = {version = "^1.8.1", optional = true}
-markupsafe = {version = "==3.0.3", optional = true}
-pydantic = "^2.9.2"
-Flask-Pydantic = "^0.13.0"
-flask-restx = "^1.3.0"
-flask-wtf = "^1.2.2"
-
-[tool.poetry.extras]
-test = [
-    "pytest",
-    "pytest-cov",
-    "mock",
-]
-functional-test = [
-    "selenium",
-    "pytest-selenium",
-]
-docs = [
-    "sphinx",
-    "sphinxcontrib-httpdomain",
-]
-
-[tool.poetry.scripts]
-waiverdb-cli = "waiverdb.cli:cli"
-waiverdb = "waiverdb.manage:cli"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"

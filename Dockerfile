@@ -18,8 +18,8 @@ RUN set -exo pipefail \
         openldap \
         python3 \
     && dnf --installroot=/mnt/rootfs clean all \
-    # https://python-poetry.org/docs/master/#installing-with-the-official-installer
-    && curl -sSL --proto "=https" https://install.python-poetry.org | python3 - \
+    # Install uv
+    && curl -LsSf https://astral.sh/uv/install.sh | sh \
     && python3 -m venv /venv
 
 ENV \
@@ -39,17 +39,17 @@ COPY conf ./conf
 COPY docker ./docker
 COPY \
     pyproject.toml \
-    poetry.lock \
+    uv.lock \
     README.md \
     ./
 
 # hadolint ignore=SC1091
 RUN set -ex \
-    && export PATH=/root/.local/bin:"$PATH" \
+    && export PATH=/root/.cargo/bin:"$PATH" \
     && . /venv/bin/activate \
-    && poetry build --format=wheel \
-    && version=$(poetry version --short) \
-    && pip install --no-cache-dir dist/waiverdb-"$version"-py3*.whl \
+    && uv build --wheel \
+    && version=$(uv version --short) \
+    && uv pip install --no-cache dist/waiverdb-"$version"-py3*.whl \
     && deactivate \
     && mv /venv /mnt/rootfs \
     && mkdir -p /mnt/rootfs/app /mnt/rootfs/etc/waiverdb \
