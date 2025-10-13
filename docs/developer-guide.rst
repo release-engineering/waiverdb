@@ -22,16 +22,16 @@ Install packages required by pip to compile some python packages::
 
 Install dependencies in a virtual environment::
 
-    $ poetry install
+    $ uv install
 
 Run the server::
 
     $ cp conf/settings.py.example conf/settings.py
-    $ DEV=true poetry run waiverdb run -h localhost -p 5004 --debugger
+    $ DEV=true uv run waiverdb run -h localhost -p 5004 --debugger
 
 Migrate the db::
 
-    $ DEV=true poetry run waiverdb db upgrade
+    $ DEV=true uv run waiverdb db upgrade
 
 The server is now running at on `localhost port 5004`_. Consult the
 :ref:`rest-api` for available API calls. All data is stored inside
