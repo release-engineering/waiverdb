@@ -125,14 +125,13 @@ jobs:
 
       - name: Update the Application Version
         run: |
-          export PATH="$HOME/.cargo/bin:$PATH"
           NEW_VERSION="$(./get-version.sh)"
           uv version "$NEW_VERSION"
 
       - name: Get image tag from git branch
         run: |
           export TAG=$(sed 's/[^0-9a-zA-Z_.-]/__/g' <<< "$GITHUB_REF_NAME") &&
-          echo "GREENWAVE_TAG=$TAG" >> $GITHUB_ENV
+          echo "VERSION_TAG=$TAG" >> $GITHUB_ENV
 
       - name: Build Image
         id: build-image
@@ -140,7 +139,7 @@ jobs:
         with:
           image: ${{ env.IMAGE_NAME }}
           tags: >-
-            ${{ env.GREENWAVE_TAG }}
+            ${{ env.VERSION_TAG }}
             ${{ github.ref == 'refs/heads/master' && 'latest' || '' }}
             ${{ github.sha }}
           containerfiles: Dockerfile
