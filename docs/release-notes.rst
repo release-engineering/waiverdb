@@ -166,9 +166,9 @@ Released 8 November 2018.
 
 * Invalid ``subject`` values are handled during database migration.
 
-* The :program:`waiverdb-cli` utility accepts new options
-  :option:`--subject-identifier` and :option:`--subject-type` which deprecate
-  :option:`--subject` option.
+* The ``waiverdb-cli`` utility accepts new options
+  ``--subject-identifier`` and ``--subject-type`` which deprecate
+  ``--subject`` option.
 
 * python-requests-gssapi is now a ``requires`` and ``buildrequires``
   dependency.
@@ -206,10 +206,10 @@ Released 3 July 2018.
   posting an arbitrary set of filter criteria, instead of the using a
   complicated and limited API.
 
-* The :program:`waiverdb-cli` utility will now guess a suitable default value
-  for the :option:`--product-version` option in many common cases, in order to
+* The ``waiverdb-cli`` utility will now guess a suitable default value
+  for the ``--product-version`` option in many common cases, in order to
   make it easier to submit waivers (#111). Automated scripts should prefer to
-  explicitly pass :option:`--product-version` in case the guessing logic does
+  explicitly pass ``--product-version`` in case the guessing logic does
   not work in all cases.
 
 * Previously, when you requested a list of waivers, WaiverDB would consider
