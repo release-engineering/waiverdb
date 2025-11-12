@@ -150,10 +150,6 @@ latex_documents = [
 man_pages = [
     ('waiverdb', 'waiverdb', u'WaiverDB Server',
      [author], 1),
-    ('waiverdb-cli', 'waiverdb-cli', u'WaiverDB Client',
-     [author], 1),
-    ('client-conf', 'client.conf', u'waiverdb-cli configuration file',
-     [author], 5),
     ('api', 'waiverdb', u'WaiverDB REST API',
      [author], 7)
 ]
