@@ -526,6 +526,122 @@ spec:
         operator: in
         values:
         - "false"
+    - name: functional-tests
+      params:
+      - name: IMAGE_URL
+        value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: IMAGE_DIGEST
+        value: $(tasks.build-image-index.results.IMAGE_DIGEST)
+      - name: SOURCE_ARTIFACT
+        value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
+      runAfter:
+      - build-image-index
+      taskSpec:
+        params:
+        - name: IMAGE_URL
+          type: string
+        - name: IMAGE_DIGEST
+          type: string
+        - name: SOURCE_ARTIFACT
+          type: string
+          default: ""
+        results:
+        - name: TEST_OUTPUT
+          description: Test output summary
+        stepTemplate:
+          env:
+          - name: IMAGE_URL
+            value: $(params.IMAGE_URL)
+          - name: IMAGE_DIGEST
+            value: $(params.IMAGE_DIGEST)
+          - name: SOURCE_ARTIFACT
+            value: $(params.SOURCE_ARTIFACT)
+        steps:
+        - name: use-trusted-artifact
+          image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:9b180776a41d9a22a1c51539f1647c60defbbd55b44bbebdd4130e33512d8b0d
+          args:
+          - use
+          - $(params.SOURCE_ARTIFACT)=/var/workdir/source
+          volumeMounts:
+          - name: workdir
+            mountPath: /var/workdir
+        - name: install-dependencies
+          image: registry.access.redhat.com/ubi9/ubi:latest
+          workingDir: /var/workdir/source
+          script: |
+            #!/bin/bash
+            set -euo pipefail
+
+            echo "Installing system dependencies..."
+            dnf install -y \
+              chromium \
+              python3.13 \
+              python3.13-pip \
+              podman \
+              git
+
+            # Install uv for Python package management
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            export PATH="/root/.local/bin:$PATH"
+
+            echo "Dependencies installed successfully"
+          volumeMounts:
+          - name: workdir
+            mountPath: /var/workdir
+          securityContext:
+            runAsUser: 0
+        - name: run-functional-tests
+          image: registry.access.redhat.com/ubi9/ubi:latest
+          workingDir: /var/workdir/source
+          script: |
+            #!/bin/bash
+            set -euo pipefail
+
+            export PATH="/root/.local/bin:$PATH"
+
+            # Use the built image for testing
+            IMAGE_WITH_DIGEST="${IMAGE_URL}@${IMAGE_DIGEST}"
+            echo "Testing image: ${IMAGE_WITH_DIGEST}"
+
+            # Update docker-compose.yml to use the built image
+            sed -i "s| build: .*| image: ${IMAGE_WITH_DIGEST}|" docker-compose.yml
+            echo "Updated docker-compose.yml:"
+            grep -E " image:| build: " docker-compose.yml
+
+            # Setup cleanup trap
+            cleanup() {
+              echo "Cleaning up containers..."
+              uvx --with podman-compose podman-compose down || true
+            }
+            trap cleanup EXIT
+
+            # Pull required images
+            echo "Pulling images with podman-compose..."
+            uvx --with podman-compose podman-compose --verbose pull
+
+            # Start services
+            echo "Starting services with podman-compose..."
+            uvx --with podman-compose podman-compose --verbose up --no-build -d
+
+            # Run functional tests
+            echo "Running functional tests..."
+            uvx --with tox-uv tox -e functional -- --driver=Chrome
+
+            echo "Functional tests completed successfully"
+          volumeMounts:
+          - name: workdir
+            mountPath: /var/workdir
+          securityContext:
+            runAsUser: 0
+            privileged: true
+        volumes:
+        - name: workdir
+          emptyDir: {}
+      when:
+      - input: $(params.skip-checks)
+        operator: in
+        values:
+        - "false"
     - name: apply-tags
       params:
       - name: IMAGE_URL
@@ -545,6 +661,7 @@ spec:
       - rpms-signature-scan
       - sast-shell-check
       - sast-unicode-check
+      - functional-tests
       - build-image-index
       taskRef:
         params:
