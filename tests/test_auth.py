@@ -143,6 +143,52 @@ class TestOIDCAuthentication(object):
     """
 
 
+class TestGetOIDCGroups:
+    def test_groups_present(self, app):
+        with app.test_request_context('/api/v1.0/waivers/new'):
+            with mock.patch.dict(session, {'oidc_auth_profile': {
+                'realm_access': {'roles': ['group1', 'group2']},
+            }}):
+                groups = waiverdb.auth.get_oidc_groups()
+                assert groups == ['group1', 'group2']
+
+    def test_groups_absent(self, app):
+        with app.test_request_context('/api/v1.0/waivers/new'):
+            with mock.patch.dict(session, {'oidc_auth_profile': {
+                'preferred_username': 'testuser',
+            }}):
+                groups = waiverdb.auth.get_oidc_groups()
+                assert groups is None
+
+    def test_custom_groups_field(self, app):
+        with mock.patch.dict(app.config, {'OIDC_GROUPS_FIELD': 'custom.nested.groups'}):
+            with app.test_request_context('/api/v1.0/waivers/new'):
+                with mock.patch.dict(session, {'oidc_auth_profile': {
+                    'custom': {'nested': {'groups': ['admin', 'dev']}},
+                }}):
+                    groups = waiverdb.auth.get_oidc_groups()
+                    assert groups == ['admin', 'dev']
+
+    def test_flat_groups_field(self, app):
+        with mock.patch.dict(app.config, {'OIDC_GROUPS_FIELD': 'groups'}):
+            with app.test_request_context('/api/v1.0/waivers/new'):
+                with mock.patch.dict(session, {'oidc_auth_profile': {
+                    'groups': ['team-a', 'team-b'],
+                }}):
+                    groups = waiverdb.auth.get_oidc_groups()
+                    assert groups == ['team-a', 'team-b']
+
+    @pytest.mark.parametrize('value', ['', None])
+    def test_disabled_with_empty_or_none(self, app, value):
+        with mock.patch.dict(app.config, {'OIDC_GROUPS_FIELD': value}):
+            with app.test_request_context('/api/v1.0/waivers/new'):
+                with mock.patch.dict(session, {'oidc_auth_profile': {
+                    'realm_access': {'roles': ['group1']},
+                }}):
+                    groups = waiverdb.auth.get_oidc_groups()
+                    assert groups is None
+
+
 @pytest.mark.usefixtures('enable_ssl')
 class TestSSLAuthentication(object):
     def test_SSL_CLIENT_VERIFY_is_not_set_should_raise_error(self):

@@ -85,6 +85,42 @@ def get_oidc_userinfo(field: str) -> str:
     return fields[field]
 
 
+def get_oidc_groups() -> list[str] | None:
+    groups_field = current_app.config.get('OIDC_GROUPS_FIELD')
+    if not groups_field:
+        return None
+
+    fields = session.get("oidc_auth_profile", {})
+    if not fields:
+        try:
+            fields = current_app.oidc.accept_token.acquire_token()
+        except OAuth2Error as e:
+            current_app.logger.warning("Failed to acquire OIDC token for group extraction: %s", e)
+            return None
+
+    value = fields
+    for key in groups_field.split('.'):
+        if not isinstance(value, dict):
+            current_app.logger.warning(
+                "OIDC groups claim %r not found in token (failed at %r)", groups_field, key
+            )
+            return None
+        value = value.get(key)
+        if value is None:
+            current_app.logger.warning(
+                "OIDC groups claim %r not found in token (missing key %r)", groups_field, key
+            )
+            return None
+
+    if not isinstance(value, list):
+        current_app.logger.warning(
+            "OIDC groups claim %r is not a list: %r", groups_field, value
+        )
+        return None
+
+    return value
+
+
 def get_user_by_method(request: Request, auth_method: str) -> tuple[str, dict[str, str]]:
     user = None
     headers = dict()

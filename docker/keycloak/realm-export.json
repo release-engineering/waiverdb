@@ -92,6 +92,15 @@
         "clientRole": false,
         "containerId": "759dfd03-855c-40fe-be30-052cf569b9f1",
         "attributes": {}
+      },
+      {
+        "id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+        "name": "waiverdb-users",
+        "description": "Users allowed to submit waivers via OIDC group-based authorization",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "759dfd03-855c-40fe-be30-052cf569b9f1",
+        "attributes": {}
       }
     ],
     "client": {
@@ -504,7 +513,8 @@
       "disableableCredentialTypes": [],
       "requiredActions": [],
       "realmRoles": [
-        "default-roles-employeeidp"
+        "default-roles-employeeidp",
+        "waiverdb-users"
       ],
       "notBefore": 0,
       "groups": []

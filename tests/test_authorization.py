@@ -92,6 +92,58 @@ class TestVerifyAuthorization:
         assert "User unauthorized_user is not authorized" in str(exc_info.value)
 
 
+class TestVerifyAuthorizationOIDCGroups:
+    """Tests for OIDC groups support in verify_authorization."""
+
+    def test_oidc_groups_match_no_ldap(self):
+        """OIDC groups match allowed groups — authorized, no LDAP interaction."""
+        with patch('ldap.initialize') as mock_ldap_init:
+            verify_authorization(
+                'some_user', 'test_case_1', test_permissions,
+                ldap_host, ldap_searches,
+                oidc_groups=['authorized_group'],
+            )
+            mock_ldap_init.assert_not_called()
+
+    @patch('ldap.initialize')
+    @patch('waiverdb.authorization.get_group_membership', side_effect=mock_get_group_membership)
+    def test_oidc_groups_no_match_ldap_authorizes(self, mock_get_group, mock_ldap_init):
+        """OIDC groups don't match, LDAP authorizes — authorized with deprecation warning."""
+        with patch('waiverdb.authorization.log.warning') as mock_warn:
+            verify_authorization(
+                'group_user', 'test_case_1', test_permissions,
+                ldap_host, ldap_searches,
+                oidc_groups=['wrong_group'],
+            )
+            # Should have logged OIDC mismatch warning and LDAP deprecation warning
+            assert mock_warn.call_count >= 2
+            warn_messages = [call.args[0] for call in mock_warn.call_args_list]
+            assert any('falling back to LDAP' in msg for msg in warn_messages)
+            assert any('LDAP authorized' in msg for msg in warn_messages)
+
+    @patch('ldap.initialize')
+    @patch('waiverdb.authorization.get_group_membership', side_effect=mock_get_group_membership)
+    def test_oidc_groups_no_match_ldap_denies(self, mock_get_group, mock_ldap_init):
+        """OIDC groups don't match, LDAP doesn't authorize — Forbidden."""
+        with raises(Forbidden):
+            verify_authorization(
+                'unauthorized_user', 'test_case_1', test_permissions,
+                ldap_host, ldap_searches,
+                oidc_groups=['wrong_group'],
+            )
+
+    @patch('ldap.initialize')
+    @patch('waiverdb.authorization.get_group_membership', side_effect=mock_get_group_membership)
+    def test_oidc_groups_none_falls_back_to_ldap(self, mock_get_group, mock_ldap_init):
+        """oidc_groups=None preserves existing LDAP-only behavior."""
+        verify_authorization(
+            'group_user', 'test_case_1', test_permissions,
+            ldap_host, ldap_searches,
+            oidc_groups=None,
+        )
+        mock_ldap_init.assert_called_once()
+
+
 def test_permissions_mapping_compat(app, monkeypatch):
     """
     Verify backwards compatibility with deprecated PERMISSION_MAPPING option.
