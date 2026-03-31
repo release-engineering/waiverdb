@@ -9,6 +9,8 @@ And WaiverDB settings with a permission like:
     {"testcases": ["oidc-group-test.*"], "groups": ["waiverdb-users"]}
 """
 import requests
+from selenium.webdriver.support.expected_conditions import visibility_of
+from selenium.webdriver.support.wait import WebDriverWait
 
 
 def _get_token(keycloak):
@@ -57,3 +59,22 @@ def test_oidc_groups_deny_missing_role(waiverdb, keycloak):
         f"{waiverdb}/api/v1.0/waivers/", json=waiver, headers=headers, timeout=60,
     )
     assert response.status_code == 403, response.text
+
+
+def test_oidc_groups_browser_login(selenium, waiverdb, login):
+    """User with waiverdb-users role can waive via OIDC groups using browser login."""
+    url = (
+        f"{waiverdb}/api/v1.0/waivers/new"
+        "?testcase=oidc-group-test.smoke"
+        "&product_version=fedora-99"
+        "&subject_identifier=test-component-1.0-1"
+        "&subject_type=component-version"
+        "&comment=Authorized+via+OIDC+group+browser+login"
+    )
+    login(url)
+
+    selenium.find_element("id", "new-waiver-form").submit()
+
+    banner = selenium.find_element("id", "waiver-result")
+    WebDriverWait(selenium, 10).until(visibility_of(banner))
+    assert banner.text.startswith("New waiver created. ID: ")

@@ -160,6 +160,30 @@ class TestGetOIDCGroups:
                 groups = waiverdb.auth.get_oidc_groups()
                 assert groups is None
 
+    def test_groups_from_session_token(self, app):
+        """Groups found in oidc_auth_token when oidc_auth_profile lacks them."""
+        with app.test_request_context('/api/v1.0/waivers/new'):
+            with mock.patch.dict(session, {
+                'oidc_auth_profile': {'preferred_username': 'testuser'},
+                'oidc_auth_token': {
+                    'userinfo': {'realm_access': {'roles': ['group1', 'group2']}},
+                },
+            }):
+                groups = waiverdb.auth.get_oidc_groups()
+                assert groups == ['group1', 'group2']
+
+    def test_profile_takes_priority_over_token(self, app):
+        """oidc_auth_profile groups take priority over oidc_auth_token."""
+        with app.test_request_context('/api/v1.0/waivers/new'):
+            with mock.patch.dict(session, {
+                'oidc_auth_profile': {'realm_access': {'roles': ['profile_group']}},
+                'oidc_auth_token': {
+                    'userinfo': {'realm_access': {'roles': ['token_group']}},
+                },
+            }):
+                groups = waiverdb.auth.get_oidc_groups()
+                assert groups == ['profile_group']
+
     def test_custom_groups_field(self, app):
         with mock.patch.dict(app.config, {'OIDC_GROUPS_FIELD': 'custom.nested.groups'}):
             with app.test_request_context('/api/v1.0/waivers/new'):
