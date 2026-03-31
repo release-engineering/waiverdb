@@ -31,8 +31,16 @@ and map them to ``groups`` and/or ``users``.
 It is helpful to include metadata about permissions: ``name``,
 ``maintainer`` and ``description``.
 
+When using OIDC authentication, group membership can be extracted directly
+from the OIDC token. Option ``OIDC_GROUPS_FIELD`` (default
+``'realm_access.roles'``) specifies the claim name in the OIDC token that
+contains the user's groups. Dotted paths are supported for nested claims
+(e.g. ``'realm_access.roles'``). If the claim is present and the groups
+match, authorization succeeds without contacting LDAP. If the claim is
+absent or groups don't match, LDAP is used as a fallback.
+
 LDAP needs to be properly configured (i.e. options ``LDAP_HOST`` and
-``LDAP_BASE``).
+``LDAP_BASE``) for the fallback to work.
 
 .. code-block:: python
 

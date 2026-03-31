@@ -33,7 +33,7 @@ from waiverdb.models.requests import (
     GetWaivers, CreateWaiver, FilterWaivers, GetWaiversBySubjectAndTestcase, GetPermissions,
     parse_since, WaiverFilter, CreateWaiverList
 )
-from waiverdb.utils import json_collection, jsonp
+from waiverdb.utils import json_collection, jsonp, auth_methods
 from waiverdb.fields import waiver_fields
 import waiverdb.auth
 
@@ -100,6 +100,10 @@ def _verify_authorization(user, testcase):
     if not permissions():
         return
 
+    oidc_groups = None
+    if 'OIDC' in auth_methods(current_app):
+        oidc_groups = waiverdb.auth.get_oidc_groups()
+
     ldap_host = current_app.config.get('LDAP_HOST')
     ldap_searches = current_app.config.get('LDAP_SEARCHES')
     if not ldap_searches:
@@ -107,7 +111,7 @@ def _verify_authorization(user, testcase):
         if ldap_base:
             ldap_search_string = current_app.config.get('LDAP_SEARCH_STRING', '(memberUid={user})')
             ldap_searches = [{'BASE': ldap_base, 'SEARCH_STRING': ldap_search_string}]
-    verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches)
+    verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches, oidc_groups)
 
 
 def _authorization_warning_from_exception(e: Forbidden | Unauthorized, testcase: str):

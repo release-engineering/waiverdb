@@ -29,6 +29,11 @@ PERMISSIONS = [
         "testcases": ["test*"],
         "users": ["admin", "service-account-waiverdb"],
     },
+    {
+        "name": "OIDC Group Auth",
+        "testcases": ["oidc-group-test.*"],
+        "groups": ["waiverdb-users"],
+    },
 ]
 
 LOGGING = {
