@@ -496,7 +496,8 @@
       "requiredActions": [],
       "realmRoles": [
         "default-roles-employeeidp",
-        "admin"
+        "admin",
+        "waiverdb-users"
       ],
       "notBefore": 0,
       "groups": []
@@ -1416,6 +1417,7 @@
             "introspection.token.claim": "true",
             "multivalued": "true",
             "user.attribute": "foo",
+            "id.token.claim": "false",
             "access.token.claim": "true",
             "claim.name": "realm_access.roles",
             "jsonType.label": "String"

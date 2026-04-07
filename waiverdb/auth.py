@@ -4,9 +4,10 @@
 import base64
 import binascii
 import gssapi
+from authlib.jose import jwt
+from authlib.oauth2.base import OAuth2Error
 from flask import current_app, Request, Response, session
 from werkzeug.exceptions import Unauthorized
-from authlib.oauth2.base import OAuth2Error
 
 from waiverdb.utils import auth_methods
 
@@ -46,6 +47,11 @@ def process_gssapi_request(token):
 def get_user(request: Request) -> tuple[str, dict[str, str]]:
     methods = auth_methods(current_app)
 
+    # If there is an active OIDC session, use it directly without
+    # trying other auth methods (e.g. Kerberos) that would fail.
+    if "OIDC" in methods and session.get("oidc_auth_token"):
+        return get_user_by_method(request, "OIDC")
+
     response = None
     error = ""
 
@@ -68,13 +74,34 @@ def get_user(request: Request) -> tuple[str, dict[str, str]]:
     raise Unauthorized("Authenticated user required. No methods specified.")
 
 
+def _oidc_session_sources():
+    """Yield OIDC claim sources from the session: profile, decoded ID token,
+    then decoded access token."""
+    profile = session.get("oidc_auth_profile", {})
+    if profile:
+        yield profile
+
+    token = session.get("oidc_auth_token", {})
+    if isinstance(token, dict):
+        if token.get("userinfo"):
+            yield token["userinfo"]
+
+        access_token = token.get("access_token", "")
+        if access_token:
+            load_key = current_app.oidc.oauth.oidc.create_load_key()
+            claims = jwt.decode(access_token, load_key)
+            yield dict(claims)
+
+
 def get_oidc_userinfo(field: str) -> str:
-    fields = session.get("oidc_auth_profile", {})
-    if not fields:
-        try:
-            fields = current_app.oidc.accept_token.acquire_token()
-        except OAuth2Error as e:
-            raise Unauthorized(f"OIDC authentication failed: {e}")
+    for fields in _oidc_session_sources():
+        if field in fields:
+            return fields[field]
+
+    try:
+        fields = current_app.oidc.accept_token.acquire_token()
+    except OAuth2Error as e:
+        raise Unauthorized(f"OIDC authentication failed: {e}")
 
     if field not in fields:
         current_app.logger.error(
@@ -90,35 +117,30 @@ def get_oidc_groups() -> list[str] | None:
     if not groups_field:
         return None
 
-    fields = session.get("oidc_auth_profile", {})
-    if not fields:
+    def _sources():
+        yield from _oidc_session_sources()
         try:
-            fields = current_app.oidc.accept_token.acquire_token()
+            yield current_app.oidc.accept_token.acquire_token()
         except OAuth2Error as e:
-            current_app.logger.warning("Failed to acquire OIDC token for group extraction: %s", e)
-            return None
+            current_app.logger.warning("Failed to acquire OIDC token: %s", e)
 
-    value = fields
-    for key in groups_field.split('.'):
-        if not isinstance(value, dict):
-            current_app.logger.warning(
-                "OIDC groups claim %r not found in token (failed at %r)", groups_field, key
-            )
-            return None
-        value = value.get(key)
-        if value is None:
-            current_app.logger.warning(
-                "OIDC groups claim %r not found in token (missing key %r)", groups_field, key
-            )
-            return None
+    for fields in _sources():
+        value = fields
+        for key in groups_field.split('.'):
+            if not isinstance(value, dict):
+                value = None
+                break
+            value = value.get(key)
+            if value is None:
+                break
 
-    if not isinstance(value, list):
-        current_app.logger.warning(
-            "OIDC groups claim %r is not a list: %r", groups_field, value
-        )
-        return None
+        if isinstance(value, list):
+            return value
 
-    return value
+    current_app.logger.warning(
+        "OIDC groups claim %r not found in any OIDC source", groups_field
+    )
+    return None
 
 
 def get_user_by_method(request: Request, auth_method: str) -> tuple[str, dict[str, str]]:
