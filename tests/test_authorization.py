@@ -1,9 +1,9 @@
 from ldap import LDAPError
 from pytest import raises
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from waiverdb.api_v1 import permissions
 from waiverdb.authorization import match_testcase_permissions, verify_authorization
-from werkzeug.exceptions import Forbidden, Unauthorized
+from werkzeug.exceptions import BadGateway, Forbidden
 
 
 # Sample data and permissions for testing
@@ -62,7 +62,7 @@ class TestVerifyAuthorization:
 
     @patch('ldap.initialize', side_effect=LDAPError('LDAP connection error'))
     def test_ldap_connection_error(self, mock_ldap):
-        with raises(Unauthorized) as exc_info:
+        with raises(BadGateway) as exc_info:
             verify_authorization(
                 'unauthorized_user', 'test_case_1', test_permissions, ldap_host, ldap_searches
             )
@@ -108,18 +108,12 @@ class TestVerifyAuthorizationOIDCGroups:
     @patch('ldap.initialize')
     @patch('waiverdb.authorization.get_group_membership', side_effect=mock_get_group_membership)
     def test_oidc_groups_no_match_ldap_authorizes(self, mock_get_group, mock_ldap_init):
-        """OIDC groups don't match, LDAP authorizes — authorized with deprecation warning."""
-        with patch('waiverdb.authorization.log.warning') as mock_warn:
-            verify_authorization(
-                'group_user', 'test_case_1', test_permissions,
-                ldap_host, ldap_searches,
-                oidc_groups=['wrong_group'],
-            )
-            # Should have logged OIDC mismatch warning and LDAP deprecation warning
-            assert mock_warn.call_count >= 2
-            warn_messages = [call.args[0] for call in mock_warn.call_args_list]
-            assert any('falling back to LDAP' in msg for msg in warn_messages)
-            assert any('LDAP authorized' in msg for msg in warn_messages)
+        """OIDC groups don't match, LDAP authorizes — authorized."""
+        verify_authorization(
+            'group_user', 'test_case_1', test_permissions,
+            ldap_host, ldap_searches,
+            oidc_groups=['wrong_group'],
+        )
 
     @patch('ldap.initialize')
     @patch('waiverdb.authorization.get_group_membership', side_effect=mock_get_group_membership)
@@ -209,3 +203,45 @@ def test_match_testcase_permissions():
         == [permissions[1]]
     assert list(match_testcase_permissions("kernel-qe.test1", permissions)) \
         == [permissions[0]]
+
+
+class TestVerifyAuthorizationGSSAPI:
+    """Tests for GSSAPI LDAP bind support in verify_authorization."""
+
+    @patch('ldap.initialize')
+    @patch('waiverdb.authorization.get_group_membership', side_effect=mock_get_group_membership)
+    def test_gssapi_bind_called(self, mock_get_group, mock_ldap_init):
+        """When use_gssapi=True, GSSAPI credentials are initialized and SASL bind is performed."""
+        mock_con = MagicMock()
+        mock_ldap_init.return_value = mock_con
+        verify_authorization(
+            'group_user', 'test_case_1', test_permissions,
+            ldap_host, ldap_searches,
+            use_gssapi=True,
+        )
+        mock_con.sasl_gssapi_bind_s.assert_called_once()
+
+    @patch('ldap.initialize')
+    @patch('waiverdb.authorization.get_group_membership', side_effect=mock_get_group_membership)
+    def test_gssapi_not_called_by_default(self, mock_get_group, mock_ldap_init):
+        """When use_gssapi is not set, no GSSAPI bind is performed."""
+        mock_con = MagicMock()
+        mock_ldap_init.return_value = mock_con
+        verify_authorization(
+            'group_user', 'test_case_1', test_permissions,
+            ldap_host, ldap_searches,
+        )
+        mock_con.sasl_gssapi_bind_s.assert_not_called()
+
+    @patch('ldap.initialize')
+    def test_gssapi_bind_failure(self, mock_ldap_init):
+        """SASL GSSAPI bind failure raises BadGateway."""
+        mock_con = MagicMock()
+        mock_ldap_init.return_value = mock_con
+        mock_con.sasl_gssapi_bind_s.side_effect = LDAPError('GSSAPI bind failed')
+        with raises(BadGateway):
+            verify_authorization(
+                'group_user', 'test_case_1', test_permissions,
+                ldap_host, ldap_searches,
+                use_gssapi=True,
+            )

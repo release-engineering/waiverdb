@@ -14,6 +14,7 @@ RUN set -exo pipefail \
         --nodocs \
         --disablerepo=* \
         --enablerepo=fedora,updates \
+        cyrus-sasl-gssapi \
         krb5-libs \
         openldap \
         python3 \
@@ -75,6 +76,7 @@ LABEL \
     io.k8s.display-name="WaiverDB"
 
 ENV \
+    KRB5CCNAME=FILE:/tmp/krb5cc_waiverdb \
     PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
     PYTHONUNBUFFERED=1 \
