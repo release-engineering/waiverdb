@@ -42,7 +42,7 @@ down:
 	$(COMPOSE) down
 
 build:
-	$(COMPOSE) build
+	$(COMPOSE) build --build-arg COMMIT_TIMESTAMP=$$(date +%s) --build-arg SHORT_COMMIT=$$(git rev-parse --short HEAD)
 
 recreate:
 	$(COMPOSE) up -d --force-recreate
