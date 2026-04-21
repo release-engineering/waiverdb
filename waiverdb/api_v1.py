@@ -111,7 +111,9 @@ def _verify_authorization(user, testcase):
         if ldap_base:
             ldap_search_string = current_app.config.get('LDAP_SEARCH_STRING', '(memberUid={user})')
             ldap_searches = [{'BASE': ldap_base, 'SEARCH_STRING': ldap_search_string}]
-    verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches, oidc_groups)
+    use_gssapi = current_app.config.get('LDAP_GSSAPI', False)
+    verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches, oidc_groups,
+                         use_gssapi=use_gssapi)
 
 
 def _authorization_warning_from_exception(e: Forbidden | Unauthorized, testcase: str):

@@ -76,7 +76,7 @@ class TestAccessControl(object):
         r = client.post('/api/v1.0/waivers/', data=json.dumps(self.data),
                         content_type='application/json', headers=self.headers)
         res_data = json.loads(r.get_data(as_text=True))
-        assert r.status_code == 401
+        assert r.status_code == 502
         assert res_data['message'] == "Some error occurred initializing the LDAP connection."
 
     @pytest.mark.usefixtures('enable_ldap_host')

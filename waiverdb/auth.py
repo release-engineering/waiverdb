@@ -3,8 +3,8 @@
 
 import base64
 import binascii
+import json
 import gssapi
-from authlib.jose import jwt
 from authlib.oauth2.base import OAuth2Error
 from flask import current_app, Request, Response, session
 from werkzeug.exceptions import Unauthorized
@@ -88,9 +88,10 @@ def _oidc_session_sources():
 
         access_token = token.get("access_token", "")
         if access_token:
-            load_key = current_app.oidc.oauth.oidc.create_load_key()
-            claims = jwt.decode(access_token, load_key)
-            yield dict(claims)
+            # Token was already verified during OIDC login; just read claims.
+            payload = access_token.split(".")[1]
+            payload += "=" * (-len(payload) % 4)
+            yield json.loads(base64.urlsafe_b64decode(payload))
 
 
 def get_oidc_userinfo(field: str) -> str:
