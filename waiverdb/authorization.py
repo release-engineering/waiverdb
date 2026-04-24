@@ -77,26 +77,7 @@ def _check_oidc_groups(user, testcase, oidc_groups, allowed_groups):
     return False
 
 
-def _check_ldap_groups(user, testcase, ldap_host, ldap_searches, allowed_groups,
-                       use_gssapi=False):
-    """
-    Check LDAP group membership.
-
-    Returns True if authorized, False if LDAP is not configured.
-    """
-    if not ldap_host or not ldap_searches:
-        return False
-
-    import ldap
-
-    try:
-        con = ldap.initialize(ldap_host)
-        if use_gssapi:
-            con.sasl_gssapi_bind_s()
-    except ldap.LDAPError:
-        log.exception('Some error occurred initializing the LDAP connection.')
-        raise BadGateway('Some error occurred initializing the LDAP connection.')
-
+def _query_ldap_groups(ldap, user, con, ldap_searches, allowed_groups, testcase):
     group_membership = set()
     for cur_ldap_search in ldap_searches:
         group_membership.update(
@@ -114,6 +95,32 @@ def _check_ldap_groups(user, testcase, ldap_host, ldap_searches, allowed_groups,
         )
 
     return False
+
+
+def _check_ldap_groups(user, testcase, ldap_host, ldap_searches, allowed_groups,
+                       use_gssapi=False):
+    """
+    Check LDAP group membership.
+
+    Returns True if authorized, False if LDAP is not configured.
+    """
+    if not ldap_host or not ldap_searches:
+        return False
+
+    import ldap
+
+    con = None
+    try:
+        con = ldap.initialize(ldap_host)
+        if use_gssapi:
+            con.sasl_gssapi_bind_s()
+        return _query_ldap_groups(ldap, user, con, ldap_searches, allowed_groups, testcase)
+    except ldap.LDAPError:
+        log.exception('Some error occurred initializing the LDAP connection.')
+        raise BadGateway('Some error occurred initializing the LDAP connection.')
+    finally:
+        if con:
+            con.unbind_s()
 
 
 def verify_authorization(
