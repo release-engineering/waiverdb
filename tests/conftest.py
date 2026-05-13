@@ -1,10 +1,11 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import os
-from mock import patch
+
 import pytest
 from waiverdb.app import create_app
-from waiverdb.models import db
+from waiverdb.messaging.publishers import NullPublisher
+from waiverdb.models import db, Waiver
 
 
 @pytest.fixture(scope='session')
@@ -35,8 +36,26 @@ def client(app):
     by default.
     """
     with app.test_client() as client:
-        with patch('waiverdb.events.publish'):
-            yield client
+        original_publisher = app.publisher
+        app.publisher = NullPublisher()
+        yield client
+        app.publisher = original_publisher
+
+
+@pytest.fixture
+def make_waiver():
+    def _make_waiver(**kwargs):
+        return Waiver(**{
+            'subject_type': 'koji_build',
+            'subject_identifier': 'glibc-2.26-27.fc27',
+            'testcase': 'testcase1',
+            'username': 'alice',
+            'product_version': 'fedora-38',
+            'waived': True,
+            'comment': 'This is a comment',
+            **kwargs,
+        })
+    return _make_waiver
 
 
 @pytest.fixture()

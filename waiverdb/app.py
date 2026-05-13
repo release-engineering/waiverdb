@@ -19,6 +19,7 @@ from sqlalchemy.exc import ProgrammingError
 import requests
 
 from waiverdb.events import publish_new_waiver
+from waiverdb.messaging.publishers import create_publisher
 from waiverdb.tracing import init_tracing
 from waiverdb.api_v1 import api_v1, oidc
 from waiverdb.models import db
@@ -133,6 +134,8 @@ def create_app(config_obj=None):
     app.add_url_rule('/healthcheck', view_func=healthcheck)
     app.add_url_rule('/auth/oidclogin', view_func=login)
     app.add_url_rule('/favicon.png', view_func=favicon)
+
+    app.publisher = create_publisher(app.config)
     register_event_handlers(app)
 
     # initialize DB event listeners from the monitor module

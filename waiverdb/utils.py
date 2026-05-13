@@ -1,13 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import functools
-import stomp
+
 from flask import request, url_for, jsonify, current_app, Flask
 from flask_restx import marshal
 from flask_pydantic.exceptions import ValidationError
 from waiverdb.fields import waiver_fields
 from werkzeug.exceptions import BadRequest, NotFound, HTTPException
-from contextlib import contextmanager
 
 VALIDATION_KEYS = frozenset({
     "input", "loc", "msg", "type", "url"
@@ -101,50 +100,6 @@ def jsonp(func):
         else:
             return func(*args, **kwargs)
     return wrapped
-
-
-@contextmanager
-def stomp_connection():
-    """
-    Helper function for stomp connection.
-    """
-    if current_app.config.get('STOMP_CONFIGS'):
-        configs = current_app.config.get('STOMP_CONFIGS')
-        if 'destination' not in configs or not configs['destination']:
-            raise RuntimeError('stomp was configured to publish messages, '
-                               'but destination is not configured in STOMP_CONFIGS')
-        if 'connection' not in configs or not configs['connection']:
-            raise RuntimeError('stomp was configured to publish messages,, '
-                               'but connection is not configured in STOMP_CONFIGS')
-
-        conn_args = configs['connection'].copy()
-        if 'use_ssl' in conn_args:
-            use_ssl = conn_args['use_ssl']
-            del conn_args['use_ssl']
-        else:
-            use_ssl = False
-
-        ssl_args = {'for_hosts': conn_args['host_and_ports']}
-        for attr in ('key_file', 'cert_file', 'ca_certs'):
-            conn_attr = f'ssl_{attr}'
-            if conn_attr in conn_args:
-                ssl_args[attr] = conn_args[conn_attr]
-                del conn_args[conn_attr]
-
-        conn = stomp.connect.StompConnection11(**conn_args)
-
-        if use_ssl:
-            conn.set_ssl(**ssl_args)
-
-        conn.connect(wait=True, **configs.get('credentials', {}))
-
-        try:
-            yield conn
-        finally:
-            conn.disconnect()
-    else:
-        raise RuntimeError('stomp was configured to publish messages, '
-                           'but STOMP_CONFIGS is not configured')
 
 
 def auth_methods(app: Flask) -> list[str]:

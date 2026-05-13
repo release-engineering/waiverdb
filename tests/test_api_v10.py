@@ -1114,18 +1114,13 @@ def test_create_waiver_with_arbitrary_subject_type(mocked_user, client, session)
 
 
 def test_create_waiver_failed_event_once(mocked_user, client, session, caplog):
-    config = dict(
-        MESSAGE_BUS_PUBLISH=True,
-        MESSAGE_PUBLISHER='stomp',
-        MAX_STOMP_RETRY=3,
-        STOMP_RETRY_DELAY_SECONDS=0,
-        STOMP_CONFIGS={
-            'destination': '/topic/VirtualTopic.eng.waiverdb.waiver.new',
-            'connection': {
-                'host_and_ports': [('broker01', 61612)],
-            },
+    app = client.application
+    stomp_configs = {
+        'destination': '/topic/VirtualTopic.eng.waiverdb.waiver.new',
+        'connection': {
+            'host_and_ports': [('broker01', 61612)],
         },
-    )
+    }
 
     data = {
         'subject_type': 'koji_build',
@@ -1136,12 +1131,22 @@ def test_create_waiver_failed_event_once(mocked_user, client, session, caplog):
         'comment': 'it broke',
     }
 
-    with patch.dict(client.application.config, config):
-        with patch('waiverdb.events.stomp.connect.StompConnection11') as connection:
-            connection().connect.side_effect = (StompException, StompException, None)
-            r = client.post('/api/v1.0/waivers/', json=data)
-            assert r.status_code == 201
-            assert 'Failed to send message (try 1/3)' in caplog.text
-            assert 'Failed to send message (try 2/3)' in caplog.text
-            assert 'Failed to send message (try 3/3)' not in caplog.text
-            assert 'StompException' in caplog.text
+    with patch.dict(app.config, {
+        'STOMP_CONFIGS': stomp_configs,
+        'MAX_STOMP_RETRY': 3,
+        'STOMP_RETRY_DELAY_SECONDS': 0,
+    }):
+        from waiverdb.messaging.stomp import StompPublisher
+        original_publisher = app.publisher
+        app.publisher = StompPublisher(app.config)
+        try:
+            with patch('waiverdb.messaging.stomp.stomp.connect.StompConnection11') as connection:
+                connection().connect.side_effect = (StompException, StompException, None)
+                r = client.post('/api/v1.0/waivers/', json=data)
+                assert r.status_code == 201
+                assert 'Failed to send message (try 1/3)' in caplog.text
+                assert 'Failed to send message (try 2/3)' in caplog.text
+                assert 'Failed to send message (try 3/3)' not in caplog.text
+                assert 'StompException' in caplog.text
+        finally:
+            app.publisher = original_publisher
