@@ -39,6 +39,7 @@ dependencies = [
     # Messaging
     "fedora-messaging>=3.4.1",
     "stomp.py>=8.1.0",
+    "confluent-kafka>=2.14.0",
     # Functional Tests
     "selenium>=4.24.0",
     "pytest-selenium>=4.1.0",

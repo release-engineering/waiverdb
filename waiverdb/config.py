@@ -30,8 +30,20 @@ class Config(object):
     OIDC_CALLBACK_ROUTE = '/oidc_callback'
     # Set this to True or False to enable publishing to a message bus
     MESSAGE_BUS_PUBLISH = True
-    # Specify fedmsg or stomp for publishing messages
+    # Specify fedmsg, stomp, or kafka for publishing messages
     MESSAGE_PUBLISHER = 'fedmsg'
+    # 'producer' keys are passed directly to confluent-kafka (librdkafka).
+    # Full reference: https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
+    KAFKA = {
+        'topic': 'eng.waiverdb.waiver.new',
+        'producer': {
+            'bootstrap.servers': 'localhost:9092',
+            'client.id': 'waiverdb',
+            'retries': 3,
+            'retry.backoff.ms': 100,
+        },
+        'flush_timeout_seconds': 20.0,
+    }
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     # A list of users are allowed to create waivers on behalf of other users.
     SUPERUSERS = []
