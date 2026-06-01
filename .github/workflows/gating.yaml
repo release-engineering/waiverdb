@@ -16,13 +16,13 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: "3.13"
           enable-cache: true
 
       - name: Install system dependencies
-        uses: nick-invision/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        uses: nick-invision/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
         with:
           timeout_minutes: 10
           retry_wait_seconds: 30
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: "3.13"
           enable-cache: true
@@ -103,13 +103,13 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: "3.13"
           enable-cache: true
 
       - name: Install system dependencies
-        uses: nick-invision/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3
+        uses: nick-invision/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
         with:
           timeout_minutes: 10
           retry_wait_seconds: 30
@@ -145,7 +145,7 @@ jobs:
           .github/run-functional-tests.sh "${{ steps.build-image.outputs.image }}:${{ github.sha }}"
 
       - name: Upload pytest logs
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: failure()
         with:
           name: pytest-logs
