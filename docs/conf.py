@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # WaiverDB documentation build configuration file, created by
 # sphinx-quickstart on Wed Mar 15 17:21:27 2017.
@@ -24,7 +23,6 @@ os.environ['DEV'] = 'true'
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import waiverdb  # noqa: E402
-
 
 # -- General configuration ------------------------------------------------
 
@@ -57,9 +55,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'WaiverDB'
-copyright = u'2017, Red Hat, Inc. and others'
-author = u'Red Hat, Inc. and others'
+project = 'WaiverDB'
+copyright = '2017, Red Hat, Inc. and others'
+author = 'Red Hat, Inc. and others'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -120,15 +118,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -138,8 +133,13 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'WaiverDB.tex', u'WaiverDB Documentation',
-     u'Red Hat, Inc. and others', 'manual'),
+    (
+        master_doc,
+        'WaiverDB.tex',
+        'WaiverDB Documentation',
+        'Red Hat, Inc. and others',
+        'manual',
+    ),
 ]
 
 
@@ -148,10 +148,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('waiverdb', 'waiverdb', u'WaiverDB Server',
-     [author], 1),
-    ('api', 'waiverdb', u'WaiverDB REST API',
-     [author], 7)
+    ('waiverdb', 'waiverdb', 'WaiverDB Server', [author], 1),
+    ('api', 'waiverdb', 'WaiverDB REST API', [author], 7),
 ]
 
 
@@ -161,9 +159,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'WaiverDB', u'WaiverDB Documentation',
-     author, 'WaiverDB', 'One line description of project.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        'WaiverDB',
+        'WaiverDB Documentation',
+        author,
+        'WaiverDB',
+        'One line description of project.',
+        'Miscellaneous',
+    ),
 ]
 
 

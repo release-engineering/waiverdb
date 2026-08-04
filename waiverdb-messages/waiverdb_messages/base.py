@@ -2,7 +2,6 @@
 
 from fedora_messaging import message
 
-
 SCHEMA_URL = "https://fedoraproject.org/message-schema/"
 
 WAIVERDB_MESSAGE_SCHEMA = {

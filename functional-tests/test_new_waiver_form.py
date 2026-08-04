@@ -15,8 +15,13 @@ def test_new_waiver_form(selenium, waiverdb, login):
     login(url)
 
     assert selenium.find_element("name", "testcase").get_property("value") == "test"
-    assert selenium.find_element("name", "product_version").get_property("value") == "pv"
-    assert selenium.find_element("name", "subject_identifier").get_property("value") == "item"
+    assert (
+        selenium.find_element("name", "product_version").get_property("value") == "pv"
+    )
+    assert (
+        selenium.find_element("name", "subject_identifier").get_property("value")
+        == "item"
+    )
     assert selenium.find_element("name", "subject_type").get_property("value") == "type"
     assert selenium.find_element("name", "comment").get_property("value") == "comment"
 

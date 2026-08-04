@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 """This module contains tests for :mod:`waiverdb.app`."""
-from __future__ import unicode_literals
 
-from mock import ANY, call, patch
+from unittest.mock import ANY, call, patch
+
+import sqlalchemy
 
 from waiverdb import app, config
 from waiverdb.models import db
-import sqlalchemy
 
 
 class DisabledMessagingConfig(config.Config):

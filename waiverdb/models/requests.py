@@ -1,42 +1,47 @@
 # SPDX-License-Identifier: LGPL-2.0-or-later
-import annotated_types
-from typing import Annotated, List, Optional, Tuple, Union
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, Field, StringConstraints, RootModel, model_validator
+import annotated_types
+from pydantic import BaseModel, Field, RootModel, StringConstraints, model_validator
 from werkzeug.exceptions import BadRequest
 
-
-RESULT_ID_CONFLICTS_WITH = ("subject_identifier", "subject_type", "subject", "testcase", "scenario")
+RESULT_ID_CONFLICTS_WITH = (
+    "subject_identifier",
+    "subject_type",
+    "subject",
+    "testcase",
+    "scenario",
+)
 SUBJECT_CONFLICTS_WITH = ("subject_identifier", "subject_type")
 
 
 # WaiverDB < 0.11 compatibility
 class TestSubject(BaseModel):
-    type: Optional[str] = None
-    item: Optional[str] = None
-    original_spec_nvr: Optional[str] = None
-    productmd_compose_id: Optional[str] = Field(alias='productmd.compose.id', default=None)
-    __test__ = False        # to tell the PyTest that this is not a test class
+    type: str | None = None
+    item: str | None = None
+    original_spec_nvr: str | None = None
+    productmd_compose_id: str | None = Field(alias='productmd.compose.id', default=None)
+    __test__ = False  # to tell the PyTest that this is not a test class
 
 
 class TestResult(BaseModel):
     testcase: str
     subject: TestSubject
-    __test__ = False        # to tell the PyTest that this is not a test class
+    __test__ = False  # to tell the PyTest that this is not a test class
 
 
 class CreateWaiver(BaseModel):
-    subject_type: Optional[str] = None
-    subject_identifier: Optional[str] = None
-    testcase: Optional[str] = None
-    subject: Optional[TestSubject] = None
-    result_id: Optional[int] = None
+    subject_type: str | None = None
+    subject_identifier: str | None = None
+    testcase: str | None = None
+    subject: TestSubject | None = None
+    result_id: int | None = None
     waived: bool = True
     product_version: Annotated[str, StringConstraints(min_length=1)]
     comment: Annotated[str, StringConstraints(min_length=1)]
-    username: Optional[str] = None
-    scenario: Optional[str] = None
+    username: str | None = None
+    scenario: str | None = None
 
     @model_validator(mode='after')
     def result_id_must_not_conflict(self):
@@ -76,55 +81,55 @@ class CreateWaiver(BaseModel):
         )
 
 
-CreateWaiverList = RootModel[Union[CreateWaiver, List[CreateWaiver]]]
+CreateWaiverList = RootModel[CreateWaiver | list[CreateWaiver]]
 
 
 class GetWaivers(BaseModel):
-    subject_type: Optional[str] = None
-    subject_identifier: Optional[str] = None
-    testcase: Optional[str] = None
-    product_version: Optional[str] = None
-    username: Optional[str] = None
+    subject_type: str | None = None
+    subject_identifier: str | None = None
+    testcase: str | None = None
+    product_version: str | None = None
+    username: str | None = None
     include_obsolete: bool = False
-    scenario: Optional[str] = None
-    since: Optional[str] = None
+    scenario: str | None = None
+    since: str | None = None
     page: int = 1
     limit: int = 10
-    proxied_by: Optional[str] = None
+    proxied_by: str | None = None
 
 
 class GetPermissions(BaseModel):
-    testcase: Optional[str] = None
-    html: Optional[bool] = False
+    testcase: str | None = None
+    html: bool | None = False
 
 
 class WaiverFilter(BaseModel):
-    subject_type: Optional[str] = None
-    subject_identifier: Optional[str] = None
-    testcase: Optional[str] = None
-    scenario: Optional[str] = None
-    product_version: Optional[str] = None
-    username: Optional[str] = None
-    proxied_by: Optional[str] = None
-    since: Optional[str] = None
+    subject_type: str | None = None
+    subject_identifier: str | None = None
+    testcase: str | None = None
+    scenario: str | None = None
+    product_version: str | None = None
+    username: str | None = None
+    proxied_by: str | None = None
+    since: str | None = None
 
 
 class FilterWaivers(BaseModel):
-    filters: Annotated[List[WaiverFilter], annotated_types.Len(min_length=1)]
+    filters: Annotated[list[WaiverFilter], annotated_types.Len(min_length=1)]
     include_obsolete: bool = False
 
 
 class GetWaiversBySubjectAndTestcase(BaseModel):
-    results: Optional[List[TestResult]] = None
-    testcase: Optional[str] = None
-    product_version: Optional[str] = None
-    username: Optional[str] = None
-    proxied_by: Optional[str] = None
-    since: Optional[str] = None
+    results: list[TestResult] | None = None
+    testcase: str | None = None
+    product_version: str | None = None
+    username: str | None = None
+    proxied_by: str | None = None
+    since: str | None = None
     include_obsolete: bool = False
 
 
-def parse_since(since: str) -> Tuple[Optional[datetime], Optional[datetime]]:
+def parse_since(since: str) -> tuple[datetime | None, datetime | None]:
     """
     Parses the 'since' query parameter, which is expected to be either a
     single ISO8601 timestamp representing the start of a time period::

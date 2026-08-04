@@ -2,11 +2,10 @@
 
 import datetime
 
-from typing import List
+from sqlalchemy import and_, false, or_
 
 from .base import db
-from sqlalchemy import or_, and_, false
-from .requests import TestSubject, TestResult
+from .requests import TestResult, TestSubject
 
 
 def utcnow_naive():
@@ -31,7 +30,9 @@ def subject_dict_to_type_identifier(subject: TestSubject):
     elif subject.item:
         return subject.type, subject.item
     else:
-        raise ValueError(f'Subject type should be non-empty string, actual value is: {subject}')
+        raise ValueError(
+            f'Subject type should be non-empty string, actual value is: {subject}'
+        )
 
 
 def subject_type_identifier_to_dict(subject_type, subject_identifier):
@@ -44,8 +45,9 @@ def subject_type_identifier_to_dict(subject_type, subject_identifier):
     elif subject_type and isinstance(subject_type, str):
         return {'type': subject_type, 'item': subject_identifier}
     else:
-        raise ValueError('Subject type should be non-empty string, '
-                         f'actual value is: {subject_type}')
+        raise ValueError(
+            f'Subject type should be non-empty string, actual value is: {subject_type}'
+        )
 
 
 class Waiver(db.Model):
@@ -64,8 +66,18 @@ class Waiver(db.Model):
         db.Index('ix_waiver_subject_type_identifier', subject_type, subject_identifier),
     )
 
-    def __init__(self, subject_type, subject_identifier, testcase, username, product_version,
-                 waived=False, comment=None, proxied_by=None, scenario=None):
+    def __init__(
+        self,
+        subject_type,
+        subject_identifier,
+        testcase,
+        username,
+        product_version,
+        waived=False,
+        comment=None,
+        proxied_by=None,
+        scenario=None,
+    ):
         self.subject_type = subject_type
         self.subject_identifier = subject_identifier
         self.testcase = testcase
@@ -77,13 +89,23 @@ class Waiver(db.Model):
         self.scenario = scenario
 
     def __repr__(self):
-        return ('%s(subject_type=%r, subject_identifier=%r, testcase=%r, scenario=%r, username=%r, '
-                'product_version=%r, waived=%r)'
-                % (self.__class__.__name__, self.subject_type, self.subject_identifier,
-                   self.testcase, self.scenario, self.username, self.product_version, self.waived))
+        return (
+            '%s(subject_type=%r, subject_identifier=%r, testcase=%r, scenario=%r, username=%r, '
+            'product_version=%r, waived=%r)'
+            % (
+                self.__class__.__name__,
+                self.subject_type,
+                self.subject_identifier,
+                self.testcase,
+                self.scenario,
+                self.username,
+                self.product_version,
+                self.waived,
+            )
+        )
 
     @classmethod
-    def by_results(cls, query, results: List[TestResult]):
+    def by_results(cls, query, results: list[TestResult]):
         """
         Filter ``query`` by matching with at least one filter in ``results``.
 
@@ -104,8 +126,9 @@ class Waiver(db.Model):
             inner_clauses = []
             if result.subject:
                 try:
-                    subject_type, subject_identifier = \
-                        subject_dict_to_type_identifier(result.subject)
+                    subject_type, subject_identifier = subject_dict_to_type_identifier(
+                        result.subject
+                    )
                 except ValueError:
                     inner_clauses.append(false())
                 else:

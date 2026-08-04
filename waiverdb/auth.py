@@ -4,9 +4,10 @@
 import base64
 import binascii
 import json
+
 import gssapi
 from authlib.oauth2.base import OAuth2Error
-from flask import current_app, Request, Response, session
+from flask import Request, Response, current_app, session
 from werkzeug.exceptions import Unauthorized
 
 from waiverdb.utils import auth_methods
@@ -28,8 +29,7 @@ def process_gssapi_request(token):
         # The current architecture cannot support continuation here
         stage = "checking completion"
         if not sc.complete:
-            current_app.logger.error(
-                'Multiple GSSAPI round trips not supported')
+            current_app.logger.error('Multiple GSSAPI round trips not supported')
             raise Unauthorized("Attempted multiple GSSAPI round trips")
 
         current_app.logger.debug('Completed GSSAPI negotiation')
@@ -39,8 +39,8 @@ def process_gssapi_request(token):
         return user, token
     except gssapi.exceptions.GSSError as e:
         current_app.logger.exception(
-            'Unable to authenticate: failed to %s: %s' %
-            (stage, e.gen_message()))
+            'Unable to authenticate: failed to %s: %s' % (stage, e.gen_message())
+        )
         raise Unauthorized("Authentication failed")
 
 
@@ -144,7 +144,9 @@ def get_oidc_groups() -> list[str] | None:
     return None
 
 
-def get_user_by_method(request: Request, auth_method: str) -> tuple[str, dict[str, str]]:
+def get_user_by_method(
+    request: Request, auth_method: str
+) -> tuple[str, dict[str, str]]:
     user = None
     headers = dict()
     if auth_method == 'OIDC':
@@ -161,8 +163,11 @@ def get_user_by_method(request: Request, auth_method: str) -> tuple[str, dict[st
             raise Unauthorized("Invalid authentication token")
         # remove realm
         user = user.split("@")[0]
-        headers = {'WWW-Authenticate': ' '.join(
-            ['negotiate', base64.b64encode(token).decode()])}
+        headers = {
+            'WWW-Authenticate': ' '.join(
+                ['negotiate', base64.b64encode(token).decode()]
+            )
+        }
     elif auth_method == 'SSL':
         # Nginx sets SSL_CLIENT_VERIFY and SSL_CLIENT_S_DN in request.environ
         # when doing SSL authentication.
@@ -170,12 +175,16 @@ def get_user_by_method(request: Request, auth_method: str) -> tuple[str, dict[st
         if ssl_client_verify != 'SUCCESS':
             raise Unauthorized('Cannot verify client: %s' % ssl_client_verify)
         if not request.environ.get('SSL_CLIENT_S_DN'):
-            raise Unauthorized('Unable to get user information (DN) from the client certificate')
+            raise Unauthorized(
+                'Unable to get user information (DN) from the client certificate'
+            )
         user = request.environ.get('SSL_CLIENT_S_DN')
     elif auth_method == 'dummy':
         # Blindly accept any username. For testing purposes only of course!
         if not request.authorization:
-            response = Response('Unauthorized', 401, {'WWW-Authenticate': 'Basic realm="dummy"'})
+            response = Response(
+                'Unauthorized', 401, {'WWW-Authenticate': 'Basic realm="dummy"'}
+            )
             raise Unauthorized(response=response)
         user = request.authorization.username
     else:

@@ -8,6 +8,7 @@ Requires the Keycloak realm to have:
 And WaiverDB settings with a permission like:
     {"testcases": ["oidc-group-test.*"], "groups": ["waiverdb-users"]}
 """
+
 import requests
 from selenium.webdriver.support.expected_conditions import visibility_of
 from selenium.webdriver.support.wait import WebDriverWait
@@ -38,7 +39,10 @@ def test_oidc_groups_authorize(waiverdb, keycloak):
         "comment": "Authorized via OIDC group",
     }
     response = requests.post(
-        f"{waiverdb}/api/v1.0/waivers/", json=waiver, headers=headers, timeout=60,
+        f"{waiverdb}/api/v1.0/waivers/",
+        json=waiver,
+        headers=headers,
+        timeout=60,
     )
     assert response.status_code == 201, response.text
 
@@ -56,7 +60,10 @@ def test_oidc_groups_deny_missing_role(waiverdb, keycloak):
         "comment": "Should be denied",
     }
     response = requests.post(
-        f"{waiverdb}/api/v1.0/waivers/", json=waiver, headers=headers, timeout=60,
+        f"{waiverdb}/api/v1.0/waivers/",
+        json=waiver,
+        headers=headers,
+        timeout=60,
     )
     assert response.status_code == 403, response.text
 

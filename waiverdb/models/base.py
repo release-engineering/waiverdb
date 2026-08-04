@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import json
+
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.dialects.postgresql.psycopg2 import _PGJSON
 from sqlalchemy.sql.elements import ColumnElement, Null
 from sqlalchemy.sql.expression import cast
 from sqlalchemy.sql.sqltypes import Text
-from flask_sqlalchemy import SQLAlchemy
-
 
 json_serializer = json.encoder.JSONEncoder(sort_keys=True, separators=(',', ':')).encode
 
@@ -28,7 +28,6 @@ class EqualityComparableJSONType(_PGJSON):
     """
 
     class Comparator(JSON.Comparator):
-
         def __eq__(self, other):
             # If the RHS is a SQL expression, just assume its SQL type is
             # already JSON and thus CAST(AS TEXT) it as well.
@@ -48,6 +47,7 @@ class EqualityComparableJSONType(_PGJSON):
             elif isinstance(value, Null) or (value is None and self.none_as_null):
                 return None
             return json_serializer(value)
+
         return process
 
 

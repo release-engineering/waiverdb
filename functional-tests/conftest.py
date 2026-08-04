@@ -46,4 +46,5 @@ def login(selenium, keycloak):
         selenium.find_element("id", "password").send_keys("admin")
         selenium.find_element("name", "login").click()
         WebDriverWait(selenium, LOGIN_TIMEOUT_SECONDS).until(url_to_be(login_url))
+
     yield wrapped

@@ -3,10 +3,11 @@
 import os
 
 
-class Config(object):
+class Config:
     """
     A WaiverDB Flask configuration.
     """
+
     DEBUG = True
     DATABASE_URI = 'postgresql+psycopg2:///waiverdb'
     HOST = '127.0.0.1'
@@ -112,8 +113,9 @@ class DevelopmentConfig(Config):
     SHOW_DB_URI = True
     # The location of the client_secrets.json file used for API authentication
     OIDC_CLIENT_SECRETS = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'conf',
-        'client_secrets.json'
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'conf',
+        'client_secrets.json',
     )
     OIDC_RESOURCE_SERVER_ONLY = True
 
@@ -126,8 +128,9 @@ class TestingConfig(Config):
     DATABASE_URI = 'sqlite:///:memory:'
     TESTING = True
     OIDC_CLIENT_SECRETS = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tests',
-        'client_secrets.json'
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'tests',
+        'client_secrets.json',
     )
     OIDC_RESOURCE_SERVER_ONLY = True
     SUPERUSERS = ['bodhi']

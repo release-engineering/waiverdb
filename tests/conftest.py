@@ -3,9 +3,10 @@
 import os
 
 import pytest
+
 from waiverdb.app import create_app
 from waiverdb.messaging.publishers import NullPublisher
-from waiverdb.models import db, Waiver
+from waiverdb.models import Waiver, db
 
 
 @pytest.fixture(scope='session')
@@ -45,16 +46,19 @@ def client(app):
 @pytest.fixture
 def make_waiver():
     def _make_waiver(**kwargs):
-        return Waiver(**{
-            'subject_type': 'koji_build',
-            'subject_identifier': 'glibc-2.26-27.fc27',
-            'testcase': 'testcase1',
-            'username': 'alice',
-            'product_version': 'fedora-38',
-            'waived': True,
-            'comment': 'This is a comment',
-            **kwargs,
-        })
+        return Waiver(
+            **{
+                'subject_type': 'koji_build',
+                'subject_identifier': 'glibc-2.26-27.fc27',
+                'testcase': 'testcase1',
+                'username': 'alice',
+                'product_version': 'fedora-38',
+                'waived': True,
+                'comment': 'This is a comment',
+                **kwargs,
+            }
+        )
+
     return _make_waiver
 
 

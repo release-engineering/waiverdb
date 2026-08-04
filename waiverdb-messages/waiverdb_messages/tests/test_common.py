@@ -3,6 +3,7 @@
 """Unit tests for common properties of the message schemas."""
 
 from waiverdb_messages import WaiverDBMessageV1
+
 from .utils import DUMMY_MSG
 
 

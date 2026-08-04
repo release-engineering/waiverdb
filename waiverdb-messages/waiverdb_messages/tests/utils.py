@@ -2,7 +2,6 @@
 
 """Utilities for the unit tests."""
 
-
 DUMMY_MSG = {
     "comment": "Because I said so",
     "username": "packagerbot",

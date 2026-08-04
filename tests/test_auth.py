@@ -1,13 +1,15 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-from base64 import b64encode
-import pytest
-import gssapi  # noqa
-import mock
 import json
+from base64 import b64encode
+from unittest import mock
+
+import gssapi  # noqa
+import pytest
+from flask import request, session
 from werkzeug.exceptions import Unauthorized
+
 import waiverdb.auth
-from flask import session, request
 
 WAIVER_DATA = {
     'subject_type': 'koji_build',
@@ -18,21 +20,25 @@ WAIVER_DATA = {
     'comment': 'it broke',
 }
 WAIVER_PARAMS = '&'.join(
-    f'{k}={v}'
-    for k, v in WAIVER_DATA.items()
-    if isinstance(v, str)
+    f'{k}={v}' for k, v in WAIVER_DATA.items() if isinstance(v, str)
 )
 
 
 @pytest.fixture
 def oidc_token(app):
     with app.test_request_context('/api/v1.0/waivers/new'):
-        with mock.patch.dict(session, {'oidc_auth_profile': {
-            'active': True,
-            'username': 'testuser',
-            'preferred_username': 'testuser',
-            'scope': 'openid waiverdb_scope',
-        }, 'oidc_auth_token': {}}) as mocked:
+        with mock.patch.dict(
+            session,
+            {
+                'oidc_auth_profile': {
+                    'active': True,
+                    'username': 'testuser',
+                    'preferred_username': 'testuser',
+                    'scope': 'openid waiverdb_scope',
+                },
+                'oidc_auth_token': {},
+            },
+        ) as mocked:
             yield mocked['oidc_auth_profile']
 
 
@@ -49,38 +55,57 @@ def permissions():
 
 
 @pytest.mark.usefixtures('enable_kerberos')
-class TestGSSAPIAuthentication(object):
+class TestGSSAPIAuthentication:
     invalid_token_error = ""
 
     def test_unauthorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
-        r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
-                        content_type='application/json')
+        r = client.post(
+            '/api/v1.0/waivers/',
+            data=json.dumps(WAIVER_DATA),
+            content_type='application/json',
+        )
         assert r.status_code == 401
         assert r.headers.get('www-authenticate') == 'Negotiate'
 
-    @mock.patch.multiple("gssapi.SecurityContext", complete=True,
-                         __init__=mock.Mock(return_value=None),
-                         step=mock.Mock(return_value=b"STOKEN"),
-                         initiator_name="foo@EXAMPLE.ORG")
-    @mock.patch.multiple("gssapi.Credentials",
-                         __init__=mock.Mock(return_value=None),
-                         __new__=mock.Mock(return_value=None))
+    @mock.patch.multiple(
+        "gssapi.SecurityContext",
+        complete=True,
+        __init__=mock.Mock(return_value=None),
+        step=mock.Mock(return_value=b"STOKEN"),
+        initiator_name="foo@EXAMPLE.ORG",
+    )
+    @mock.patch.multiple(
+        "gssapi.Credentials",
+        __init__=mock.Mock(return_value=None),
+        __new__=mock.Mock(return_value=None),
+    )
     def test_authorized(self, client, monkeypatch, session):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
         headers = {'Authorization': f'Negotiate {b64encode(b"CTOKEN").decode()}'}
-        r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
-                        content_type='application/json', headers=headers)
+        r = client.post(
+            '/api/v1.0/waivers/',
+            data=json.dumps(WAIVER_DATA),
+            content_type='application/json',
+            headers=headers,
+        )
         assert r.status_code == 201
-        assert r.headers.get('WWW-Authenticate') == f'negotiate {b64encode(b"STOKEN").decode()}'
+        assert (
+            r.headers.get('WWW-Authenticate')
+            == f'negotiate {b64encode(b"STOKEN").decode()}'
+        )
         res_data = json.loads(r.data.decode('utf-8'))
         assert res_data['username'] == 'foo'
 
     def test_invalid_token(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
         headers = {'Authorization': 'Negotiate INVALID'}
-        r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
-                        content_type='application/json', headers=headers)
+        r = client.post(
+            '/api/v1.0/waivers/',
+            data=json.dumps(WAIVER_DATA),
+            content_type='application/json',
+            headers=headers,
+        )
         assert r.status_code == 401
         assert r.json == {
             "message": (
@@ -92,7 +117,7 @@ class TestGSSAPIAuthentication(object):
         }
 
 
-class TestOIDCAuthentication(object):
+class TestOIDCAuthentication:
     auth_missing_error = "401 Unauthorized: OIDC authentication failed: "
 
     def test_get_user_no_auth_methods(self):
@@ -100,7 +125,9 @@ class TestOIDCAuthentication(object):
             mocked.return_value = []
             with pytest.raises(Unauthorized) as excinfo:
                 waiverdb.auth.get_user(request)
-        assert "Authenticated user required. No methods specified." in str(excinfo.value)
+        assert "Authenticated user required. No methods specified." in str(
+            excinfo.value
+        )
 
     def test_get_user_without_token(self, app):
         with app.test_request_context('/api/v1.0/waivers/new'):
@@ -146,59 +173,85 @@ class TestOIDCAuthentication(object):
 class TestGetOIDCGroups:
     def test_groups_present(self, app):
         with app.test_request_context('/api/v1.0/waivers/new'):
-            with mock.patch.dict(session, {'oidc_auth_profile': {
-                'realm_access': {'roles': ['group1', 'group2']},
-            }}):
+            with mock.patch.dict(
+                session,
+                {
+                    'oidc_auth_profile': {
+                        'realm_access': {'roles': ['group1', 'group2']},
+                    }
+                },
+            ):
                 groups = waiverdb.auth.get_oidc_groups()
                 assert groups == ['group1', 'group2']
 
     def test_groups_absent(self, app):
         with app.test_request_context('/api/v1.0/waivers/new'):
-            with mock.patch.dict(session, {'oidc_auth_profile': {
-                'preferred_username': 'testuser',
-            }}):
+            with mock.patch.dict(
+                session,
+                {
+                    'oidc_auth_profile': {
+                        'preferred_username': 'testuser',
+                    }
+                },
+            ):
                 groups = waiverdb.auth.get_oidc_groups()
                 assert groups is None
 
     def test_groups_from_session_token(self, app):
         """Groups found in oidc_auth_token when oidc_auth_profile lacks them."""
         with app.test_request_context('/api/v1.0/waivers/new'):
-            with mock.patch.dict(session, {
-                'oidc_auth_profile': {'preferred_username': 'testuser'},
-                'oidc_auth_token': {
-                    'userinfo': {'realm_access': {'roles': ['group1', 'group2']}},
+            with mock.patch.dict(
+                session,
+                {
+                    'oidc_auth_profile': {'preferred_username': 'testuser'},
+                    'oidc_auth_token': {
+                        'userinfo': {'realm_access': {'roles': ['group1', 'group2']}},
+                    },
                 },
-            }):
+            ):
                 groups = waiverdb.auth.get_oidc_groups()
                 assert groups == ['group1', 'group2']
 
     def test_profile_takes_priority_over_token(self, app):
         """oidc_auth_profile groups take priority over oidc_auth_token."""
         with app.test_request_context('/api/v1.0/waivers/new'):
-            with mock.patch.dict(session, {
-                'oidc_auth_profile': {'realm_access': {'roles': ['profile_group']}},
-                'oidc_auth_token': {
-                    'userinfo': {'realm_access': {'roles': ['token_group']}},
+            with mock.patch.dict(
+                session,
+                {
+                    'oidc_auth_profile': {'realm_access': {'roles': ['profile_group']}},
+                    'oidc_auth_token': {
+                        'userinfo': {'realm_access': {'roles': ['token_group']}},
+                    },
                 },
-            }):
+            ):
                 groups = waiverdb.auth.get_oidc_groups()
                 assert groups == ['profile_group']
 
     def test_custom_groups_field(self, app):
         with mock.patch.dict(app.config, {'OIDC_GROUPS_FIELD': 'custom.nested.groups'}):
             with app.test_request_context('/api/v1.0/waivers/new'):
-                with mock.patch.dict(session, {'oidc_auth_profile': {
-                    'custom': {'nested': {'groups': ['admin', 'dev']}},
-                }}):
+                with mock.patch.dict(
+                    session,
+                    {
+                        'oidc_auth_profile': {
+                            'custom': {'nested': {'groups': ['admin', 'dev']}},
+                        }
+                    },
+                ):
                     groups = waiverdb.auth.get_oidc_groups()
                     assert groups == ['admin', 'dev']
 
     def test_flat_groups_field(self, app):
         with mock.patch.dict(app.config, {'OIDC_GROUPS_FIELD': 'groups'}):
             with app.test_request_context('/api/v1.0/waivers/new'):
-                with mock.patch.dict(session, {'oidc_auth_profile': {
-                    'groups': ['team-a', 'team-b'],
-                }}):
+                with mock.patch.dict(
+                    session,
+                    {
+                        'oidc_auth_profile': {
+                            'groups': ['team-a', 'team-b'],
+                        }
+                    },
+                ):
                     groups = waiverdb.auth.get_oidc_groups()
                     assert groups == ['team-a', 'team-b']
 
@@ -206,15 +259,20 @@ class TestGetOIDCGroups:
     def test_disabled_with_empty_or_none(self, app, value):
         with mock.patch.dict(app.config, {'OIDC_GROUPS_FIELD': value}):
             with app.test_request_context('/api/v1.0/waivers/new'):
-                with mock.patch.dict(session, {'oidc_auth_profile': {
-                    'realm_access': {'roles': ['group1']},
-                }}):
+                with mock.patch.dict(
+                    session,
+                    {
+                        'oidc_auth_profile': {
+                            'realm_access': {'roles': ['group1']},
+                        }
+                    },
+                ):
                     groups = waiverdb.auth.get_oidc_groups()
                     assert groups is None
 
 
 @pytest.mark.usefixtures('enable_ssl')
-class TestSSLAuthentication(object):
+class TestSSLAuthentication:
     def test_SSL_CLIENT_VERIFY_is_not_set_should_raise_error(self):
         with pytest.raises(Unauthorized) as excinfo:
             request = mock.MagicMock()
@@ -225,8 +283,10 @@ class TestSSLAuthentication(object):
         with pytest.raises(Unauthorized) as excinfo:
             request = mock.MagicMock(environ={'SSL_CLIENT_VERIFY': 'SUCCESS'})
             waiverdb.auth.get_user(request)
-        assert 'Unable to get user information (DN) from the client certificate' \
-               in excinfo.value.get_description()
+        assert (
+            'Unable to get user information (DN) from the client certificate'
+            in excinfo.value.get_description()
+        )
 
     def test_good_ssl_cert(self):
         ssl = {
@@ -247,8 +307,11 @@ class TestKerberosWithFallbackAuthentication(TestGSSAPIAuthentication):
 
     def test_unauthorized(self, client, monkeypatch):
         monkeypatch.setenv('KRB5_KTNAME', '/etc/foo.keytab')
-        r = client.post('/api/v1.0/waivers/', data=json.dumps(WAIVER_DATA),
-                        content_type='application/json')
+        r = client.post(
+            '/api/v1.0/waivers/',
+            data=json.dumps(WAIVER_DATA),
+            content_type='application/json',
+        )
         assert r.status_code == 401
 
 

@@ -1,11 +1,13 @@
 import os
 
-DATABASE_URI = 'postgresql+psycopg2://waiverdb:waiverdb@waiverdb-db:5433/waiverdb'  # NOSONAR
+DATABASE_URI = (
+    'postgresql+psycopg2://waiverdb:waiverdb@waiverdb-db:5433/waiverdb'  # NOSONAR
+)
 
 if os.getenv('TEST') == 'true':
     DATABASE_URI += '_test'
 
-HOST = '0.0.0.0'
+HOST = '0.0.0.0'  # nosec B104
 PORT = 5004
 AUTH_METHOD = 'dummy'
 MESSAGE_BUS_PUBLISH = False

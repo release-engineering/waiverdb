@@ -1,15 +1,17 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 """This module contains tests for :mod:`waiverdb.events`."""
-from __future__ import unicode_literals
-import pytest
+
 from unittest.mock import Mock, patch
+
+import pytest
 from confluent_kafka import KafkaException
 from fedora_messaging import api, testing
 from flask_restx import marshal
-from waiverdb.models import Waiver
+
 from waiverdb.fields import waiver_fields
 from waiverdb.messaging.publishers import NullPublisher
+from waiverdb.models import Waiver
 
 
 def test_publish_new_waiver_with_fedmsg(session):
@@ -28,8 +30,7 @@ def test_publish_new_waiver_with_fedmsg(session):
     sesh.flush()
 
     expected_msg = api.Message(
-        topic='waiverdb.waiver.new',
-        body=marshal(waiver, waiver_fields)
+        topic='waiverdb.waiver.new', body=marshal(waiver, waiver_fields)
     )
 
     with testing.mock_sends(expected_msg):
@@ -53,6 +54,7 @@ def kafka_publisher(app, monkeypatch):
 
     with patch('waiverdb.messaging.kafka.Producer'):
         from waiverdb.messaging.kafka import KafkaPublisher
+
         publisher = KafkaPublisher(app.config)
 
     mock_producer = Mock()
@@ -89,7 +91,9 @@ def test_publish_new_waiver_with_kafka_error(session, kafka_publisher, make_waiv
     mock_monitor.messaging_tx_failed_counter.inc.assert_called()
 
 
-def test_publish_new_waiver_with_disabled_publisher(session, app, monkeypatch, make_waiver):
+def test_publish_new_waiver_with_disabled_publisher(
+    session, app, monkeypatch, make_waiver
+):
     monkeypatch.setattr(app, 'publisher', NullPublisher())
     waiver = make_waiver()
     sesh = session()
@@ -111,15 +115,14 @@ def test_publish_new_waiver_with_fedmsg_for_proxy_user(session):
         product_version='something',
         waived=True,
         comment='This is a comment',
-        proxied_by='bodhi'
+        proxied_by='bodhi',
     )
     sesh = session()
     sesh.add(waiver)
     sesh.flush()
 
     expected_msg = api.Message(
-        topic='waiverdb.waiver.new',
-        body=marshal(waiver, waiver_fields)
+        topic='waiverdb.waiver.new', body=marshal(waiver, waiver_fields)
     )
     with testing.mock_sends(expected_msg):
         sesh.commit()

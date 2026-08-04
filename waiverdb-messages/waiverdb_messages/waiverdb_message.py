@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0+
 
-from .base import SCHEMA_URL, WaiverDBMessage, WAIVERDB_MESSAGE_SCHEMA
+from .base import SCHEMA_URL, WAIVERDB_MESSAGE_SCHEMA, WaiverDBMessage
 
 
 class WaiverDBMessageV1(WaiverDBMessage):

@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: GPL-2.0+
 
+from unittest.mock import patch
+
 from alembic import op
 from flask_migrate import upgrade
-from mock import patch
 from pytest import fixture
+
 from waiverdb.models import db
 
 
@@ -14,6 +16,7 @@ def mock_alter_column():
         return
 
     with patch.object(op, 'alter_column') as mock_alter:
+
         def alter_column_mock(table, column, **kwargs):
             with op.batch_alter_table(table, schema=None) as batch_op:
                 batch_op.alter_column(column, **kwargs)
