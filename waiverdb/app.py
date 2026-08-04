@@ -8,6 +8,7 @@ try:
 except ImportError:
     from urlparse import urlparse, urlunsplit
 
+import requests
 import sqlalchemy
 from flask import Flask, current_app, send_from_directory
 from flask_cors import CORS
@@ -16,16 +17,15 @@ from flask_pydantic.exceptions import ValidationError
 from flask_session import Session
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy.exc import ProgrammingError
-import requests
+from werkzeug.exceptions import default_exceptions
 
+from waiverdb.api_v1 import api_v1, oidc
 from waiverdb.events import publish_new_waiver
 from waiverdb.messaging.publishers import create_publisher
-from waiverdb.tracing import init_tracing
-from waiverdb.api_v1 import api_v1, oidc
 from waiverdb.models import db
-from waiverdb.utils import auth_methods, handle_validation_error, json_error
-from werkzeug.exceptions import default_exceptions
 from waiverdb.monitor import db_hook_event_listeners
+from waiverdb.tracing import init_tracing
+from waiverdb.utils import auth_methods, handle_validation_error, json_error
 
 csrf = CSRFProtect()
 
@@ -78,19 +78,20 @@ def populate_db_config(app):
     dburi = app.config['DATABASE_URI']
     if os.environ.get('DATABASE_PASSWORD'):
         parsed = urlparse(dburi)
-        netloc = '{}:{}@{}'.format(parsed.username,
-                                   os.environ['DATABASE_PASSWORD'],
-                                   parsed.hostname)
+        netloc = '{}:{}@{}'.format(
+            parsed.username, os.environ['DATABASE_PASSWORD'], parsed.hostname
+        )
         if parsed.port:
-            netloc += ':{}'.format(parsed.port)
+            netloc += f':{parsed.port}'
         dburi = urlunsplit(
-            (parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+            (parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment)
+        )
     if app.config['SHOW_DB_URI']:
         app.logger.debug('using DBURI: %s', dburi)
     app.config['SQLALCHEMY_DATABASE_URI'] = dburi
 
 
-# applicaiton factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
+# application factory http://flask.pocoo.org/docs/0.12/patterns/appfactories/
 def create_app(config_obj=None):
     app = Flask(__name__)
     csrf.init_app(app)
@@ -99,7 +100,10 @@ def create_app(config_obj=None):
         app.config.from_object(config_obj)
     else:
         load_config(app)
-    if app.config['PRODUCTION'] and app.secret_key == 'replace-me-with-something-random':  # nosec
+    if (
+        app.config['PRODUCTION']
+        and app.secret_key == 'replace-me-with-something-random'  # nosec B105
+    ):
         raise Warning("You need to change the app.secret_key value for production")
 
     log_config = app.config["LOGGING"]
@@ -126,8 +130,9 @@ def create_app(config_obj=None):
     with app.app_context():
         init_tracing(app, db.engine)
     # initialize db migrations
-    migrations_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                                  'migrations')
+    migrations_dir = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), 'migrations'
+    )
     Migrate(app, db, directory=migrations_dir)
     # register blueprints
     app.register_blueprint(api_v1, url_prefix="/api/v1.0")

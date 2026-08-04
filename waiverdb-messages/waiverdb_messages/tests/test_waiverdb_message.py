@@ -3,8 +3,8 @@
 """Unit tests for the message schema."""
 
 import pytest
-
 from jsonschema import ValidationError
+
 from ..waiverdb_message import WaiverDBMessageV1
 from .utils import DUMMY_MSG
 

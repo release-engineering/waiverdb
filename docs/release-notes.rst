@@ -111,7 +111,7 @@ Released 15 May 2019
     Required if ``PERMISSION_MAPPING`` is defined.
 
 * Add ``proxied_by`` in the CLI: in the API is possible to define a username on
-  whose behalf the caller is proxying the submittion of a waiver.
+  whose behalf the caller is proxying the submission of a waiver.
   This change provides this possibility also in the CLI. This is updated also to
   reflect the recent changes regarding the access control.
 

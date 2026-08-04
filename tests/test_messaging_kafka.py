@@ -2,8 +2,9 @@
 
 """This module contains tests for :mod:`waiverdb.messaging.kafka`."""
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from confluent_kafka import KafkaError, KafkaException
 
 from waiverdb.messaging.kafka import KafkaPublisher
@@ -133,7 +134,8 @@ def test_publish_multiple_waivers(session, kafka_publisher, make_waiver):
     publisher, mock_producer = kafka_publisher
     waiver1 = make_waiver(username="alice")
     waiver2 = make_waiver(
-        username="bob", subject_identifier="gcc-7.3.1-5.fc28", testcase="testcase2")
+        username="bob", subject_identifier="gcc-7.3.1-5.fc28", testcase="testcase2"
+    )
     sesh = session()
     sesh.add(waiver1)
     sesh.add(waiver2)
@@ -156,12 +158,14 @@ def test_kafka_publisher_creation(app, kafka_config):
 
         publisher = KafkaPublisher(app.config)
 
-        mock_producer_class.assert_called_once_with({
-            "bootstrap.servers": "localhost:9092",
-            "client.id": "waiverdb-test",
-            "retries": 3,
-            "sasl.username": "alice",
-            "sasl.password": "secret",
-        })
+        mock_producer_class.assert_called_once_with(
+            {
+                "bootstrap.servers": "localhost:9092",
+                "client.id": "waiverdb-test",
+                "retries": 3,
+                "sasl.username": "alice",
+                "sasl.password": "secret",
+            }
+        )
         assert publisher._config.topic == "eng.waiverdb.waiver.new"
         assert publisher._producer is mock_producer

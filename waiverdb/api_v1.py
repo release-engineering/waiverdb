@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import logging
+from typing import Any
 
 import requests
 from flask import (
@@ -14,40 +15,47 @@ from flask import (
 )
 from flask_oidc import OpenIDConnect
 from flask_pydantic import validate
-from flask_restx import Resource, Api, marshal_with, marshal
+from flask_restx import Api, Resource, marshal, marshal_with
 from markupsafe import escape
+from sqlalchemy.sql.expression import and_, func, or_
 from werkzeug.exceptions import (
     BadRequest,
     Forbidden,
     ServiceUnavailable,
     Unauthorized,
 )
-from sqlalchemy.sql.expression import func, and_, or_
-from typing import Dict, Any
 
+import waiverdb.auth
 from waiverdb import __version__
 from waiverdb.authorization import match_testcase_permissions, verify_authorization
-from waiverdb.models import db
-from waiverdb.models.waivers import Waiver, subject_dict_to_type_identifier
-from waiverdb.models.requests import (
-    GetWaivers, CreateWaiver, FilterWaivers, GetWaiversBySubjectAndTestcase, GetPermissions,
-    parse_since, WaiverFilter, CreateWaiverList
-)
-from waiverdb.utils import json_collection, jsonp, auth_methods
 from waiverdb.fields import waiver_fields
-import waiverdb.auth
+from waiverdb.models import db
+from waiverdb.models.requests import (
+    CreateWaiver,
+    CreateWaiverList,
+    FilterWaivers,
+    GetPermissions,
+    GetWaivers,
+    GetWaiversBySubjectAndTestcase,
+    WaiverFilter,
+    parse_since,
+)
+from waiverdb.models.waivers import Waiver, subject_dict_to_type_identifier
+from waiverdb.utils import auth_methods, json_collection, jsonp
 
-api_v1 = (Blueprint('api_v1', __name__))
+api_v1 = Blueprint('api_v1', __name__)
 api = Api(api_v1)
 requests_session = requests.Session()
 log = logging.getLogger(__name__)
 oidc = OpenIDConnect()
 
 
-def get_resultsdb_result(result_id: int) -> Dict[str, Any]:
+def get_resultsdb_result(result_id: int) -> dict[str, Any]:
     response = requests_session.request(
-        'GET', f'{current_app.config["RESULTSDB_API_URL"]}/results/{result_id}',
-        headers={'Content-Type': 'application/json'}, timeout=60
+        'GET',
+        f'{current_app.config["RESULTSDB_API_URL"]}/results/{result_id}',
+        headers={'Content-Type': 'application/json'},
+        timeout=60,
     )
     response.raise_for_status()
     return response.json()
@@ -109,15 +117,26 @@ def _verify_authorization(user, testcase):
     if not ldap_searches:
         ldap_base = current_app.config.get('LDAP_BASE')
         if ldap_base:
-            ldap_search_string = current_app.config.get('LDAP_SEARCH_STRING', '(memberUid={user})')
+            ldap_search_string = current_app.config.get(
+                'LDAP_SEARCH_STRING', '(memberUid={user})'
+            )
             ldap_searches = [{'BASE': ldap_base, 'SEARCH_STRING': ldap_search_string}]
     use_gssapi = current_app.config.get('LDAP_GSSAPI', False)
-    verify_authorization(user, testcase, permissions(), ldap_host, ldap_searches, oidc_groups,
-                         use_gssapi=use_gssapi)
+    verify_authorization(
+        user,
+        testcase,
+        permissions(),
+        ldap_host,
+        ldap_searches,
+        oidc_groups,
+        use_gssapi=use_gssapi,
+    )
 
 
 def _authorization_warning_from_exception(e: Forbidden | Unauthorized, testcase: str):
-    permissions_url = url_for('api_v1.permissions_resource', testcase=testcase, html='on')
+    permissions_url = url_for(
+        'api_v1.permissions_resource', testcase=testcase, html='on'
+    )
     return (
         f"{escape(str(e))}<br />"
         f'<a href="{permissions_url}">See who has permission to'
@@ -322,31 +341,41 @@ class WaiversResource(Resource):
                 if e.response.status_code == 404:
                     raise BadRequest('Result id not found in Resultsdb')
                 else:
-                    raise ServiceUnavailable('Failed looking up result in Resultsdb: %s' % e)
+                    raise ServiceUnavailable(
+                        'Failed looking up result in Resultsdb: %s' % e
+                    )
             except Exception as e:
-                raise ServiceUnavailable('Failed looking up result in Resultsdb: %s' % e)
+                raise ServiceUnavailable(
+                    'Failed looking up result in Resultsdb: %s' % e
+                )
             result_data = result['data']  # ResultsDB "extra data" for the given result
             if 'original_spec_nvr' in result_data:
                 args.subject_type = 'koji_build'
                 args.subject_identifier = result_data['original_spec_nvr'][0]
-            elif 'type' in result_data and result_data['type'][0] in ['koji_build', 'brew-build']:
+            elif 'type' in result_data and result_data['type'][0] in [
+                'koji_build',
+                'brew-build',
+            ]:
                 args.subject_type = 'koji_build'
                 args.subject_identifier = result_data['item'][0]
             elif 'type' in result_data:
                 args.subject_type = result_data['type'][0]
                 args.subject_identifier = result_data['item'][0]
             else:
-                raise BadRequest('It is not possible to submit a waiver by '
-                                 'id for this result. Please try again specifying '
-                                 'a subject and a testcase.')
+                raise BadRequest(
+                    'It is not possible to submit a waiver by '
+                    'id for this result. Please try again specifying '
+                    'a subject and a testcase.'
+                )
             args.testcase = result['testcase']['name']
             if 'scenario' in result_data:
                 args.scenario = result_data['scenario'][0]
 
         # WaiverDB < 0.11
         if args.subject:
-            args.subject_type, args.subject_identifier = \
+            args.subject_type, args.subject_identifier = (
                 subject_dict_to_type_identifier(args.subject)
+            )
 
         _verify_authorization(user, args.testcase)
 
@@ -363,7 +392,7 @@ class WaiversResource(Resource):
             args.waived,
             args.comment,
             proxied_by,
-            args.scenario
+            args.scenario,
         )
 
 
@@ -386,11 +415,14 @@ class WaiversNewResource(WaiversResource):
 
         :statuscode 200: The HTML with the form is returned.
         """
-        return Response(render_template(
-            'new_waiver.html',
-            warning=_authorization_warning(request),
-            request_args=request.args,
-        ), mimetype='text/html')
+        return Response(
+            render_template(
+                'new_waiver.html',
+                warning=_authorization_warning(request),
+                request_args=request.args,
+            ),
+            mimetype='text/html',
+        )
 
     @validate()
     @marshal_with(waiver_fields)
@@ -406,14 +438,18 @@ class WaiversJSResource(Resource):
     """
     Provides a JS for a new waiver form
     """
+
     def get(self):
-        return Response(render_template('new_waiver.js'), mimetype='application/javascript')
+        return Response(
+            render_template('new_waiver.js'), mimetype='application/javascript'
+        )
 
 
 class WaiversCreateResource(WaiversResource):
     """
     Deprecated, kept as a redirect for a backward compatibility
     """
+
     @oidc.require_login
     def get(self):
         return redirect(url_for("api_v1.waivers_new_resource", **request.args))
@@ -506,7 +542,7 @@ class FilteredWaiversResource(Resource):
             parameters accepted by :http:get:`/api/v1.0/waivers/`.
         :json boolean include_obsolete: If true, obsolete waivers will be included.
         :statuscode 200: Returns matching waivers, if any.
-        :statuscode 400: The request was malformed (invalid filter critera).
+        :statuscode 400: The request was malformed (invalid filter criteria).
         """
         query = Waiver.query.order_by(Waiver.timestamp.desc())
         clauses = []
@@ -516,7 +552,9 @@ class FilteredWaiversResource(Resource):
             if filter_.subject_type:
                 inner_clauses.append(Waiver.subject_type == filter_.subject_type)
             if filter_.subject_identifier:
-                inner_clauses.append(Waiver.subject_identifier == filter_.subject_identifier)
+                inner_clauses.append(
+                    Waiver.subject_identifier == filter_.subject_identifier
+                )
             if filter_.testcase:
                 inner_clauses.append(Waiver.testcase == filter_.testcase)
             if filter_.scenario:
@@ -540,7 +578,7 @@ class FilteredWaiversResource(Resource):
                 Waiver.subject_type,
                 Waiver.subject_identifier,
                 Waiver.testcase,
-                Waiver.scenario
+                Waiver.scenario,
             )
             query = query.filter(Waiver.id.in_(subquery))
         return query.all()
@@ -641,7 +679,10 @@ class AboutResource(Resource):
         :statuscode 200: Currently running waiverdb software version and authentication
                          are returned.
         """
-        return {'version': __version__, 'auth_method': current_app.config['AUTH_METHOD']}
+        return {
+            'version': __version__,
+            'auth_method': current_app.config['AUTH_METHOD'],
+        }
 
 
 class ConfigResource(Resource):
@@ -734,18 +775,21 @@ class PermissionsResource(Resource):
         testcase = query.testcase
         permissions_to_ret = permissions()
         if testcase:
-            permissions_to_ret = list(match_testcase_permissions(testcase, permissions_to_ret))
+            permissions_to_ret = list(
+                match_testcase_permissions(testcase, permissions_to_ret)
+            )
         if not query.html:
             return permissions_to_ret
         return Response(
             render_template('permissions.html', permissions=permissions_to_ret),
-            mimetype='text/html'
+            mimetype='text/html',
         )
 
 
 class MonitorResource(Resource):
     def get(self):
         from waiverdb.monitor import MonitorAPI
+
         return MonitorAPI().get()
 
 
@@ -756,7 +800,9 @@ api.add_resource(WaiversJSResource, '/waivers/new/new_waiver.js')
 api.add_resource(WaiversCreateResource, '/waivers/create')
 api.add_resource(WaiverResource, '/waivers/<int:waiver_id>')
 api.add_resource(FilteredWaiversResource, '/waivers/+filtered')
-api.add_resource(GetWaiversBySubjectsAndTestcases, '/waivers/+by-subjects-and-testcases')
+api.add_resource(
+    GetWaiversBySubjectsAndTestcases, '/waivers/+by-subjects-and-testcases'
+)
 api.add_resource(AboutResource, '/about', strict_slashes=False)
 api.add_resource(ConfigResource, '/config', strict_slashes=False)
 api.add_resource(PermissionsResource, '/permissions', strict_slashes=False)

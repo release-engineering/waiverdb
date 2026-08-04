@@ -11,8 +11,15 @@ import tempfile
 from flask import Response
 from flask.views import MethodView
 from prometheus_client import (  # noqa: F401
-    ProcessCollector, CollectorRegistry, Counter, multiprocess,
-    Histogram, generate_latest, start_http_server, CONTENT_TYPE_LATEST)
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Histogram,
+    ProcessCollector,
+    generate_latest,
+    multiprocess,
+    start_http_server,
+)
 from sqlalchemy import event
 
 # Service-specific imports
@@ -30,38 +37,38 @@ if os.getenv('MONITOR_STANDALONE_METRICS_SERVER_ENABLE', 'false') == 'true':
 
 # Generic metrics
 messaging_tx_to_send_counter = Counter(
-    'messaging_tx_to_send',
-    'Total number of messages to send',
-    registry=registry)
+    'messaging_tx_to_send', 'Total number of messages to send', registry=registry
+)
 messaging_tx_stopped_counter = Counter(
     'messaging_tx_stopped',
     'Number of messages, which were eventually stopped before sending',
-    registry=registry)
+    registry=registry,
+)
 messaging_tx_sent_ok_counter = Counter(
     'messaging_tx_sent_ok',
     'Number of messages, which were sent successfully',
-    registry=registry)
+    registry=registry,
+)
 messaging_tx_failed_counter = Counter(
     'messaging_tx_failed',
     'Number of messages, for which the sender failed',
-    registry=registry)
+    registry=registry,
+)
 
 db_dbapi_error_counter = Counter(
-    'db_dbapi_error',
-    'Number of DBAPI errors',
-    registry=registry)
+    'db_dbapi_error', 'Number of DBAPI errors', registry=registry
+)
 db_engine_connect_counter = Counter(
-    'db_engine_connect',
-    'Number of \'engine_connect\' events',
-    registry=registry)
+    'db_engine_connect', 'Number of \'engine_connect\' events', registry=registry
+)
 db_handle_error_counter = Counter(
-    'db_handle_error',
-    'Number of exceptions during connection',
-    registry=registry)
+    'db_handle_error', 'Number of exceptions during connection', registry=registry
+)
 db_transaction_rollback_counter = Counter(
     'db_transaction_rollback',
     'Number of transactions, which were rolled back',
-    registry=registry)
+    registry=registry,
+)
 
 # Service-specific metrics
 # XXX: TODO
@@ -89,5 +96,4 @@ def db_hook_event_listeners(target=None):
 
 class MonitorAPI(MethodView):
     def get(self):
-        return Response(generate_latest(registry),
-                        content_type=CONTENT_TYPE_LATEST)
+        return Response(generate_latest(registry), content_type=CONTENT_TYPE_LATEST)

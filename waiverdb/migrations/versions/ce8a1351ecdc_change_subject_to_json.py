@@ -11,9 +11,11 @@ revision = 'ce8a1351ecdc'
 down_revision = '1797bff52162'
 
 import json
+
 from alembic import op
 from sqlalchemy import Text, text
 from sqlalchemy.dialects.postgresql import JSON
+
 from waiverdb.models.base import json_serializer
 
 
@@ -23,8 +25,11 @@ def upgrade():
     connection = op.get_bind()
     for row in connection.execute(text('SELECT id, subject FROM waiver')):
         fixed_subject = json_serializer(json.loads(row['subject']))
-        connection.execute(text('UPDATE waiver SET subject = :subject WHERE id = :id'),
-                           subject=fixed_subject, id=row['id'])
+        connection.execute(
+            text('UPDATE waiver SET subject = :subject WHERE id = :id'),
+            subject=fixed_subject,
+            id=row['id'],
+        )
 
     op.drop_index('ix_waiver_subject')
     op.alter_column('waiver', 'subject', type_=JSON, postgresql_using='subject::json')

@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 import time
+
 import click
 from flask.cli import FlaskGroup
 from sqlalchemy.exc import OperationalError
+
 from waiverdb.app import create_app
 from waiverdb.models import db
 
@@ -23,8 +25,8 @@ def wait_for_db():
         try:
             db.engine.connect()
         except OperationalError as e:
-            click.echo('Failed to connect to database: {}'.format(e))
-            click.echo('Sleeping for {} seconds...'.format(poll_interval))
+            click.echo(f'Failed to connect to database: {e}')
+            click.echo(f'Sleeping for {poll_interval} seconds...')
             time.sleep(poll_interval)
             click.echo('Retrying...')
         else:
