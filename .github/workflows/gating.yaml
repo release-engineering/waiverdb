@@ -16,6 +16,7 @@ jobs:
   tests:
     name: Unit tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       id-token: write
       contents: read
@@ -58,6 +59,7 @@ jobs:
   hadolint:
     name: Hadolint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         dockerfile:
@@ -80,6 +82,7 @@ jobs:
     name: Functional Tests
     needs: hadolint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       IMAGE_NAME: waiverdb
 
