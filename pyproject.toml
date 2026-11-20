@@ -31,7 +31,7 @@ dependencies = [
     # Capped below 2.1: opentelemetry-instrumentation-sqlalchemy does not
     # yet support SQLAlchemy 2.1, see
     # https://github.com/open-telemetry/opentelemetry-python-contrib/issues/5118
-    "SQLAlchemy>=2.1,<2.2",
+    "SQLAlchemy>=2.0,<2.1",
     "psycopg2-binary>=2.9.8",
     "gunicorn>=23.0.0",
     "requests>=2.32.0",
